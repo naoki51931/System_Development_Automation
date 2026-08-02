@@ -1,21 +1,22 @@
 from pathlib import Path
 
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
+
+from app.api.system import router as system_router
+from app.core.config import get_settings
+from app.web.routes import router as web_router
 
 BASE_DIR = Path(__file__).resolve().parent
-app = FastAPI(title="SystemNavigator AI")
-app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
-templates = Jinja2Templates(directory=BASE_DIR / "templates")
 
 
-@app.get("/", response_class=HTMLResponse, include_in_schema=False)
-def index(request: Request):
-    return templates.TemplateResponse(request=request, name="index.html")
+def create_app() -> FastAPI:
+    settings = get_settings()
+    application = FastAPI(title=settings.name)
+    application.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
+    application.include_router(web_router)
+    application.include_router(system_router)
+    return application
 
 
-@app.get("/health")
-def health():
-    return {"status": "ok"}
+app = create_app()

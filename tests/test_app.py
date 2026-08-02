@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 
-from app.main import app
+from app.main import app, create_app
 
 client = TestClient(app)
 
@@ -37,3 +37,10 @@ def test_unknown_api_path_returns_404():
     response = client.get("/api/v1/not-implemented")
 
     assert response.status_code == 404
+
+
+def test_application_factory_preserves_contract():
+    isolated_client = TestClient(create_app())
+
+    assert isolated_client.get("/health").json() == {"status": "ok"}
+    assert isolated_client.get("/").status_code == 200

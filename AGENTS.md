@@ -4,11 +4,14 @@ Update this file whenever implementation changes so documentation and code stay 
 
 ## Application structure
 
-- `app/main.py`: FastAPI entry point for `/`, `/health`, `/docs`, and `/static`.
+- `app/main.py`: FastAPI application factory and entry point; preserves `/docs` and mounts `/static`.
+- `app/core/config.py`: Environment-backed application settings with safe local defaults.
+- `app/api/system.py`: Deployment-compatible `/health` API route.
+- `app/web/routes.py`: Deployment-compatible server-rendered `/` route.
 - `app/templates/index.html`: Japanese Jinja2 top-page template titled and branded `SystemNavigator AI`.
 - `app/static/css/style.css`: Responsive, app-local CSS with no CDN or JavaScript dependency.
 - `tests/test_app.py`: Endpoint and top-page content tests.
-- `requirements.txt`: Runtime and test dependencies.
+- `requirements.txt`: Pinned runtime and test dependencies.
 
 ## Local startup and tests
 
