@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api.automation import router as automation_router
+from app.api.billing import router as billing_router
 from app.api.projects import router as projects_router
 from app.api.system import router as system_router
 from app.core.config import get_settings
@@ -23,6 +24,7 @@ def create_app() -> FastAPI:
     application.include_router(system_router)
     application.include_router(projects_router)
     application.include_router(automation_router)
+    application.include_router(billing_router)
     @application.exception_handler(AppError)
     async def app_error_handler(_request: Request, exc: AppError):
         return JSONResponse(status_code=ERROR_STATUS[exc.code], content={"error": {"code": exc.code, "message": exc.message}})

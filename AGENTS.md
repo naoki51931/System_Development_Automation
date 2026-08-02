@@ -95,3 +95,14 @@ Before apply, allow replacement of only the ECS task definition when it creates 
 - `docs/ai_storage_workflow.md`: storage key, billing, transition, retry, and concurrency contract.
 - Migration `0003_ai_storage_workflow` is additive. Generate SQL only with a local PostgreSQL URL; do not connect to RDS.
 - Tests use local PostgreSQL, local filesystem/MinIO, and MockAIProvider only. Never enable external AI or AWS S3 calls. Future credentials come from Secrets Manager and are never persisted.
+
+## Estimate/contract/payment phase
+
+- `app/models/billing.py`: tenant estimates/items, immutable pricing snapshots, contracts, payment metadata/intents/events, subscriptions/invoices, maintenance plans/contracts/events, and deletion requests.
+- `app/services/billing.py`: Decimal totals and tax, AI/artifact lines, contract acceptance, idempotent payment, UTC delinquency, recovery, two-person deletion approval, and webhook hashing.
+- `app/services/payment_providers.py`: PaymentProvider, deterministic local MockPaymentProvider, and network-disabled Stripe stub.
+- `app/api/billing.py`: authenticated estimate, contract, payment, maintenance, and mock webhook APIs.
+- `app/seed.py`: idempotent light, standard, and premium system maintenance plans.
+- `docs/estimate_contract_payment.md`: pricing, lifecycle, card-data prohibition, idempotency, and no-destroy contract.
+- Migration `215db73ed802` is additive; its SQL is generated offline. Use only local PostgreSQL for validation.
+- Never call Stripe, expose Stripe webhooks, accept card numbers/CVC, connect to Secrets Manager/RDS/AWS, run Terraform, send billing email, or execute deletion in this phase.

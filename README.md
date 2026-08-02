@@ -22,3 +22,9 @@ Terraform apply/destroy, AWS resource changes, ECR pushes, ECS deployments, RDS 
 AI settings resolve project -> organization -> safe system defaults. Billing uses Decimal/NUMERIC(18,8), rounds every non-zero partial minute up, and stores rate snapshots on each AI run. Artifact files use server-generated tenant keys and are verified by MIME type, size, and SHA-256 before immutable version registration. Review comments use audited state transitions, and SQLAlchemy version columns return conflicts instead of overwriting concurrent updates.
 
 See `docs/ai_storage_workflow.md` for APIs, validation, mock automatic revision, retry escalation, and locking. This phase never calls OpenAI, Anthropic, AWS S3, RDS, Terraform, ECR, ECS, or a public environment. External provider and S3 classes are disabled stubs. API keys are never stored; future runtime credentials will come from AWS Secrets Manager.
+
+## Estimate, contract, payment, and maintenance billing
+
+Server-side Decimal pricing now covers AI runtime, immutable artifact-value snapshots, manual work, discounts, and isolated tax calculation. Approved unexpired estimates become versioned contracts; customer and provider acceptance activate them. Idempotent MockPaymentProvider intents support succeeded, failed, and processing outcomes, and only success advances a project to requirements.
+
+Maintenance billing models 7/30/60/90-day delinquency boundaries. Day 90 creates a two-approver resource deletion request only—no AWS deletion or Terraform destroy exists. Card number, CVC, payment secrets, and raw webhook payloads are never stored. Stripe API and public Stripe webhooks remain disabled. See `docs/estimate_contract_payment.md`.

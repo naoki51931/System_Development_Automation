@@ -88,6 +88,41 @@ paths:
     post:
       summary: Resolve an accepted or authorized open comment
       responses: {"200": {description: Resolved}, "409": {description: Conflict or invalid transition}}
+  /api/v1/projects/{project_id}/estimates:
+    get: {summary: List tenant project estimates, responses: {"200": {description: OK}}}
+    post: {summary: Create a server-calculated estimate, responses: {"201": {description: Created}, "400": {description: INVALID_AMOUNT}}}
+  /api/v1/estimates/{estimate_id}:
+    get: {summary: Get estimate and immutable price lines, responses: {"200": {description: OK}, "403": {description: Forbidden}}}
+  /api/v1/estimates/{estimate_id}/submit:
+    post: {summary: Submit estimate, responses: {"200": {description: Submitted}, "409": {description: VERSION_CONFLICT}}}
+  /api/v1/estimates/{estimate_id}/approve:
+    post: {summary: Approve unexpired estimate, responses: {"200": {description: Approved}, "422": {description: ESTIMATE_EXPIRED}}}
+  /api/v1/estimates/{estimate_id}/reject:
+    post: {summary: Reject estimate, responses: {"200": {description: Rejected}, "409": {description: Invalid transition}}}
+  /api/v1/estimates/{estimate_id}/contracts:
+    post: {summary: Create contract from approved estimate, responses: {"201": {description: Created}, "400": {description: INVALID_ESTIMATE_STATE}}}
+  /api/v1/contracts/{contract_id}:
+    get: {summary: Get tenant contract, responses: {"200": {description: OK}, "404": {description: PAYMENT_RESOURCE_NOT_FOUND}}}
+  /api/v1/contracts/{contract_id}/customer-accept:
+    post: {summary: Record customer acceptance, responses: {"200": {description: Accepted}, "409": {description: VERSION_CONFLICT}}}
+  /api/v1/contracts/{contract_id}/provider-accept:
+    post: {summary: Record provider acceptance, responses: {"200": {description: Accepted}, "409": {description: VERSION_CONFLICT}}}
+  /api/v1/contracts/{contract_id}/payment-intents:
+    post: {summary: Create idempotent server-priced payment, responses: {"201": {description: Created}, "409": {description: DUPLICATE_PAYMENT}, "422": {description: AMOUNT_MISMATCH}}}
+  /api/v1/payment-intents/{payment_intent_id}/confirm:
+    post: {summary: Confirm mock payment, responses: {"200": {description: Confirmed}, "409": {description: DUPLICATE_PAYMENT}, "503": {description: PAYMENT_PROVIDER_UNAVAILABLE}}}
+  /api/v1/payment-intents/{payment_intent_id}:
+    get: {summary: Get tenant payment status, responses: {"200": {description: OK}, "404": {description: PAYMENT_RESOURCE_NOT_FOUND}}}
+  /api/v1/maintenance-plans:
+    get: {summary: List system and organization maintenance plans, responses: {"200": {description: OK}}}
+  /api/v1/projects/{project_id}/maintenance-contracts:
+    post: {summary: Start eligible maintenance contract, responses: {"201": {description: Created}, "400": {description: INVALID_CONTRACT_STATE}}}
+  /api/v1/maintenance-contracts/{maintenance_contract_id}:
+    get: {summary: Get maintenance billing state, responses: {"200": {description: OK}}}
+  /api/v1/maintenance-contracts/{maintenance_contract_id}/cancel:
+    post: {summary: Cancel maintenance contract, responses: {"200": {description: Cancelled}, "409": {description: VERSION_CONFLICT}}}
+  /api/v1/payment-webhooks/mock:
+    post: {summary: Receive authenticated signed local mock webhook, responses: {"200": {description: Processed}, "401": {description: Invalid signature}, "409": {description: WEBHOOK_ALREADY_PROCESSED}}}
 components:
   securitySchemes:
     bearerAuth:
