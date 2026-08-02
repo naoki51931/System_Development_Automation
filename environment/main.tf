@@ -1,0 +1,72 @@
+provider "aws" {
+  region              = var.aws_region
+  allowed_account_ids = [var.aws_account_id]
+
+  default_tags {
+    tags = {
+      System      = "ai-development-platform"
+      Environment = "prod"
+      Cloud       = "cloud-a"
+      ManagedBy   = "terraform"
+    }
+  }
+}
+
+module "network" {
+  source   = "../modules/network"
+  name     = var.name
+  vpc_cidr = var.vpc_cidr
+}
+
+module "storage" {
+  source      = "../modules/storage"
+  bucket_name = var.artifact_bucket_name
+}
+
+module "ecs" {
+  source             = "../modules/ecs"
+  name               = var.name
+  vpc_id             = module.network.vpc_id
+  public_subnet_ids  = module.network.public_subnet_ids
+  private_subnet_ids = module.network.private_subnet_ids
+  bucket_arn         = module.storage.bucket_arn
+  image_tag          = var.container_image_tag
+}
+
+module "database" {
+  source              = "../modules/database"
+  name                = var.name
+  instance_class      = var.db_instance_class
+  database_subnet_ids = module.network.database_subnet_ids
+  application_sg_id   = module.ecs.application_sg_id
+}
+
+resource "aws_iam_openid_connect_provider" "github" {
+  url            = "https://token.actions.githubusercontent.com"
+  client_id_list = ["sts.amazonaws.com"]
+}
+
+data "aws_iam_policy_document" "github_trust" {
+  statement {
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+    principals {
+      type        = "Federated"
+      identifiers = [aws_iam_openid_connect_provider.github.arn]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+    condition {
+      test     = "StringLike"
+      variable = "token.actions.githubusercontent.com:sub"
+      values   = ["repo:${var.github_org}/${var.github_repository}:*"]
+    }
+  }
+}
+
+resource "aws_iam_role" "github_deploy" {
+  name               = "${var.name}-github-deploy"
+  assume_role_policy = data.aws_iam_policy_document.github_trust.json
+}

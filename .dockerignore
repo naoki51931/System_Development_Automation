@@ -1,0 +1,12 @@
+.git
+.terraform
+**/.terraform
+*.tfstate
+*.tfstate.*
+*.tfplan
+terraform.tfvars
+backend.hcl
+__pycache__
+*.pyc
+.pytest_cache
+.venv

@@ -1,0 +1,6 @@
+bucket         = "REPLACE_STATE_BUCKET"
+key            = "cloud-a/prod/terraform.tfstate"
+region         = "ap-northeast-1"
+dynamodb_table = "ai-platform-terraform-locks"
+encrypt        = true
+kms_key_id     = "REPLACE_KMS_KEY_ARN"
