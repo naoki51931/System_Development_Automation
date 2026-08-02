@@ -43,7 +43,7 @@ def db_session(migrated_engine):  # type: ignore[no-untyped-def]
     with migrated_engine.begin() as connection:
         connection.execute(
             text(
-                "TRUNCATE audit_logs, membership_roles, organization_memberships, "
+                "TRUNCATE review_comments, reviews, approval_events, artifact_versions, artifacts, ai_runs, project_members, projects, audit_logs, membership_roles, organization_memberships, "
                 "roles, users, organizations CASCADE"
             )
         )

@@ -7,11 +7,15 @@ Update this file whenever implementation changes so documentation and code stay 
 - `app/main.py`: FastAPI application factory and entry point; preserves `/docs` and mounts `/static`.
 - `app/core/config.py`: Environment-backed application settings with safe local defaults.
 - `app/db`: Lazy PostgreSQL engine and session infrastructure; application startup does not connect.
-- `app/models`: Organizations, global users, membership-scoped RBAC, and append-only audit models.
+- `app/models`: Identity/RBAC plus tenant-scoped project, artifact, immutable version, review, AI-run, and approval-history models.
+- `app/services/workflow.py`: Tenant-safe project/artifact operations and validated review/approval state transitions.
+- `app/api/projects.py`: Authenticated minimal project, artifact, version, review, comment, submit, approve, and change-request APIs.
 - `app/auth`: Cognito access-token verifier abstraction plus FastAPI authentication and tenant authorization dependencies.
 - `app/seed.py`: Idempotent system-role seed command with no fixed role UUIDs.
 - `docs/identity_access.md`: ER, Cognito validation, tenant boundary, deletion, audit, and RDS preflight design.
-- `migrations`: Alembic baseline and additive identity-access migration; never apply to RDS without approval.
+- `docs/project_artifact_review.md`: Project/artifact ER, workflow, constraints, API, migration, and security design.
+- `schemas/openapi.yaml`: Versioned minimal API contract.
+- `migrations`: Alembic baseline plus additive identity-access and project-artifact-review migrations; never apply to RDS without approval.
 - `app/api/system.py`: Deployment-compatible `/health` API route.
 - `app/web/routes.py`: Deployment-compatible server-rendered `/` route.
 - `app/templates/index.html`: Japanese Jinja2 top-page template titled and branded `SystemNavigator AI`.
@@ -26,7 +30,7 @@ From `/home/ubuntu/ai-platform`:
 ```bash
 python -m pip install -r requirements.txt
 uvicorn app.main:app --host 0.0.0.0 --port 8000
-pytest -q
+TEST_DATABASE_URL=postgresql+psycopg://USER:PASSWORD@LOCAL_HOST/LOCAL_DB pytest -q
 APP_DATABASE_URL=postgresql+psycopg://USER:PASSWORD@HOST/DB alembic upgrade head --sql
 APP_DATABASE_URL=postgresql+psycopg://USER:PASSWORD@HOST/DB python -m app.seed
 ```
@@ -46,6 +50,8 @@ curl -i http://localhost:8000/docs
 docker logs ai-platform-local
 docker rm -f ai-platform-local
 ```
+
+Project/artifact migration revision `57d2abd856ae` adds eight tables and append-only/immutable triggers. Validate locally with downgrade to `0002_identity_access` followed by upgrade to `head`; never run the downgrade on RDS.
 
 ## ECS deployment
 

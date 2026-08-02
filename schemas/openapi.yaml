@@ -1,0 +1,60 @@
+openapi: 3.1.0
+info:
+  title: SystemNavigator AI API
+  version: 0.2.0
+security:
+  - bearerAuth: []
+paths:
+  /api/v1/projects:
+    get:
+      summary: List projects visible in an organization
+      responses: {"200": {description: OK}, "401": {description: Unauthorized}, "403": {description: Forbidden}}
+    post:
+      summary: Create a project
+      responses: {"201": {description: Created}, "401": {description: Unauthorized}, "403": {description: Forbidden}, "409": {description: Conflict}}
+  /api/v1/projects/{project_id}:
+    get:
+      summary: Get a tenant-scoped project
+      parameters: [{name: project_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: OK}, "403": {description: Forbidden}, "404": {description: Not found}}
+  /api/v1/projects/{project_id}/artifacts:
+    post:
+      summary: Create an artifact
+      parameters: [{name: project_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"201": {description: Created}, "403": {description: Forbidden}}
+  /api/v1/artifacts/{artifact_id}/versions:
+    post:
+      summary: Add an immutable artifact version
+      parameters: [{name: artifact_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"201": {description: Created}, "403": {description: Forbidden}, "409": {description: Invalid version}}
+  /api/v1/artifact-versions/{version_id}/reviews:
+    post:
+      summary: Create an AI or human review
+      parameters: [{name: version_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"201": {description: Created}, "403": {description: Forbidden}, "409": {description: Invalid review}}
+  /api/v1/reviews/{review_id}/comments:
+    post:
+      summary: Add a review comment
+      parameters: [{name: review_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"201": {description: Created}, "403": {description: Forbidden}}
+  /api/v1/artifact-versions/{version_id}/submit:
+    post:
+      summary: Submit a version for AI review
+      parameters: [{name: version_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: Submitted}, "409": {description: Invalid transition}}
+  /api/v1/artifact-versions/{version_id}/approve:
+    post:
+      summary: Approve a human-reviewed version
+      parameters: [{name: version_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: Approved}, "403": {description: Forbidden}, "409": {description: Invalid transition}}
+  /api/v1/artifact-versions/{version_id}/request-changes:
+    post:
+      summary: Request changes to a version
+      parameters: [{name: version_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: Changes requested}, "403": {description: Forbidden}, "409": {description: Invalid transition}}
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
