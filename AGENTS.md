@@ -53,3 +53,12 @@ terraform apply app-v4.tfplan
 ```
 
 Before apply, allow replacement of only the ECS task definition when it creates a new revision and updates the ECS service. Stop if the plan destroys RDS, S3, VPC, ALB, ECS cluster, Terraform state-related resources, or any other persistent infrastructure. Never commit `terraform.tfvars`, `backend.hcl`, saved plans, state, or secrets. After apply, wait for desired 1, running 1, pending 0, then verify `/`, `/health`, and `/docs` through the ALB.
+
+
+## Integration baseline
+
+- Baseline commit before design-package integration: `def4176`.
+- Preserve port `8000` and the existing ALB/ECS `/health` response during incremental integration.
+- Add new APIs under `/api/v1`; do not move or replace the public root page in the backend integration phase.
+- Keep `*-plan.txt`, saved Terraform plans, state, real tfvars, backend configuration, and secrets out of Git.
+- Do not run Terraform apply/destroy, change AWS resources, push images, or send external data until the exact action and impact have been reviewed and approved.

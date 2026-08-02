@@ -3,6 +3,7 @@
 *.tfstate
 *.tfstate.*
 *.tfplan
+*-plan.txt
 terraform.tfvars
 backend.hcl
 backend.hcl.bak
