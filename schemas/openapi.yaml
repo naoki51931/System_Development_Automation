@@ -52,6 +52,42 @@ paths:
       summary: Request changes to a version
       parameters: [{name: version_id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Changes requested}, "403": {description: Forbidden}, "409": {description: Invalid transition}}
+  /api/v1/ai-settings:
+    post:
+      summary: Create an organization or project AI setting
+      responses: {"201": {description: Created}, "403": {description: Forbidden}}
+  /api/v1/ai-settings/resolved:
+    get:
+      summary: Resolve project, organization, or system AI setting
+      responses: {"200": {description: Resolved setting}, "403": {description: Forbidden}}
+  /api/v1/ai-settings/{setting_id}:
+    patch:
+      summary: Update an AI setting with optimistic locking
+      responses: {"200": {description: Updated}, "409": {description: VERSION_CONFLICT}}
+  /api/v1/artifacts/{artifact_id}/upload-intents:
+    post:
+      summary: Create a server-keyed expiring upload intent
+      responses: {"201": {description: Created}, "413": {description: FILE_TOO_LARGE}, "415": {description: UNSUPPORTED_MEDIA_TYPE}}
+  /api/v1/artifact-versions/{version_id}/complete-upload:
+    post:
+      summary: Validate object hash, size, and MIME then finalize the version
+      responses: {"200": {description: Completed}, "409": {description: Invalid state}, "422": {description: HASH_MISMATCH}}
+  /api/v1/artifact-versions/{version_id}/download-url:
+    get:
+      summary: Create an opaque expiring tenant-authorized download URL
+      responses: {"200": {description: URL created}, "403": {description: Forbidden}, "404": {description: Not found}}
+  /api/v1/review-comments/{comment_id}/accept:
+    post:
+      summary: Accept an open review comment
+      responses: {"200": {description: Accepted}, "409": {description: Conflict or invalid transition}}
+  /api/v1/review-comments/{comment_id}/reject:
+    post:
+      summary: Reject an open review comment
+      responses: {"200": {description: Rejected}, "409": {description: Conflict or invalid transition}}
+  /api/v1/review-comments/{comment_id}/resolve:
+    post:
+      summary: Resolve an accepted or authorized open comment
+      responses: {"200": {description: Resolved}, "409": {description: Conflict or invalid transition}}
 components:
   securitySchemes:
     bearerAuth:

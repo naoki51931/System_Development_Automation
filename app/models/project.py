@@ -52,6 +52,8 @@ class Project(TimestampMixin, Base):
     customer_user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="RESTRICT"))
     project_manager_user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="RESTRICT"))
     archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    __mapper_args__ = {"version_id_col": version}
     __table_args__ = (
         UniqueConstraint("organization_id", "project_code", name="uq_projects_organization_code"),
         CheckConstraint(f"status IN ({sql_values(PROJECT_STATUSES)})", name="ck_projects_status"),
@@ -91,6 +93,11 @@ class AIRun(Base):
     output_tokens: Mapped[int | None] = mapped_column(Integer)
     duration_ms: Mapped[int | None] = mapped_column(Integer)
     estimated_cost: Mapped[Decimal | None] = mapped_column(Numeric(18, 8))
+    billed_minutes: Mapped[int | None] = mapped_column(Integer)
+    minute_rate_snapshot: Mapped[Decimal | None] = mapped_column(Numeric(18, 8))
+    input_rate_snapshot: Mapped[Decimal | None] = mapped_column(Numeric(18, 8))
+    output_rate_snapshot: Mapped[Decimal | None] = mapped_column(Numeric(18, 8))
+    calculated_cost: Mapped[Decimal | None] = mapped_column(Numeric(18, 8))
     request_hash: Mapped[str | None] = mapped_column(String(128))
     prompt_version: Mapped[str | None] = mapped_column(String(50))
     retry_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
@@ -98,12 +105,16 @@ class AIRun(Base):
     error_message_sanitized: Mapped[str | None] = mapped_column(Text)
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    __mapper_args__ = {"version_id_col": version}
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     __table_args__ = (
         CheckConstraint(f"provider IN ({sql_values(AI_PROVIDERS)})", name="ck_ai_runs_provider"),
         CheckConstraint(f"operation_type IN ({sql_values(AI_OPERATIONS)})", name="ck_ai_runs_operation"),
         CheckConstraint("retry_count >= 0", name="ck_ai_runs_retry_count"),
         CheckConstraint("estimated_cost IS NULL OR estimated_cost >= 0", name="ck_ai_runs_cost"),
+        CheckConstraint("billed_minutes IS NULL OR billed_minutes >= 0", name="ck_ai_runs_billed_minutes"),
+        CheckConstraint("calculated_cost IS NULL OR calculated_cost >= 0", name="ck_ai_runs_calculated_cost"),
         Index("ix_ai_runs_project_created", "project_id", "created_at"),
         Index("ix_ai_runs_organization_status", "organization_id", "status"),
     )
@@ -119,6 +130,8 @@ class Artifact(TimestampMixin, Base):
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="draft")
     current_version_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("artifact_versions.id", ondelete="RESTRICT", use_alter=True, name="fk_artifacts_current_version"))
     created_by_user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"))
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    __mapper_args__ = {"version_id_col": version}
     versions: Mapped[list["ArtifactVersion"]] = relationship(back_populates="artifact", foreign_keys="ArtifactVersion.artifact_id")
     __table_args__ = (
         CheckConstraint(f"artifact_type IN ({sql_values(ARTIFACT_TYPES)})", name="ck_artifacts_type"),
@@ -168,6 +181,8 @@ class Review(Base):
     summary: Mapped[str | None] = mapped_column(Text)
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    __mapper_args__ = {"version_id_col": version}
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     __table_args__ = (
         CheckConstraint(f"review_type IN ({sql_values(REVIEW_TYPES)})", name="ck_reviews_type"),

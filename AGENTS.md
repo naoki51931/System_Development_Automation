@@ -84,3 +84,14 @@ Before apply, allow replacement of only the ECS task definition when it creates 
 - Add new APIs under `/api/v1`; do not move or replace the public root page in the backend integration phase.
 - Keep `*-plan.txt`, saved Terraform plans, state, real tfvars, backend configuration, and secrets out of Git.
 - Do not run Terraform apply/destroy, change AWS resources, push images, or send external data until the exact action and impact have been reviewed and approved.
+
+## AI/storage workflow phase
+
+- `app/models/automation.py`: tenant-scoped AI settings, bounded workflow jobs, and upload intents.
+- `app/services/automation.py`: setting resolution, Decimal billing snapshots, uploads, audited comment transitions, optimistic locking, and bounded mock revision.
+- `app/services/ai_providers.py`: AIProvider, local MockAIProvider, and network-disabled OpenAI/Anthropic stubs.
+- `app/services/storage.py`: ArtifactStorage, validated local storage, and network-disabled S3 stub.
+- `app/api/automation.py`: AI setting, upload intent/completion/download, and review comment action APIs.
+- `docs/ai_storage_workflow.md`: storage key, billing, transition, retry, and concurrency contract.
+- Migration `0003_ai_storage_workflow` is additive. Generate SQL only with a local PostgreSQL URL; do not connect to RDS.
+- Tests use local PostgreSQL, local filesystem/MinIO, and MockAIProvider only. Never enable external AI or AWS S3 calls. Future credentials come from Secrets Manager and are never persisted.
