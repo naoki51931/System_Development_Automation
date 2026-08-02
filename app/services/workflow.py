@@ -138,6 +138,10 @@ def submit_version(session: Session, artifact: Artifact, version: ArtifactVersio
     action = "resubmitted" if artifact.status == "revision_requested" else "submitted"
     artifact.status = "ai_reviewing"
     _event(session, artifact, version, access.user.id, action)
+    project = session.get(Project, artifact.project_id)
+    if project is not None:
+        from app.services.communications import emit_project_event
+        emit_project_event(session, project, event_type="artifact_review_requested", title="Artifact review requested", body=f"Artifact {artifact.title} was submitted for review.", severity="info", action_url=f"/artifacts/{artifact.id}", actor_user_id=access.user.id, aggregate_type="artifact", aggregate_id=artifact.id)
 
 
 def move_to_human_review(session: Session, artifact: Artifact, version: ArtifactVersion, *, passing_score: int = AI_PASSING_SCORE_DEFAULT) -> None:
@@ -160,6 +164,10 @@ def approve_version(session: Session, artifact: Artifact, version: ArtifactVersi
         raise domain_error("Unresolved critical comments prevent approval")
     artifact.status = "approved"
     _event(session, artifact, version, access.user.id, "approved", comment)
+    project = session.get(Project, artifact.project_id)
+    if project is not None:
+        from app.services.communications import emit_project_event
+        emit_project_event(session, project, event_type="artifact_approved", title="Artifact approved", body=f"Artifact {artifact.title} was approved.", severity="success", action_url=f"/artifacts/{artifact.id}", actor_user_id=access.user.id, aggregate_type="artifact", aggregate_id=artifact.id)
 
 
 def request_changes(session: Session, artifact: Artifact, version: ArtifactVersion, access: OrganizationAccess, comment: str) -> None:
@@ -170,6 +178,10 @@ def request_changes(session: Session, artifact: Artifact, version: ArtifactVersi
         raise domain_error("Changes cannot be requested")
     artifact.status = "revision_requested"
     _event(session, artifact, version, access.user.id, "changes_requested", comment)
+    project = session.get(Project, artifact.project_id)
+    if project is not None:
+        from app.services.communications import emit_project_event
+        emit_project_event(session, project, event_type="artifact_changes_requested", title="Artifact changes requested", body=f"Changes were requested for artifact {artifact.title}.", severity="warning", action_url=f"/artifacts/{artifact.id}", actor_user_id=access.user.id, aggregate_type="artifact", aggregate_id=artifact.id)
 
 
 SECRET_PATTERN = re.compile(r"(?i)(api[_-]?key|token|secret|password)\s*[:=]\s*\S+")

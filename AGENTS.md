@@ -106,3 +106,15 @@ Before apply, allow replacement of only the ECS task definition when it creates 
 - `docs/estimate_contract_payment.md`: pricing, lifecycle, card-data prohibition, idempotency, and no-destroy contract.
 - Migration `215db73ed802` is additive; its SQL is generated offline. Use only local PostgreSQL for validation.
 - Never call Stripe, expose Stripe webhooks, accept card numbers/CVC, connect to Secrets Manager/RDS/AWS, run Terraform, send billing email, or execute deletion in this phase.
+
+## Notifications/documents/chat phase
+
+- `app/models/communications.py`: preferences, notifications/deliveries, versioned templates/messages, generation jobs, chat, change impacts, and local outbox.
+- `app/services/communication_providers.py`: Mock notification/email providers and network-disabled SES/SMTP stubs.
+- `app/services/communications.py`: quiet-hour scheduling, secret/XSS sanitization, allowlisted rendering, local PDF/artifact generation, chat authorization, MockAI analysis, and idempotent events.
+- `app/api/communications.py`: authenticated notification, document, email, chat, attachment, and change-request APIs.
+- `app/seed.py`: approved system-default email template versions in addition to roles and maintenance plans.
+- `docs/notifications_documents_chat.md`: provider boundaries, templates, PDF, artifact relationships, chat/change flow, outbox, and security.
+- Migration `d8685773bc4a` is additive and has offline SQL. Validate only with local PostgreSQL.
+- Use only LocalArtifactStorage, MockEmailProvider, MockNotificationProvider, and MockAIProvider. Never connect to SES/SMTP/S3/external AI/RDS/AWS or expose public WebSockets.
+- Future SES, S3, and provider credentials must come from Secrets Manager at runtime; never persist or log them.

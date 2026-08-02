@@ -231,6 +231,10 @@ def transition_estimate(session: Session, estimate: Estimate, access: Organizati
         estimate.approved_at = datetime.now(timezone.utc)
     estimate.status = target
     safe_flush(session)
+    project = session.get(Project, estimate.project_id)
+    if project is not None and action in {"submit", "approve"}:
+        from app.services.communications import emit_project_event
+        emit_project_event(session, project, event_type="estimate_submitted" if action == "submit" else "estimate_approved", title=f"Estimate {action}", body=f"Estimate {estimate.estimate_number} was {action}ed.", severity="success" if action == "approve" else "info", action_url=f"/estimates/{estimate.id}", actor_user_id=access.user.id, aggregate_type="estimate", aggregate_id=estimate.id)
     return estimate
 
 
@@ -282,6 +286,11 @@ def accept_contract(session: Session, contract: Contract, access: OrganizationAc
         request_id=request_id, before={"status": before}, after={"status": contract.status, "terms_version": contract.terms_version},
     )
     safe_flush(session)
+    if contract.status == "active":
+        from app.services.communications import emit_project_event
+        project = session.get(Project, contract.project_id)
+        if project is not None:
+            emit_project_event(session, project, event_type="contract_activated", title="Contract activated", body=f"Contract {contract.contract_number} is active.", severity="success", action_url=f"/contracts/{contract.id}", actor_user_id=access.user.id, aggregate_type="contract", aggregate_id=contract.id)
     return contract
 
 
@@ -341,6 +350,8 @@ def confirm_contract_payment(session: Session, intent: PaymentIntent, contract: 
         project.status = "requirements"
         project.current_phase = "requirements"
     safe_flush(session)
+    from app.services.communications import emit_project_event
+    emit_project_event(session, project, event_type="payment_succeeded" if intent.status == "succeeded" else "payment_failed" if intent.status == "failed" else "payment_processing", title=f"Payment {intent.status}", body=f"Payment for contract {contract.contract_number} is {intent.status}.", severity="success" if intent.status == "succeeded" else "error" if intent.status == "failed" else "info", action_url=f"/payments/{intent.id}", actor_user_id=access.user.id, aggregate_type="payment_intent", aggregate_id=intent.id)
     return intent
 
 
@@ -382,6 +393,10 @@ def mark_maintenance_payment_failed(session: Session, contract: MaintenanceContr
     if contract.grace_period_started_at is None:
         contract.grace_period_started_at = now
     record_maintenance_event(session, contract, old, "past_due", "payment_failed", now)
+    project = session.get(Project, contract.project_id)
+    if project is not None:
+        from app.services.communications import emit_project_event
+        emit_project_event(session, project, event_type="maintenance_past_due", title="Maintenance payment past due", body="Maintenance payment is past due.", severity="warning", action_url=f"/maintenance-contracts/{contract.id}", aggregate_type="maintenance_contract", aggregate_id=contract.id)
     return contract
 
 
@@ -409,6 +424,11 @@ def advance_maintenance_delinquency(session: Session, contract: MaintenanceContr
         elif target == "deletion_scheduled":
             contract.deletion_scheduled_at = now
         record_maintenance_event(session, contract, old, target, "delinquency_age", now)
+        if target == "suspended":
+            project = session.get(Project, contract.project_id)
+            if project is not None:
+                from app.services.communications import emit_project_event
+                emit_project_event(session, project, event_type="maintenance_suspended", title="Maintenance suspended", body="Maintenance service is suspended.", severity="critical", action_url=f"/maintenance-contracts/{contract.id}", aggregate_type="maintenance_contract", aggregate_id=contract.id)
     if contract.status != "deletion_scheduled":
         return None
     existing = session.scalar(select(ResourceDeletionRequest).where(ResourceDeletionRequest.maintenance_contract_id == contract.id, ResourceDeletionRequest.status.notin_(["cancelled", "failed"])))

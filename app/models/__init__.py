@@ -4,14 +4,19 @@ from app.models.billing import (
     MaintenanceStatusEvent, PaymentCustomer, PaymentEvent, PaymentIntent, PaymentMethod, PricingRule,
     ResourceDeletionRequest, Subscription, SubscriptionInvoice,
 )
+from app.models.communications import (
+    ChangeRequest, ChangeRequestImpact, ChatAttachment, ChatMessage, ChatRoom, DocumentGenerationJob,
+    DocumentTemplate, EmailMessage, EmailTemplate, Notification, NotificationDelivery,
+    NotificationPreference, OutboxEvent,
+)
 from app.models.identity import AuditLog, MembershipRole, Organization, OrganizationMembership, Role, User
 from app.models.automation import AISetting, ArtifactUploadIntent, WorkflowJob
 from app.models.project import AIRun, ApprovalEvent, Artifact, ArtifactVersion, Project, ProjectMember, Review, ReviewComment
 
 __all__ = [
-    "AISetting", "AIRun", "ArtifactPricingSnapshot", "Contract", "Estimate", "EstimateItem", "ArtifactUploadIntent", "ApprovalEvent", "Artifact", "ArtifactVersion", "AuditLog", "Base",
+    "AISetting", "AIRun", "ChangeRequest", "ChangeRequestImpact", "ChatAttachment", "ChatMessage", "ChatRoom", "ArtifactPricingSnapshot", "Contract", "Estimate", "EstimateItem", "ArtifactUploadIntent", "ApprovalEvent", "Artifact", "ArtifactVersion", "AuditLog", "Base",
     "MembershipRole", "Organization", "OrganizationMembership", "Project", "ProjectMember",
-    "MaintenanceContract", "MaintenancePlan", "MaintenanceStatusEvent", "PaymentCustomer", "PaymentEvent",
-    "PaymentIntent", "PaymentMethod", "PricingRule", "ResourceDeletionRequest",     "Review", "ReviewComment", "Role", "User", "WorkflowJob",
+    "DocumentGenerationJob", "DocumentTemplate", "EmailMessage", "EmailTemplate",     "MaintenanceContract", "MaintenancePlan", "MaintenanceStatusEvent", "PaymentCustomer", "PaymentEvent",
+    "Notification", "NotificationDelivery", "NotificationPreference", "OutboxEvent",     "PaymentIntent", "PaymentMethod", "PricingRule", "ResourceDeletionRequest",     "Review", "ReviewComment", "Role", "User", "WorkflowJob",
     "Subscription", "SubscriptionInvoice",
 ]

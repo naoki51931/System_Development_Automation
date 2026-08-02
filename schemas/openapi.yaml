@@ -123,6 +123,45 @@ paths:
     post: {summary: Cancel maintenance contract, responses: {"200": {description: Cancelled}, "409": {description: VERSION_CONFLICT}}}
   /api/v1/payment-webhooks/mock:
     post: {summary: Receive authenticated signed local mock webhook, responses: {"200": {description: Processed}, "401": {description: Invalid signature}, "409": {description: WEBHOOK_ALREADY_PROCESSED}}}
+  /api/v1/notifications:
+    get: {summary: List current user notifications, responses: {"200": {description: OK}}}
+  /api/v1/notifications/{notification_id}/read:
+    post: {summary: Mark notification read with optimistic locking, responses: {"200": {description: Read}, "409": {description: VERSION_CONFLICT}}}
+  /api/v1/notifications/read-all:
+    post: {summary: Mark all current user notifications read, responses: {"200": {description: Updated}}}
+  /api/v1/notification-preferences:
+    get: {summary: List current user notification preferences, responses: {"200": {description: OK}}}
+  /api/v1/notification-preferences/{preference_id}:
+    patch: {summary: Update quiet hours and delivery preference, responses: {"200": {description: Updated}, "409": {description: VERSION_CONFLICT}}}
+  /api/v1/projects/{project_id}/documents/generate:
+    post: {summary: Generate local HTML Markdown or PDF artifact, responses: {"201": {description: Completed}, "409": {description: DOCUMENT_ALREADY_GENERATED}, "422": {description: DOCUMENT_GENERATION_FAILED}}}
+  /api/v1/document-generation-jobs/{job_id}:
+    get: {summary: Get tenant document job, responses: {"200": {description: OK}}}
+  /api/v1/artifact-versions/{version_id}/document-download-url:
+    get: {summary: Get opaque expiring document URL, responses: {"200": {description: OK}, "403": {description: Forbidden}}}
+  /api/v1/artifact-versions/{version_id}/send-email:
+    post: {summary: Send approved document URL through MockEmailProvider, responses: {"200": {description: Sent}, "403": {description: DOCUMENT_SEND_FORBIDDEN}, "503": {description: EMAIL_PROVIDER_UNAVAILABLE}}}
+  /api/v1/projects/{project_id}/chat-rooms:
+    get: {summary: List tenant project chat rooms, responses: {"200": {description: OK}, "403": {description: CHAT_ACCESS_FORBIDDEN}}}
+    post: {summary: Create project chat room, responses: {"201": {description: Created}}}
+  /api/v1/chat-rooms/{room_id}/messages:
+    get: {summary: List authorized room messages, responses: {"200": {description: OK}, "404": {description: CHAT_ROOM_NOT_FOUND}}}
+    post: {summary: Post safe plain text message, responses: {"201": {description: Created}, "409": {description: INVALID_CHAT_STATE}}}
+  /api/v1/chat-messages/{message_id}:
+    patch: {summary: Edit own message with optimistic locking, responses: {"200": {description: Edited}, "409": {description: VERSION_CONFLICT}}}
+    delete: {summary: Logically delete message, responses: {"200": {description: Deleted}}}
+  /api/v1/chat-messages/{message_id}/attachments:
+    post: {summary: Attach verified artifact version, responses: {"201": {description: Created}, "413": {description: ATTACHMENT_TOO_LARGE}, "415": {description: UNSUPPORTED_ATTACHMENT_TYPE}}}
+  /api/v1/chat-messages/{message_id}/change-requests:
+    post: {summary: Convert chat message to change request, responses: {"201": {description: Created}}}
+  /api/v1/change-requests/{change_request_id}:
+    get: {summary: Get change request and impacts, responses: {"200": {description: OK}}}
+  /api/v1/change-requests/{change_request_id}/analyze:
+    post: {summary: Run local MockAI impact analysis, responses: {"200": {description: Analyzed}}}
+  /api/v1/change-requests/{change_request_id}/approve:
+    post: {summary: Customer approve analyzed change, responses: {"200": {description: Approved}}}
+  /api/v1/change-requests/{change_request_id}/reject:
+    post: {summary: Customer reject analyzed change, responses: {"200": {description: Rejected}}}
 components:
   securitySchemes:
     bearerAuth:

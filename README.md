@@ -28,3 +28,9 @@ See `docs/ai_storage_workflow.md` for APIs, validation, mock automatic revision,
 Server-side Decimal pricing now covers AI runtime, immutable artifact-value snapshots, manual work, discounts, and isolated tax calculation. Approved unexpired estimates become versioned contracts; customer and provider acceptance activate them. Idempotent MockPaymentProvider intents support succeeded, failed, and processing outcomes, and only success advances a project to requirements.
 
 Maintenance billing models 7/30/60/90-day delinquency boundaries. Day 90 creates a two-approver resource deletion request only—no AWS deletion or Terraform destroy exists. Card number, CVC, payment secrets, and raw webhook payloads are never stored. Stripe API and public Stripe webhooks remain disabled. See `docs/estimate_contract_payment.md`.
+
+## Local notifications, documents, and project chat
+
+Tenant notification preferences now support IANA timezones, quiet hours, digests, critical-event overrides, deduplicated deliveries, and audited critical alerts. Email uses allowlisted templates and one-recipient snapshots through MockEmailProvider only; SES/SMTP remain disabled.
+
+Approved estimate, contract, and basic-design data can produce local HTML, Markdown, or PDF artifact versions with SHA-256 and idempotent jobs. Project chat uses membership checks, safe plain text, logical deletion, verified artifact attachments, explicit AI identity, and MockAI-assisted change impacts that always await human/customer approval. A local outbox prevents duplicate event, notification, and email processing. See `docs/notifications_documents_chat.md`.
