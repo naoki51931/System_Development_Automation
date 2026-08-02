@@ -7,8 +7,11 @@ Update this file whenever implementation changes so documentation and code stay 
 - `app/main.py`: FastAPI application factory and entry point; preserves `/docs` and mounts `/static`.
 - `app/core/config.py`: Environment-backed application settings with safe local defaults.
 - `app/db`: Lazy PostgreSQL engine and session infrastructure; application startup does not connect.
-- `app/models`: SQLAlchemy metadata registry; schema models are intentionally pending.
-- `migrations`: Alembic configuration; an empty baseline revision exists; no domain tables are created yet.
+- `app/models`: Organizations, global users, membership-scoped RBAC, and append-only audit models.
+- `app/auth`: Cognito access-token verifier abstraction plus FastAPI authentication and tenant authorization dependencies.
+- `app/seed.py`: Idempotent system-role seed command with no fixed role UUIDs.
+- `docs/identity_access.md`: ER, Cognito validation, tenant boundary, deletion, audit, and RDS preflight design.
+- `migrations`: Alembic baseline and additive identity-access migration; never apply to RDS without approval.
 - `app/api/system.py`: Deployment-compatible `/health` API route.
 - `app/web/routes.py`: Deployment-compatible server-rendered `/` route.
 - `app/templates/index.html`: Japanese Jinja2 top-page template titled and branded `SystemNavigator AI`.
@@ -25,6 +28,7 @@ python -m pip install -r requirements.txt
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 pytest -q
 APP_DATABASE_URL=postgresql+psycopg://USER:PASSWORD@HOST/DB alembic upgrade head --sql
+APP_DATABASE_URL=postgresql+psycopg://USER:PASSWORD@HOST/DB python -m app.seed
 ```
 
 `/health` must return `{"status":"ok"}` and Swagger UI remains at `/docs`.
@@ -63,6 +67,11 @@ Before apply, allow replacement of only the ECS task definition when it creates 
 
 
 ## Integration baseline
+
+- Authentication target is AWS Cognito access tokens; verify signature, issuer, expiry, subject, token_use, and client_id or audience. Do not create or change Cognito resources without approval.
+- Users are global by unique lowercase email and unique Cognito sub; organization roles belong to memberships, not directly to users.
+- Authorization order is JWT, user status, membership, membership role, resource organization, then operation.
+- RDS connections and migrations require explicit approval; local PostgreSQL is the only allowed migration target during development.
 
 - Baseline commit before design-package integration: `def4176`.
 - Preserve port `8000` and the existing ALB/ECS `/health` response during incremental integration.
