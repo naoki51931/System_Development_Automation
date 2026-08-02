@@ -6,6 +6,9 @@ Update this file whenever implementation changes so documentation and code stay 
 
 - `app/main.py`: FastAPI application factory and entry point; preserves `/docs` and mounts `/static`.
 - `app/core/config.py`: Environment-backed application settings with safe local defaults.
+- `app/db`: Lazy PostgreSQL engine and session infrastructure; application startup does not connect.
+- `app/models`: SQLAlchemy metadata registry; schema models are intentionally pending.
+- `migrations`: Alembic configuration; an empty baseline revision exists; no domain tables are created yet.
 - `app/api/system.py`: Deployment-compatible `/health` API route.
 - `app/web/routes.py`: Deployment-compatible server-rendered `/` route.
 - `app/templates/index.html`: Japanese Jinja2 top-page template titled and branded `SystemNavigator AI`.
@@ -21,6 +24,7 @@ From `/home/ubuntu/ai-platform`:
 python -m pip install -r requirements.txt
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 pytest -q
+APP_DATABASE_URL=postgresql+psycopg://USER:PASSWORD@HOST/DB alembic upgrade head --sql
 ```
 
 `/health` must return `{"status":"ok"}` and Swagger UI remains at `/docs`.
