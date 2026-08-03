@@ -1,0 +1,1 @@
+import{test,expect}from"@playwright/test";test("ブランドとローカルログイン",async({page})=>{await page.goto("/login");await expect(page.getByRole("heading",{name:/SystemNavigator AI/})).toBeVisible();await expect(page.getByText("AIと人が、システム開発を完成までナビゲート。")).toBeVisible()});

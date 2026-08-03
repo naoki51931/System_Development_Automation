@@ -1,0 +1,40 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: systemnavigator
+      POSTGRES_USER: systemnavigator
+      POSTGRES_PASSWORD: local-only-password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U systemnavigator"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    volumes: ["postgres-local:/var/lib/postgresql/data"]
+  backend:
+    build: .
+    environment: &backend-env
+      APP_ENV: development
+      APP_DATABASE_URL: postgresql+psycopg://systemnavigator:local-only-password@postgres/systemnavigator
+      APP_LOCAL_AUTH_ENABLED: "true"
+      APP_LOCAL_AUTH_SECRET: local-compose-secret-change-me
+      APP_FRONTEND_ORIGIN: http://localhost:3000
+    command: sh -c "alembic upgrade head && python -m app.seed && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    depends_on: {postgres: {condition: service_healthy}}
+    ports: ["8000:8000"]
+    volumes: ["local-artifacts:/tmp/systemnavigator-artifacts"]
+  worker:
+    build: .
+    environment: *backend-env
+    command: python -m app.workers.runner
+    depends_on: {backend: {condition: service_started}}
+    volumes: ["local-artifacts:/tmp/systemnavigator-artifacts"]
+  frontend:
+    build: ./frontend
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000/api/v1
+    depends_on: [backend]
+    ports: ["3000:3000"]
+volumes:
+  postgres-local:
+  local-artifacts:

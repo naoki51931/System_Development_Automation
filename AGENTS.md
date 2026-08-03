@@ -118,3 +118,13 @@ Before apply, allow replacement of only the ECS task definition when it creates 
 - Migration `d8685773bc4a` is additive and has offline SQL. Validate only with local PostgreSQL.
 - Use only LocalArtifactStorage, MockEmailProvider, MockNotificationProvider, and MockAIProvider. Never connect to SES/SMTP/S3/external AI/RDS/AWS or expose public WebSockets.
 - Future SES, S3, and provider credentials must come from Secrets Manager at runtime; never persist or log them.
+
+## Web portal and local worker phase
+
+- `frontend/` is the separate Next.js/TypeScript application. It uses only local CSS, a shared cookie/CSRF API client, accessible responsive shell, role-oriented portal/admin screens, and no external UI service.
+- `app/api/local_auth.py` provides development-only test-user login with a short-lived HttpOnly signed cookie. Tokens contain only the immutable user subject; organization and roles are always loaded from PostgreSQL. `APP_ENV=production` or `APP_LOCAL_AUTH_ENABLED=false` disables LocalAuth. Cognito remains a network-disabled stub.
+- `app/api/pagination.py` signs `created_at + id` cursors with HMAC, rejects tampering, caps pages at 100, and always applies tenant filters before cursors.
+- `app/workers/` claims Outbox jobs with `FOR UPDATE SKIP LOCKED`, worker identity, heartbeat, expiring lease, bounded exponential retry, idempotency constraints, and dead letter state. Providers remain local mocks.
+- Migration `6b1e4c9f2a10` only adds Outbox lease/retry columns and an index; offline SQL is committed. Never apply it to RDS in this phase.
+- `compose.yaml` starts local PostgreSQL, backend, frontend, and worker. It contains local-only credentials and never enables Cognito, Stripe, SES, S3, external AI, AWS, or public deployment.
+- Run `docker compose up --build`, `docker compose run --rm backend python -m pytest -q`, and `docker compose run --rm frontend npm test`. LocalAuth must never be enabled in a production environment.

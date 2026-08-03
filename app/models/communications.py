@@ -294,14 +294,21 @@ class OutboxEvent(Base):
     aggregate_type: Mapped[str] = mapped_column(String(100), nullable=False)
     aggregate_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     payload_hash: Mapped[str] = mapped_column(String(64), nullable=False)
-    status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="queued")
     attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    max_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=5)
     available_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    locked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    locked_by: Mapped[str | None] = mapped_column(String(100))
+    lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    heartbeat_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_error_code: Mapped[str | None] = mapped_column(String(100))
+    dead_lettered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     __table_args__ = (
         UniqueConstraint("organization_id", "event_type", "aggregate_type", "aggregate_id", "payload_hash", name="uq_outbox_events_deduplication"),
-        CheckConstraint("status IN ('pending','processing','processed','failed')", name="ck_outbox_events_status"),
+        CheckConstraint("status IN ('pending','processed','failed','queued','processing','completed','retry_wait','dead_letter')", name="ck_outbox_events_status"),
         CheckConstraint("attempt_count >= 0", name="ck_outbox_events_attempts"),
         Index("ix_outbox_events_available", "status", "available_at"),
     )

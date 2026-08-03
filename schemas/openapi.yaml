@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: SystemNavigator AI API
-  version: 0.2.0
+  version: 0.3.0
 security:
   - bearerAuth: []
 paths:
@@ -162,6 +162,23 @@ paths:
     post: {summary: Customer approve analyzed change, responses: {"200": {description: Approved}}}
   /api/v1/change-requests/{change_request_id}/reject:
     post: {summary: Customer reject analyzed change, responses: {"200": {description: Rejected}}}
+  /api/v1/auth/local/users:
+    get: {summary: List active local test users (development only), responses: {"200": {description: OK}, "404": {description: LocalAuth disabled}}}
+  /api/v1/auth/local/login:
+    post: {summary: Create short-lived HttpOnly local session, responses: {"200": {description: Logged in}, "401": {description: Inactive user}}}
+  /api/v1/auth/switch-organization:
+    post: {summary: Switch only to an active membership, responses: {"200": {description: Switched}, "403": {description: Forbidden}}}
+  /api/v1/admin/dead-letters:
+    get: {summary: List tenant dead letters for administrators, responses: {"200": {description: OK}, "403": {description: Forbidden}}}
+  /api/v1/admin/dead-letters/{job_id}/retry:
+    post: {summary: Requeue dead letter as administrator, responses: {"200": {description: Queued}, "403": {description: Forbidden}}}
+  /api/v1/artifacts:
+    get: {summary: Cursor-page tenant artifacts, responses: {"200": {description: Cursor page}, "400": {description: INVALID_CURSOR}}}
+  /api/v1/reviews:
+    get: {summary: Cursor-page tenant reviews, responses: {"200": {description: Cursor page}, "400": {description: INVALID_CURSOR}}}
+  /api/v1/outbox-events:
+    get: {summary: Cursor-page tenant Outbox events for administrators, responses: {"200": {description: Cursor page}, "403": {description: Forbidden}}}
+
 components:
   securitySchemes:
     bearerAuth:

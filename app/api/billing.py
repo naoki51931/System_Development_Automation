@@ -5,7 +5,7 @@ from datetime import date, datetime, timezone
 from decimal import Decimal
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -153,10 +153,10 @@ def post_estimate(project_id: uuid.UUID, payload: EstimateCreateInput, authentic
 
 
 @router.get("/projects/{project_id}/estimates")
-def list_estimates(project_id: uuid.UUID, authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)], session: Annotated[Session, Depends(get_session)]):
+def list_estimates(project_id: uuid.UUID, authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)], session: Annotated[Session, Depends(get_session)], cursor: str | None = None, page_size: int = Query(50, ge=1, le=100)):
     project, _access = get_project_context(session, project_id, authenticated)
-    estimates = session.scalars(select(Estimate).where(Estimate.organization_id == project.organization_id, Estimate.project_id == project.id).order_by(Estimate.created_at.desc())).all()
-    return [estimate_json(item, session) for item in estimates]
+    statement = select(Estimate).where(Estimate.organization_id == project.organization_id, Estimate.project_id == project.id)
+    return paginate_query(session, statement, Estimate, cursor, page_size, lambda item: estimate_json(item, session))
 
 
 @router.get("/estimates/{estimate_id}")

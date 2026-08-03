@@ -22,3 +22,9 @@ __pycache__/
 
 # Logs
 *.log
+
+# Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/test-results/
+frontend/playwright-report/

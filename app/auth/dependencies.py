@@ -47,11 +47,13 @@ def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],
     verifier: Annotated[AccessTokenVerifier, Depends(get_token_verifier)],
     session: Annotated[Session, Depends(get_session)],
+    request: Request,
 ) -> AuthenticatedUser:
-    if credentials is None or credentials.scheme.lower() != "bearer":
+    raw_token = credentials.credentials if credentials and credentials.scheme.lower() == "bearer" else request.cookies.get("sn_session")
+    if not raw_token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
     try:
-        token = verifier.verify(credentials.credentials)
+        token = verifier.verify(raw_token)
     except TokenVerificationError as exc:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid access token") from exc
 

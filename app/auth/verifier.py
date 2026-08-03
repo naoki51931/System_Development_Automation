@@ -75,3 +75,25 @@ class StaticAccessTokenVerifier:
         if verified.expires_at <= datetime.now(timezone.utc):
             raise TokenVerificationError("Access token expired")
         return verified
+
+class LocalAuthProvider:
+    """Short-lived signed local sessions; authorization is always loaded from the DB."""
+    def __init__(self, secret: str, ttl_seconds: int = 3600) -> None:
+        self.secret, self.ttl_seconds = secret, ttl_seconds
+
+    def issue(self, subject: str) -> str:
+        now = datetime.now(timezone.utc)
+        return jwt.encode({"sub": subject, "iat": now, "exp": int(now.timestamp()) + self.ttl_seconds, "token_use": "local_session"}, self.secret, algorithm="HS256")
+
+    def verify(self, token: str) -> VerifiedAccessToken:
+        try:
+            claims = jwt.decode(token, self.secret, algorithms=["HS256"], options={"require": ["sub", "exp", "token_use"]})
+            if claims["token_use"] != "local_session":
+                raise TokenVerificationError("Wrong token type")
+        except (jwt.PyJWTError, KeyError) as exc:
+            raise TokenVerificationError("Local token validation failed") from exc
+        return VerifiedAccessToken(str(claims["sub"]), datetime.fromtimestamp(int(claims["exp"]), timezone.utc), claims)
+
+class CognitoAuthProviderStub:
+    def verify(self, _token: str) -> VerifiedAccessToken:
+        raise TokenVerificationError("Cognito is not connected in the local environment")

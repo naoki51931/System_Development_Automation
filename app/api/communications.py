@@ -3,12 +3,13 @@ import uuid
 from datetime import datetime, time, timezone
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.automation import get_storage
+from app.api.pagination import paginate_query
 from app.auth.dependencies import AuthenticatedUser, get_current_user, get_session, require_organization_access
 from app.errors import AppError
 from app.models.billing import Estimate
@@ -178,10 +179,10 @@ def project_context(session: Session, project_id: uuid.UUID, authenticated: Auth
 
 
 @router.get("/notifications")
-def list_notifications(organization_id: uuid.UUID, authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)], session: Annotated[Session, Depends(get_session)]):
+def list_notifications(organization_id: uuid.UUID, authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)], session: Annotated[Session, Depends(get_session)], cursor: str | None = None, page_size: int = Query(50, ge=1, le=100)):
     require_organization_access(organization_id, authenticated, session)
-    values = session.scalars(select(Notification).where(Notification.organization_id == organization_id, Notification.user_id == authenticated.user.id, Notification.status != "dismissed").order_by(Notification.created_at.desc())).all()
-    return [notification_json(item) for item in values]
+    statement = select(Notification).where(Notification.organization_id == organization_id, Notification.user_id == authenticated.user.id, Notification.status != "dismissed")
+    return paginate_query(session, statement, Notification, cursor, page_size, notification_json)
 
 
 @router.post("/notifications/{notification_id}/read")
@@ -332,10 +333,9 @@ def room_context(session: Session, room_id: uuid.UUID, authenticated: Authentica
 
 
 @router.get("/chat-rooms/{room_id}/messages")
-def list_messages(room_id: uuid.UUID, authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)], session: Annotated[Session, Depends(get_session)]):
+def list_messages(room_id: uuid.UUID, authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)], session: Annotated[Session, Depends(get_session)], cursor: str | None = None, page_size: int = Query(50, ge=1, le=100)):
     room, _project, _access = room_context(session, room_id, authenticated)
-    messages = session.scalars(select(ChatMessage).where(ChatMessage.chat_room_id == room.id).order_by(ChatMessage.created_at)).all()
-    return [chat_message_json(item) for item in messages]
+    return paginate_query(session, select(ChatMessage).where(ChatMessage.chat_room_id == room.id), ChatMessage, cursor, page_size, chat_message_json)
 
 
 @router.post("/chat-rooms/{room_id}/messages", status_code=status.HTTP_201_CREATED)

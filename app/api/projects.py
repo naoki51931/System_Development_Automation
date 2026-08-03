@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.api.pagination import paginate_query
 from app.api.schemas import ArtifactCreate, ArtifactVersionCreate, DecisionRequest, ProjectCreate, ReviewCommentCreate, ReviewCreate
 from app.auth.dependencies import AuthenticatedUser, get_current_user, get_session, require_organization_access
 from app.models.project import Artifact, ArtifactVersion, Project, Review
@@ -30,10 +31,10 @@ def post_project(payload: ProjectCreate, authenticated: Annotated[AuthenticatedU
 
 
 @router.get("/projects")
-def list_projects(organization_id: Annotated[uuid.UUID, Query()], authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)], session: Annotated[Session, Depends(get_session)]):  # type: ignore[no-untyped-def]
+def list_projects(organization_id: Annotated[uuid.UUID, Query()], authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)], session: Annotated[Session, Depends(get_session)], cursor: str | None = None, page_size: int = Query(50, ge=1, le=100)):  # type: ignore[no-untyped-def]
     require_organization_access(organization_id, authenticated, session)
-    projects = session.scalars(select(Project).where(Project.organization_id == organization_id, Project.archived_at.is_(None)).order_by(Project.created_at.desc())).all()
-    return [project_json(project) for project in projects]
+    statement = select(Project).where(Project.organization_id == organization_id, Project.archived_at.is_(None))
+    return paginate_query(session, statement, Project, cursor, page_size, project_json)
 
 
 @router.get("/projects/{project_id}")
