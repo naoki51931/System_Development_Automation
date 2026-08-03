@@ -46,3 +46,17 @@ docker compose run --rm frontend npm test
 ```
 
 The local stack contains PostgreSQL, FastAPI, Next.js, and a polling worker. LocalAuth uses a short-lived HttpOnly cookie plus CSRF token and is rejected in production. Cognito, Stripe, SES, S3, external AI, RDS, AWS and public environments remain disconnected. See `docs/web_portal_and_workers.md` and `frontend/README.md`.
+
+## Staging-readiness quality gate
+
+The portal now reads dashboard, project, estimate, contract, Mock payment, artifact/version, review/comment, chat/change-request, notification, AI-setting, maintenance, organization-user, audit, and dead-letter data from FastAPI. OpenAPI is exported from the app and TypeScript types are generated under `frontend/lib/generated`.
+
+```bash
+python scripts/export_openapi.py
+cd frontend && npm run openapi:generate && npm run openapi:check
+cd .. && ./scripts/quality_gate.sh
+QUALITY_SCALE=0.01 python -m app.quality.seed_performance
+locust -f performance/locustfile.py --headless -u 50 -r 10 -t 20s --host http://localhost:8000
+```
+
+See `docs/staging_readiness.md`, `docs/staging_deployment_checklist.md`, `docs/db_performance_quality.md`, and `quality-results/summary.md`. The quality gate currently blocks staging because coverage targets and full browser/Compose verification are not yet satisfied.

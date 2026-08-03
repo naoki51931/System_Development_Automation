@@ -2,12 +2,14 @@ import argparse, os, socket, time
 from app.core.config import get_settings
 from app.db.session import create_database_engine, create_session_factory
 from app.workers.outbox import claim, complete, fail
+from app.testing.faults import inject
 
 def run_once(factory, worker_id: str) -> bool:
     with factory.begin() as session:
         job = claim(session, worker_id)
         if not job: return False
         try:
+            inject("WORKER_CRASH_AFTER_CLAIM")
             # Local dispatch records completion only; provider-specific handlers are mocks.
             complete(session, job)
         except Exception:

@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 
 from app.errors import AppError
+from app.testing.faults import inject
 
 ALLOWED_MIME_TYPES = frozenset({"text/plain", "text/markdown", "application/json", "application/pdf", "application/zip"})
 DEFAULT_MAX_FILE_SIZE = 25 * 1024 * 1024
@@ -75,6 +76,7 @@ class LocalArtifactStorage(ArtifactStorage):
         return f"local-download://{secrets.token_urlsafe(24)}?expires={expires_seconds}"
 
     def put_object(self, storage_key: str, content: bytes, mime_type: str) -> ObjectMetadata:
+        inject("STORAGE_WRITE_FAILURE")
         self._validate(content, mime_type)
         path = self._path(storage_key)
         path.parent.mkdir(parents=True, exist_ok=True)

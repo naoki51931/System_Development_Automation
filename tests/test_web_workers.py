@@ -51,3 +51,30 @@ def test_local_auth_is_disabled_in_production(monkeypatch):
     with pytest.raises(HTTPException) as exc: enabled()
     assert exc.value.status_code==404
     get_settings.cache_clear()
+
+def _parallel_claim(database_url: str) -> list[str]:
+    import time, psycopg
+    claimed=[]
+    url=database_url.replace("postgresql+psycopg://","postgresql://")
+    with psycopg.connect(url) as connection:
+        while True:
+            with connection.transaction():
+                row=connection.execute("""WITH picked AS (SELECT id FROM outbox_events WHERE status='queued' AND available_at<=now() ORDER BY available_at,created_at,id FOR UPDATE SKIP LOCKED LIMIT 1) UPDATE outbox_events o SET status='processing',locked_by=%s,locked_at=now(),lease_expires_at=now()+interval '30 seconds',heartbeat_at=now(),attempt_count=attempt_count+1 FROM picked WHERE o.id=picked.id RETURNING o.id""",(f"process-{os.getpid()}",)).fetchone()
+            if not row:break
+            claimed.append(str(row[0]));time.sleep(.02)
+            with connection.transaction():connection.execute("UPDATE outbox_events SET status='completed',processed_at=now() WHERE id=%s",(row[0],))
+    return claimed
+
+def test_three_process_workers_claim_each_job_once(db_session,database_url):
+    import multiprocessing
+    items=[event(db_session) for _ in range(12)];expected={str(x.id) for x in items};db_session.commit()
+    with multiprocessing.get_context("spawn").Pool(3) as pool:results=pool.map(_parallel_claim,[database_url]*3)
+    claimed=[x for group in results for x in group]
+    assert set(claimed)==expected and len(claimed)==len(set(claimed)) and len(results)==3
+
+def test_fault_injection_is_local_bounded_and_sanitized(monkeypatch):
+    from app.testing.faults import InjectedFault,inject
+    monkeypatch.setenv("APP_ENV","test");monkeypatch.setenv("APP_FAULT_INJECTION","AI_PROVIDER_TIMEOUT")
+    with pytest.raises(InjectedFault) as exc:inject("AI_PROVIDER_TIMEOUT")
+    assert exc.value.retryable and "secret" not in str(exc.value).lower()
+    monkeypatch.setenv("APP_ENV","production");inject("AI_PROVIDER_TIMEOUT")

@@ -1,1 +1,1 @@
-import "./globals.css"; export const metadata={title:"SystemNavigator AI",description:"AIと人が、システム開発を完成までナビゲート。"}; export default function Layout({children}:{children:React.ReactNode}){return <html lang="ja"><body>{children}</body></html>}
+import {OrganizationProvider} from "@/lib/organization";import "./globals.css"; export const metadata={title:"SystemNavigator AI",description:"AIと人が、システム開発を完成までナビゲート。"}; export default function Layout({children}:{children:React.ReactNode}){return <html lang="ja"><body><OrganizationProvider>{children}</OrganizationProvider></body></html>}

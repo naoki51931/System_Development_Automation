@@ -5,6 +5,7 @@ import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from decimal import Decimal
+from app.testing.faults import inject
 
 
 class PaymentProviderError(Exception):
@@ -101,6 +102,7 @@ class MockPaymentProvider(PaymentProvider):
         return result
 
     def confirm_payment(self, payment_intent_id: str) -> ProviderPaymentIntent:
+        inject("PAYMENT_PROVIDER_UNAVAILABLE")
         current = self.intents.get(payment_intent_id)
         if current is None:
             raise PaymentProviderUnavailable("Mock payment intent not found")

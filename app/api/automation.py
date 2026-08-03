@@ -1,4 +1,5 @@
 import os
+import tempfile
 import uuid
 from decimal import Decimal
 from pathlib import Path
@@ -72,7 +73,7 @@ class CommentActionRequest(BaseModel):
 def get_storage(request: Request) -> ArtifactStorage:
     storage = getattr(request.app.state, "artifact_storage", None)
     if storage is None:
-        root = Path(os.getenv("LOCAL_ARTIFACT_ROOT", "/tmp/system-navigator-artifacts"))
+        root = Path(os.getenv("LOCAL_ARTIFACT_ROOT", str(Path(tempfile.gettempdir()) / "system-navigator-artifacts")))
         storage = LocalArtifactStorage(root)
         request.app.state.artifact_storage = storage
     return storage

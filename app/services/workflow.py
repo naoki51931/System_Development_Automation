@@ -92,7 +92,8 @@ def add_artifact_version(session: Session, artifact: Artifact, access: Organizat
 
 def create_review(session: Session, version: ArtifactVersion, access: OrganizationAccess, *, passing_score: int = AI_PASSING_SCORE_DEFAULT, **values) -> Review:  # type: ignore[no-untyped-def]
     artifact = session.get(Artifact, version.artifact_id)
-    assert artifact is not None
+    if artifact is None:
+        raise domain_error("Artifact not found", status.HTTP_404_NOT_FOUND)
     ensure_resource_organization(access, artifact.organization_id)
     review_type = values.get("review_type")
     if review_type == "ai":

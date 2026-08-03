@@ -69,7 +69,8 @@ def version_context(session: Session, version_id: uuid.UUID, authenticated: Auth
     if version is None:
         raise HTTPException(404, "Version not found")
     artifact = session.get(Artifact, version.artifact_id)
-    assert artifact is not None
+    if artifact is None:
+        raise HTTPException(404, "Artifact not found")
     access = require_organization_access(artifact.organization_id, authenticated, session)
     return version, artifact, access
 

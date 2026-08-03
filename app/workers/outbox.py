@@ -1,4 +1,4 @@
-import random
+import secrets
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
@@ -30,7 +30,7 @@ def fail(session: Session, job: OutboxEvent, error_code: str) -> None:
     if job.attempt_count >= job.max_attempts:
         job.status = "dead_letter"; job.dead_lettered_at = now
     else:
-        job.status = "retry_wait"; job.available_at = now + timedelta(seconds=min(3600, (2 ** job.attempt_count) + random.random()))
+        job.status = "retry_wait"; job.available_at = now + timedelta(seconds=min(3600, (2 ** job.attempt_count) + secrets.randbelow(1000) / 1000))
 
 def retry_dead_letter(session: Session, job: OutboxEvent) -> None:
     if job.status != "dead_letter": raise ValueError("Job is not dead-lettered")

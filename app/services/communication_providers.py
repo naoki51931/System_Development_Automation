@@ -1,6 +1,7 @@
 import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from app.testing.faults import inject
 
 
 class NotificationProviderError(Exception):
@@ -73,6 +74,7 @@ class MockEmailProvider(EmailProvider):
         self.messages: dict[str, dict[str, str | None]] = {}
 
     def send_email(self, *, recipient: str, subject: str, body_text: str, body_html: str | None = None) -> DeliveryResult:
+        inject("EMAIL_PROVIDER_FAILURE")
         outcome = self.outcomes.pop(0) if self.outcomes else "delivered"
         if outcome == "unavailable":
             raise EmailProviderUnavailable("Mock email unavailable")

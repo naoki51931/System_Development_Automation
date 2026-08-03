@@ -1,3 +1,4 @@
+import hashlib
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -79,7 +80,7 @@ class StaticAccessTokenVerifier:
 class LocalAuthProvider:
     """Short-lived signed local sessions; authorization is always loaded from the DB."""
     def __init__(self, secret: str, ttl_seconds: int = 3600) -> None:
-        self.secret, self.ttl_seconds = secret, ttl_seconds
+        self.secret, self.ttl_seconds = hashlib.sha256(secret.encode()).digest(), ttl_seconds
 
     def issue(self, subject: str) -> str:
         now = datetime.now(timezone.utc)
