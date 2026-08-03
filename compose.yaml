@@ -12,28 +12,47 @@ services:
       retries: 20
     volumes: ["postgres-local:/var/lib/postgresql/data"]
   backend:
-    build: .
+    build:
+      context: .
+      target: quality
     environment: &backend-env
       APP_ENV: development
       APP_DATABASE_URL: postgresql+psycopg://systemnavigator:local-only-password@postgres/systemnavigator
+      TEST_DATABASE_URL: postgresql+psycopg://systemnavigator:local-only-password@postgres/systemnavigator
       APP_LOCAL_AUTH_ENABLED: "true"
       APP_LOCAL_AUTH_SECRET: local-compose-secret-change-me
       APP_FRONTEND_ORIGIN: http://localhost:3000
     command: sh -c "alembic upgrade head && python -m app.seed && uvicorn app.main:app --host 0.0.0.0 --port 8000"
     depends_on: {postgres: {condition: service_healthy}}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
     ports: ["8000:8000"]
     volumes: ["local-artifacts:/tmp/systemnavigator-artifacts"]
   worker:
-    build: .
+    build:
+      context: .
+      target: quality
     environment: *backend-env
     command: python -m app.workers.runner
-    depends_on: {backend: {condition: service_started}}
+    healthcheck:
+      disable: true
+    depends_on: {backend: {condition: service_healthy}}
     volumes: ["local-artifacts:/tmp/systemnavigator-artifacts"]
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      target: quality
     environment:
       NEXT_PUBLIC_API_BASE_URL: http://localhost:8000/api/v1
-    depends_on: [backend]
+    depends_on: {backend: {condition: service_healthy}}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/login"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
     ports: ["3000:3000"]
 volumes:
   postgres-local:

@@ -7,3 +7,8 @@ def active(code:str)->bool:
     return code in {x.strip() for x in os.getenv("APP_FAULT_INJECTION","").split(",") if x.strip()}
 def inject(code:str)->None:
     if active(code): raise InjectedFault(code,code in RETRYABLE)
+
+def database_error_code(error: BaseException) -> str:
+    """Classify local PostgreSQL concurrency errors without exposing SQL text."""
+    sqlstate = getattr(error, "sqlstate", None) or getattr(getattr(error, "orig", None), "sqlstate", None)
+    return "DATABASE_RETRYABLE" if sqlstate in {"40P01", "40001", "55P03"} else "DATABASE_FAILED"

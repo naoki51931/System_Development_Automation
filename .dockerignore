@@ -10,3 +10,14 @@ __pycache__
 *.pyc
 .pytest_cache
 .venv
+frontend
+quality-results
+performance
+docs
+bootstrap
+environment
+coverage*
+htmlcov
+*.log
+test-results
+playwright-report

@@ -27,3 +27,8 @@ Projects, notifications, chat messages, audit logs, estimates, artifacts, review
 `compose.yaml` defines `postgres`, `backend`, `frontend`, and `worker`, with named local volumes. Backend startup applies migrations and idempotent local seed data. Migration `6b1e4c9f2a10` adds only Outbox claim/lease/retry/dead-letter columns and a claim index. `migrations/sql/6b1e4c9f2a10_web_workers.sql` is the offline SQL; it was not applied to RDS.
 
 This phase did not connect to or modify Cognito, Stripe, SES, S3, external AI APIs, RDS, Terraform, AWS, ECR, ECS, or any public environment.
+# Quality-gate verification addendum
+
+Post-login navigation performs a same-origin reload so the cookie-auth organization provider is re-established reliably. Organization switching remains server-authorized and clears tenant-scoped session cache. The three-browser suite covers six roles, tenant denial, 403/404/409, Mock payment, chat, review, change requests, notifications, and axe checks on 12 portal/admin routes.
+
+Document rendering injects `DOCUMENT_RENDER_FAILURE` before any artifact, version, hash or local-storage side effect. Worker tests require claim exclusivity, leases/heartbeats, bounded retry, dead letter and idempotency. PostgreSQL deadlock/lock-timeout classification is test-only and exposes no production fault endpoint.

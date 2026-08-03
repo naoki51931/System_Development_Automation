@@ -191,6 +191,7 @@ class Review(Base):
         CheckConstraint("(review_type = 'ai' AND ai_run_id IS NOT NULL AND reviewer_user_id IS NULL) OR (review_type <> 'ai' AND reviewer_user_id IS NOT NULL AND ai_run_id IS NULL)", name="ck_reviews_reviewer_source"),
         Index("ix_reviews_version_status", "artifact_version_id", "status"),
         Index("ix_reviews_project_created", "project_id", "created_at"),
+        Index("ix_reviews_org_cursor", "organization_id", created_at.desc(), id.desc()),
     )
 
 

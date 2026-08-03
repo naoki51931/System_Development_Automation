@@ -123,5 +123,6 @@ class AuditLog(Base):
 
     __table_args__ = (
         Index("ix_audit_logs_organization_created", "organization_id", created_at.desc()),
+        Index("ix_audit_logs_org_cursor", "organization_id", created_at.desc(), id.desc()),
         Index("ix_audit_logs_request_id", "request_id"),
     )

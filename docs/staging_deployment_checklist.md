@@ -33,3 +33,11 @@
 - [ ] CloudWatch logs/metrics/alarms and budget notification
 - [ ] Validate old ECS task rollback and DB restore runbook
 - [ ] Preserve audit logs and record evidence/approvers
+# Current blocking gate
+
+- [ ] `quality-results/quality-gate-summary.md` is READY (currently NOT_READY).
+- [ ] Ruff lint is clean (currently 274 findings).
+- [ ] Important-service aggregate coverage is at least 90% (currently 85.72%).
+- [ ] Normal API p95 is at most 500 ms at 50 users for 60 seconds (currently cold aggregate 600 ms; warm 890 ms).
+
+Do not proceed to AWS/Terraform/Cognito/Stripe/S3/SES steps while any item above is unchecked.

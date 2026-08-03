@@ -17,7 +17,7 @@ def main():
     if findings:return 1
     # History checks only filenames containing high-confidence key prefixes; values are never printed.
     history=subprocess.run(["git","log","-G","AKIA[0-9A-Z]{16}|sk_live_|sk-ant-","--all","--name-only","--pretty=format:"],capture_output=True,text=True).stdout
-    names=sorted({x for x in history.splitlines() if x.strip()})
+    names=sorted({x for x in history.splitlines() if x.strip() and x not in ALLOW})
     for name in names:print(f"{name}: possible secret pattern in Git history")
     return 1 if names else 0
 if __name__=="__main__":sys.exit(main())

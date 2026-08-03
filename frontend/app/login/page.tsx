@@ -1,1 +1,45 @@
-"use client";import{useEffect,useState}from"react";import{useRouter}from"next/navigation";import{api}from"@/lib/api";type U={id:string;display_name:string;email:string};export default function Login(){const[u,setU]=useState<U[]>([]),[id,setId]=useState(""),[error,setError]=useState("");const router=useRouter();useEffect(()=>{api<U[]>("/auth/local/users").then(x=>{setU(x);setId(x[0]?.id||"")}).catch(()=>setError("LocalAuthは利用できません"))},[]);async function submit(e:React.FormEvent){e.preventDefault();try{await api("/auth/local/login",{method:"POST",body:JSON.stringify({user_id:id})});router.push("/")}catch{setError("ログインできませんでした")}}return <main><h1>SystemNavigator AI ローカルログイン</h1><p>AIと人が、システム開発を完成までナビゲート。</p>{error&&<p role="alert" className="error">{error}</p>}<form onSubmit={submit}><label htmlFor="user">テストユーザー</label><select id="user" value={id} onChange={e=>setId(e.target.value)}>{u.map(x=><option key={x.id} value={x.id}>{x.display_name} ({x.email})</option>)}</select><button type="submit" disabled={!id}>ログイン</button></form></main>}
+"use client";
+
+import { useEffect, useState } from "react";
+import { api } from "@/lib/api";
+
+type LocalUser = { id: string; display_name: string; email: string };
+
+export default function Login() {
+  const [users, setUsers] = useState<LocalUser[]>([]);
+  const [id, setId] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    api<LocalUser[]>("/auth/local/users")
+      .then((items) => {
+        setUsers(items);
+        setId(items[0]?.id || "");
+      })
+      .catch(() => setError("LocalAuthは利用できません"));
+  }, []);
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    try {
+      await api("/auth/local/login", { method: "POST", body: JSON.stringify({ user_id: id }) });
+      // A full same-origin navigation remounts the auth provider after the HttpOnly cookie is set.
+      window.location.assign("/");
+    } catch {
+      setError("ログインできませんでした");
+    }
+  }
+
+  return <main>
+    <h1>SystemNavigator AI ローカルログイン</h1>
+    <p>AIと人が、システム開発を完成までナビゲート。</p>
+    {error && <p role="alert" className="error">{error}</p>}
+    <form onSubmit={submit}>
+      <label htmlFor="user">テストユーザー</label>
+      <select id="user" value={id} onChange={(event) => setId(event.target.value)}>
+        {users.map((user) => <option key={user.id} value={user.id}>{user.display_name} ({user.email})</option>)}
+      </select>
+      <button type="submit" disabled={!id}>ログイン</button>
+    </form>
+  </main>;
+}

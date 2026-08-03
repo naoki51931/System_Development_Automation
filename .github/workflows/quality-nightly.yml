@@ -1,0 +1,22 @@
+name: quality-gate-nightly
+on:
+  schedule: [{cron: "17 2 * * *"}]
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  performance-and-scale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12", cache: pip}
+      - run: pip install -r requirements-quality.txt
+      - run: docker compose up --build -d postgres backend frontend worker
+      - run: docker compose exec -T backend python -m app.quality.seed_e2e
+      - name: Scalable synthetic seed and EXPLAIN
+        env: {QUALITY_SCALE: "0.1"}
+        run: |
+          docker compose exec -T backend python -m app.quality.seed_performance
+          docker compose exec -T backend python scripts/explain_quality.py
+      - name: 50-user warm performance gate
+        run: locust -f performance/locustfile.py --headless -u 50 -r 10 -t 60s --host http://localhost:8000 --csv quality-results/locust-nightly --only-summary

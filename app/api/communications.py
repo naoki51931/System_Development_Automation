@@ -19,6 +19,7 @@ from app.models.communications import (
     ChatMessage,
     ChatRoom,
     DocumentGenerationJob,
+    EmailMessage,
     EmailTemplate,
     Notification, NotificationDelivery,
     NotificationPreference,
@@ -271,6 +272,12 @@ def send_document_email(version_id: uuid.UUID, payload: DocumentEmailInput, auth
         raise AppError("DOCUMENT_SEND_FORBIDDEN", "Document sending is forbidden")
     if artifact.status != "approved" or artifact.current_version_id != version.id:
         raise AppError("DOCUMENT_SEND_FORBIDDEN", "Only the approved current document can be sent")
+    existing = session.scalar(select(EmailMessage).where(
+        EmailMessage.organization_id == artifact.organization_id,
+        EmailMessage.deduplication_key == payload.deduplication_key,
+    ))
+    if existing is not None:
+        return {"id": str(existing.id), "status": existing.status, "provider_message_id": existing.provider_message_id}
     recipient = session.get(type(authenticated.user), payload.recipient_user_id)
     if recipient is None:
         raise AppError("INVALID_EMAIL_RECIPIENT", "Recipient not found")

@@ -14,6 +14,7 @@ from app.core.config import get_settings
 from app.db.session import create_database_engine, create_session_factory
 from app.auth.verifier import LocalAuthProvider, CognitoAuthProviderStub
 from app.errors import AppError, ERROR_STATUS
+from app.testing.faults import InjectedFault
 from sqlalchemy.orm.exc import StaleDataError
 from app.web.routes import router as web_router
 from app.api.local_auth import router as local_auth_router
@@ -58,6 +59,9 @@ def create_app() -> FastAPI:
     @application.exception_handler(StaleDataError)
     async def stale_data_handler(_request: Request, _exc: StaleDataError):
         return JSONResponse(status_code=409, content={"error": {"code": "VERSION_CONFLICT", "message": "Resource was updated by another request"}})
+    @application.exception_handler(InjectedFault)
+    async def injected_fault_handler(_request: Request, exc: InjectedFault):
+        return JSONResponse(status_code=503, content={"error": {"code": exc.code, "message": "Local mock provider is temporarily unavailable"}})
     return application
 
 

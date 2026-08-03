@@ -4,9 +4,7 @@
       "/usr/bin/node",
       "/home/ubuntu/ai-platform/frontend/node_modules/.bin/playwright",
       "test",
-      "tests/e2e/roles.spec.ts",
-      "tests/e2e/business-flow.spec.ts",
-      "--project=chromium"
+      "--project=webkit"
     ],
     "configFile": "/home/ubuntu/ai-platform/frontend/playwright.config.ts",
     "rootDir": "/home/ubuntu/ai-platform/frontend/tests/e2e",
@@ -100,6 +98,422 @@
   },
   "suites": [
     {
+      "title": "accessibility.spec.ts",
+      "file": "accessibility.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "no serious accessibility violations /login",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2344,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-08-03T12:56:31.489Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ddd864604af8a6a0198f-ce576ad5fa452686ceff",
+          "file": "accessibility.spec.ts",
+          "line": 3,
+          "column": 6
+        },
+        {
+          "title": "no serious accessibility violations /",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3086,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-08-03T12:56:34.065Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ddd864604af8a6a0198f-c3cc09f16ce86f7c514e",
+          "file": "accessibility.spec.ts",
+          "line": 3,
+          "column": 6
+        },
+        {
+          "title": "no serious accessibility violations /projects",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2846,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-08-03T12:56:37.200Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ddd864604af8a6a0198f-6f8d2f99c891fcf7d8d4",
+          "file": "accessibility.spec.ts",
+          "line": 3,
+          "column": 6
+        },
+        {
+          "title": "no serious accessibility violations /projects/00000000-0000-0000-0000-000000000001",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3062,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-08-03T12:56:40.078Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ddd864604af8a6a0198f-cecfe15656c22b2b8dfd",
+          "file": "accessibility.spec.ts",
+          "line": 3,
+          "column": 6
+        },
+        {
+          "title": "no serious accessibility violations /estimates",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3099,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-08-03T12:56:43.168Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ddd864604af8a6a0198f-637cd3c6044a8ba034ff",
+          "file": "accessibility.spec.ts",
+          "line": 3,
+          "column": 6
+        },
+        {
+          "title": "no serious accessibility violations /contracts",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2612,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-08-03T12:56:46.305Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ddd864604af8a6a0198f-20a210245c446400c997",
+          "file": "accessibility.spec.ts",
+          "line": 3,
+          "column": 6
+        },
+        {
+          "title": "no serious accessibility violations /artifacts",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3071,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-08-03T12:56:48.955Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ddd864604af8a6a0198f-7b295240af0f2692985e",
+          "file": "accessibility.spec.ts",
+          "line": 3,
+          "column": 6
+        },
+        {
+          "title": "no serious accessibility violations /reviews",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3417,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-08-03T12:56:52.046Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ddd864604af8a6a0198f-a66ac02c7b4cc6629750",
+          "file": "accessibility.spec.ts",
+          "line": 3,
+          "column": 6
+        },
+        {
+          "title": "no serious accessibility violations /chat",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2818,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-08-03T12:56:55.502Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ddd864604af8a6a0198f-b999814868867879e859",
+          "file": "accessibility.spec.ts",
+          "line": 3,
+          "column": 6
+        },
+        {
+          "title": "no serious accessibility violations /ai-settings",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3340,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-08-03T12:56:58.365Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ddd864604af8a6a0198f-571b701f3c720e8bd289",
+          "file": "accessibility.spec.ts",
+          "line": 3,
+          "column": 6
+        },
+        {
+          "title": "no serious accessibility violations /users",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3446,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-08-03T12:57:01.761Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ddd864604af8a6a0198f-ee17f2a43510005b72cd",
+          "file": "accessibility.spec.ts",
+          "line": 3,
+          "column": 6
+        },
+        {
+          "title": "no serious accessibility violations /dead-letters",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3086,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-08-03T12:57:05.247Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ddd864604af8a6a0198f-d539c630a7eae686be35",
+          "file": "accessibility.spec.ts",
+          "line": 3,
+          "column": 6
+        }
+      ]
+    },
+    {
       "title": "business-flow.spec.ts",
       "file": "business-flow.spec.ts",
       "column": 0,
@@ -114,19 +528,19 @@
               "timeout": 30000,
               "annotations": [],
               "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
+              "projectId": "webkit",
+              "projectName": "webkit",
               "results": [
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 822,
+                  "duration": 537,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-08-03T06:37:57.961Z",
+                  "startTime": "2026-08-03T12:57:08.372Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -134,9 +548,93 @@
               "status": "expected"
             }
           ],
-          "id": "217b13a97265dada01ae-cbdde2fa867b98fe0362",
+          "id": "217b13a97265dada01ae-566ae213e282b3de56cc",
           "file": "business-flow.spec.ts",
           "line": 2,
+          "column": 5
+        }
+      ]
+    },
+    {
+      "title": "error-contract.spec.ts",
+      "file": "error-contract.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "404 and 409 are explicit and never overwrite",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 134,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-08-03T12:57:08.927Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "00295d0a6660821c0529-f2bdee5bca1b676504a5",
+          "file": "error-contract.spec.ts",
+          "line": 2,
+          "column": 5
+        }
+      ]
+    },
+    {
+      "title": "portal.spec.ts",
+      "file": "portal.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "LocalAuth login and verified organization switch",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1855,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-08-03T12:57:09.081Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "291f6c0e7fe47579f0c2-cd42175ccb5f3401cfb3",
+          "file": "portal.spec.ts",
+          "line": 3,
           "column": 5
         }
       ]
@@ -156,19 +654,19 @@
               "timeout": 30000,
               "annotations": [],
               "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
+              "projectId": "webkit",
+              "projectName": "webkit",
               "results": [
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 81,
+                  "duration": 95,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-08-03T06:37:58.842Z",
+                  "startTime": "2026-08-03T12:57:10.969Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -176,7 +674,7 @@
               "status": "expected"
             }
           ],
-          "id": "7a25b8aaa0fcc60dba5a-dd45fb47c18cc1c5bee8",
+          "id": "7a25b8aaa0fcc60dba5a-dd1451ba7739c884da46",
           "file": "roles.spec.ts",
           "line": 2,
           "column": 120
@@ -190,19 +688,19 @@
               "timeout": 30000,
               "annotations": [],
               "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
+              "projectId": "webkit",
+              "projectName": "webkit",
               "results": [
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 84,
+                  "duration": 94,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-08-03T06:37:58.944Z",
+                  "startTime": "2026-08-03T12:57:11.084Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -210,7 +708,7 @@
               "status": "expected"
             }
           ],
-          "id": "7a25b8aaa0fcc60dba5a-630ae89178337c1ab326",
+          "id": "7a25b8aaa0fcc60dba5a-23a2df7cb2085ac325bd",
           "file": "roles.spec.ts",
           "line": 2,
           "column": 120
@@ -224,19 +722,19 @@
               "timeout": 30000,
               "annotations": [],
               "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
+              "projectId": "webkit",
+              "projectName": "webkit",
               "results": [
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 85,
+                  "duration": 159,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-08-03T06:37:59.052Z",
+                  "startTime": "2026-08-03T12:57:11.196Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -244,7 +742,7 @@
               "status": "expected"
             }
           ],
-          "id": "7a25b8aaa0fcc60dba5a-2dec1c909ed97a869162",
+          "id": "7a25b8aaa0fcc60dba5a-52213f55612e5723344b",
           "file": "roles.spec.ts",
           "line": 2,
           "column": 120
@@ -258,19 +756,19 @@
               "timeout": 30000,
               "annotations": [],
               "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
+              "projectId": "webkit",
+              "projectName": "webkit",
               "results": [
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 103,
+                  "duration": 96,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-08-03T06:37:59.158Z",
+                  "startTime": "2026-08-03T12:57:11.374Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -278,7 +776,7 @@
               "status": "expected"
             }
           ],
-          "id": "7a25b8aaa0fcc60dba5a-2e7519a3004b4a925807",
+          "id": "7a25b8aaa0fcc60dba5a-d247225088390f3b7013",
           "file": "roles.spec.ts",
           "line": 2,
           "column": 120
@@ -292,19 +790,19 @@
               "timeout": 30000,
               "annotations": [],
               "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
+              "projectId": "webkit",
+              "projectName": "webkit",
               "results": [
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 79,
+                  "duration": 298,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-08-03T06:37:59.281Z",
+                  "startTime": "2026-08-03T12:57:11.525Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -312,7 +810,7 @@
               "status": "expected"
             }
           ],
-          "id": "7a25b8aaa0fcc60dba5a-c2092f54032d11232e11",
+          "id": "7a25b8aaa0fcc60dba5a-597233abc55acf77e368",
           "file": "roles.spec.ts",
           "line": 2,
           "column": 120
@@ -326,19 +824,19 @@
               "timeout": 30000,
               "annotations": [],
               "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
+              "projectId": "webkit",
+              "projectName": "webkit",
               "results": [
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 72,
+                  "duration": 191,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-08-03T06:37:59.376Z",
+                  "startTime": "2026-08-03T12:57:11.857Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -346,7 +844,7 @@
               "status": "expected"
             }
           ],
-          "id": "7a25b8aaa0fcc60dba5a-e36123dbb02321922766",
+          "id": "7a25b8aaa0fcc60dba5a-f44acd5d61b48c691d81",
           "file": "roles.spec.ts",
           "line": 2,
           "column": 120
@@ -360,19 +858,19 @@
               "timeout": 30000,
               "annotations": [],
               "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
+              "projectId": "webkit",
+              "projectName": "webkit",
               "results": [
                 {
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 55,
+                  "duration": 70,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-08-03T06:37:59.466Z",
+                  "startTime": "2026-08-03T12:57:12.079Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -380,7 +878,7 @@
               "status": "expected"
             }
           ],
-          "id": "7a25b8aaa0fcc60dba5a-a05bcc0900d040e072de",
+          "id": "7a25b8aaa0fcc60dba5a-575ece60f536d84ca550",
           "file": "roles.spec.ts",
           "line": 3,
           "column": 5
@@ -394,8 +892,8 @@
               "timeout": 30000,
               "annotations": [],
               "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
+              "projectId": "webkit",
+              "projectName": "webkit",
               "results": [
                 {
                   "workerIndex": 0,
@@ -406,7 +904,7 @@
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-08-03T06:37:59.535Z",
+                  "startTime": "2026-08-03T12:57:12.172Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -414,7 +912,7 @@
               "status": "expected"
             }
           ],
-          "id": "7a25b8aaa0fcc60dba5a-2fd2983e33768f931cbd",
+          "id": "7a25b8aaa0fcc60dba5a-4118fe2f2603a1f5db6a",
           "file": "roles.spec.ts",
           "line": 4,
           "column": 5
@@ -424,9 +922,9 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-08-03T06:37:57.030Z",
-    "duration": 2662.258,
-    "expected": 9,
+    "startTime": "2026-08-03T12:56:30.303Z",
+    "duration": 43004.641,
+    "expected": 23,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0

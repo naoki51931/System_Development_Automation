@@ -32,6 +32,7 @@ from app.models.communications import (
     NotificationPreference,
     OutboxEvent,
 )
+from app.testing.faults import inject
 from app.models.identity import Organization, User
 from app.models.project import Artifact, ArtifactVersion, Project, ProjectMember
 from app.services.ai_providers import AIProvider
@@ -485,6 +486,9 @@ def generate_document(
     version_id = uuid.uuid4()
     extension = "pdf" if output_format == "pdf" else "html" if output_format == "html" else "md"
     mime = "application/pdf" if output_format == "pdf" else "text/plain"
+    # Fail before storage or DB publication. The request transaction rolls back all
+    # pending job/artifact rows and never exposes a partial artifact version.
+    inject("DOCUMENT_RENDER_FAILURE")
     content = generate_local_pdf(text) if output_format == "pdf" else (f"<html><body><pre>{html.escape(text)}</pre></body></html>".encode() if output_format == "html" else text.encode())
     key = storage.build_storage_key(project.organization_id, project.id, artifact.id, version_id, f"{document_type}.{extension}")  # type: ignore[attr-defined]
     metadata = storage.put_object(key, content, mime)

@@ -60,3 +60,6 @@ locust -f performance/locustfile.py --headless -u 50 -r 10 -t 20s --host http://
 ```
 
 See `docs/staging_readiness.md`, `docs/staging_deployment_checklist.md`, `docs/db_performance_quality.md`, and `quality-results/summary.md`. The quality gate currently blocks staging because coverage targets and full browser/Compose verification are not yet satisfied.
+# Quality gate remediation
+
+The reproducible local gate uses `docker compose down -v --remove-orphans`, `docker compose build --no-cache`, `docker compose up -d`, backend/frontend tests, and `cd frontend && npx playwright test`. Browser downloads are cached in `/home/ubuntu/.cache/ms-playwright`. Performance evidence uses 50 Locust users for at least 60 seconds and distinguishes cold and warm runs. See `quality-results/quality-gate-summary.md`; the current decision is **NOT_READY** because fixed important-service coverage and normal-API p95 gates remain unmet.

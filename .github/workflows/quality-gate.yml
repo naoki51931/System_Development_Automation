@@ -1,5 +1,5 @@
 name: staging-readiness-quality-gate
-on: [pull_request]
+on: [pull_request, workflow_dispatch]
 permissions: {contents: read}
 jobs:
   backend:
@@ -58,8 +58,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: docker build -t systemnavigator-backend:ci .
-      - run: docker build -t systemnavigator-frontend:ci frontend
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with: {context: ., target: runtime, push: false, cache-from: "type=gha,scope=backend", cache-to: "type=gha,mode=max,scope=backend"}
+      - uses: docker/build-push-action@v6
+        with: {context: frontend, target: runtime, push: false, cache-from: "type=gha,scope=frontend", cache-to: "type=gha,mode=max,scope=frontend"}
   e2e:
     runs-on: ubuntu-latest
     needs: [backend, frontend]
@@ -68,13 +71,21 @@ jobs:
       - run: docker compose up --build -d postgres backend frontend worker
       - run: docker compose exec -T backend python -m app.quality.seed_e2e
       - uses: actions/setup-node@v4
-        with: {node-version: 22}
+        with: {node-version: 22, cache: npm, cache-dependency-path: frontend/package-lock.json}
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
       - working-directory: frontend
         run: npm ci
       - working-directory: frontend
         run: npx playwright install --with-deps chromium firefox webkit
       - working-directory: frontend
         run: npm run test:e2e
+      - name: Compose smoke test
+        run: |
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8000/health)" = 200
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/login)" = 200
   terraform-static:
     runs-on: ubuntu-latest
     steps:

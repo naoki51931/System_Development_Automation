@@ -59,7 +59,7 @@ def _parallel_claim(database_url: str) -> list[str]:
     with psycopg.connect(url) as connection:
         while True:
             with connection.transaction():
-                row=connection.execute("""WITH picked AS (SELECT id FROM outbox_events WHERE status='queued' AND available_at<=now() ORDER BY available_at,created_at,id FOR UPDATE SKIP LOCKED LIMIT 1) UPDATE outbox_events o SET status='processing',locked_by=%s,locked_at=now(),lease_expires_at=now()+interval '30 seconds',heartbeat_at=now(),attempt_count=attempt_count+1 FROM picked WHERE o.id=picked.id RETURNING o.id""",(f"process-{os.getpid()}",)).fetchone()
+                row=connection.execute("""WITH picked AS (SELECT id FROM outbox_events WHERE status='queued' AND event_type='test' ORDER BY available_at,created_at,id FOR UPDATE SKIP LOCKED LIMIT 1) UPDATE outbox_events o SET status='processing',locked_by=%s,locked_at=now(),lease_expires_at=now()+interval '30 seconds',heartbeat_at=now(),attempt_count=attempt_count+1 FROM picked WHERE o.id=picked.id RETURNING o.id""",(f"process-{os.getpid()}",)).fetchone()
             if not row:break
             claimed.append(str(row[0]));time.sleep(.02)
             with connection.transaction():connection.execute("UPDATE outbox_events SET status='completed',processed_at=now() WHERE id=%s",(row[0],))
@@ -67,7 +67,11 @@ def _parallel_claim(database_url: str) -> list[str]:
 
 def test_three_process_workers_claim_each_job_once(db_session,database_url):
     import multiprocessing
-    items=[event(db_session) for _ in range(12)];expected={str(x.id) for x in items};db_session.commit()
+    items=[event(db_session) for _ in range(12)]
+    # Keep the continuously running Compose worker away from this isolated
+    # contention set; the three test processes deliberately ignore available_at.
+    for item in items:item.available_at=NOW()+timedelta(minutes=10)
+    expected={str(x.id) for x in items};db_session.commit()
     with multiprocessing.get_context("spawn").Pool(3) as pool:results=pool.map(_parallel_claim,[database_url]*3)
     claimed=[x for group in results for x in group]
     assert set(claimed)==expected and len(claimed)==len(set(claimed)) and len(results)==3

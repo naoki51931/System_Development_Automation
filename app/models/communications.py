@@ -55,6 +55,7 @@ class Notification(Base):
         CheckConstraint("status IN ('pending','delivered','read','dismissed','expired')", name="ck_notifications_status"),
         CheckConstraint("action_url IS NULL OR (action_url LIKE '/%' AND action_url NOT LIKE '//%')", name="ck_notifications_internal_url"),
         Index("ix_notifications_user_status_created", "organization_id", "user_id", "status", "created_at"),
+        Index("ix_notifications_org_cursor", "organization_id", created_at.desc(), id.desc()),
     )
 
 
@@ -226,6 +227,7 @@ class ChatMessage(Base):
         CheckConstraint("length(trim(body)) BETWEEN 1 AND 10000", name="ck_chat_messages_body"),
         CheckConstraint("(message_type IN ('system','ai') AND sender_user_id IS NULL) OR (message_type NOT IN ('system','ai') AND sender_user_id IS NOT NULL)", name="ck_chat_messages_sender"),
         Index("ix_chat_messages_room_created", "chat_room_id", "created_at"),
+        Index("ix_chat_messages_room_cursor", "organization_id", "chat_room_id", created_at.desc(), id.desc()),
     )
 
 
@@ -311,4 +313,5 @@ class OutboxEvent(Base):
         CheckConstraint("status IN ('pending','processed','failed','queued','processing','completed','retry_wait','dead_letter')", name="ck_outbox_events_status"),
         CheckConstraint("attempt_count >= 0", name="ck_outbox_events_attempts"),
         Index("ix_outbox_events_available", "status", "available_at"),
+        Index("ix_outbox_events_claim", "status", "available_at", "created_at", "id"),
     )

@@ -137,3 +137,12 @@ Before apply, allow replacement of only the ECS task definition when it creates 
 - `APP_FAULT_INJECTION` enables named Mock failures only outside production. Never enable it in staging or production.
 - `.github/workflows/quality-gate.yml` is an unpushed proposal with no AWS credentials. Coverage thresholds intentionally block staging while current measured coverage remains below target.
 - Staging remains prohibited until `docs/staging_deployment_checklist.md` approvals are complete. This phase did not run Terraform, connect AWS/RDS/providers, push GitHub/ECR, or deploy.
+
+## Quality-gate remediation baseline
+
+- Docker images use multi-stage slim/alpine builds, explicit COPY allowlists, cache-free dependency installation, non-root runtime users, standalone Next output, and health checks. Compose quality targets retain test tools; runtime targets do not.
+- Revision `7c2f9a1e4d30` adds tenant/cursor and worker-claim indexes only. Its review SQL is `migrations/offline/7c2f9a1e4d30_quality_gate_indexes.sql`; do not apply it outside local PostgreSQL in this phase.
+- `DOCUMENT_RENDER_FAILURE` is injected before rendering or storage. Tests require rollback, bounded retry/dead letter, sanitized errors and idempotent regeneration. PostgreSQL lock-timeout/deadlock SQLSTATEs are retryable without exposing SQL.
+- Browser binaries are cached at `/home/ubuntu/.cache/ms-playwright`. All three browser projects execute role, tenant, error-contract, workflow and 12-route axe checks without rule exclusions.
+- Coverage gates are backend 80%, important-service aggregate 90%, and frontend major-feature branches/functions/statements/lines 70%. Generated OpenAPI, configuration and type-only files are excluded from frontend coverage because they contain no executable user decisions.
+- `quality-results/quality-gate-summary.md` is authoritative. Any FAIL or BLOCKED means staging is `NOT_READY`; never weaken a threshold to obtain READY.
