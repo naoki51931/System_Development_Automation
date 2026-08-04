@@ -22,6 +22,7 @@ services:
       APP_LOCAL_AUTH_ENABLED: "true"
       APP_LOCAL_AUTH_SECRET: local-compose-secret-change-me
       APP_FRONTEND_ORIGIN: http://localhost:3000
+      APP_PERFORMANCE_TIMING: "true"
     command: sh -c "alembic upgrade head && python -m app.seed && uvicorn app.main:app --host 0.0.0.0 --port 8000"
     depends_on: {postgres: {condition: service_healthy}}
     healthcheck:

@@ -1,7 +1,17 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Index, String, Text, UniqueConstraint, func
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Index,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.dialects.postgresql import INET, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
@@ -9,7 +19,9 @@ from app.db.base import Base
 
 
 class TimestampMixin:
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
@@ -18,11 +30,15 @@ class TimestampMixin:
 class Organization(TimestampMixin, Base):
     __tablename__ = "organizations"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="active")
 
-    memberships: Mapped[list["OrganizationMembership"]] = relationship(back_populates="organization")
+    memberships: Mapped[list["OrganizationMembership"]] = relationship(
+        back_populates="organization"
+    )
 
     __table_args__ = (Index("ix_organizations_status", "status"),)
 
@@ -30,13 +46,17 @@ class Organization(TimestampMixin, Base):
 class User(TimestampMixin, Base):
     __tablename__ = "users"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     cognito_sub: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     email: Mapped[str] = mapped_column(String(320), nullable=False, unique=True)
     display_name: Mapped[str] = mapped_column(String(100), nullable=False)
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="active")
 
-    memberships: Mapped[list["OrganizationMembership"]] = relationship(back_populates="user")
+    memberships: Mapped[list["OrganizationMembership"]] = relationship(
+        back_populates="user"
+    )
 
     __table_args__ = (
         CheckConstraint("email = lower(email)", name="ck_users_email_lowercase"),
@@ -51,7 +71,9 @@ class User(TimestampMixin, Base):
 class Role(TimestampMixin, Base):
     __tablename__ = "roles"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     code: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)
     display_name: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
@@ -61,9 +83,13 @@ class Role(TimestampMixin, Base):
 class OrganizationMembership(TimestampMixin, Base):
     __tablename__ = "organization_memberships"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     organization_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="RESTRICT"), nullable=False
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="RESTRICT"),
+        nullable=False,
     )
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
@@ -77,7 +103,9 @@ class OrganizationMembership(TimestampMixin, Base):
     )
 
     __table_args__ = (
-        UniqueConstraint("organization_id", "user_id", name="uq_memberships_organization_user"),
+        UniqueConstraint(
+            "organization_id", "user_id", name="uq_memberships_organization_user"
+        ),
         Index("ix_memberships_user_status", "user_id", "status"),
         Index("ix_memberships_organization_status", "organization_id", "status"),
     )
@@ -92,9 +120,13 @@ class MembershipRole(Base):
         primary_key=True,
     )
     role_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("roles.id", ondelete="RESTRICT"), primary_key=True
+        UUID(as_uuid=True),
+        ForeignKey("roles.id", ondelete="RESTRICT"),
+        primary_key=True,
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
 
     membership: Mapped[OrganizationMembership] = relationship(back_populates="roles")
     role: Mapped[Role] = relationship()
@@ -105,9 +137,13 @@ class MembershipRole(Base):
 class AuditLog(Base):
     __tablename__ = "audit_logs"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     organization_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="RESTRICT"), nullable=False
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="RESTRICT"),
+        nullable=False,
     )
     actor_user_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL")
@@ -119,10 +155,16 @@ class AuditLog(Base):
     after_json: Mapped[dict | None] = mapped_column(JSONB)
     ip_address: Mapped[str | None] = mapped_column(INET)
     request_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
 
     __table_args__ = (
-        Index("ix_audit_logs_organization_created", "organization_id", created_at.desc()),
-        Index("ix_audit_logs_org_cursor", "organization_id", created_at.desc(), id.desc()),
+        Index(
+            "ix_audit_logs_organization_created", "organization_id", created_at.desc()
+        ),
+        Index(
+            "ix_audit_logs_org_cursor", "organization_id", created_at.desc(), id.desc()
+        ),
         Index("ix_audit_logs_request_id", "request_id"),
     )

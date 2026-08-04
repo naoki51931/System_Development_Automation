@@ -41,3 +41,13 @@
 - [ ] Normal API p95 is at most 500 ms at 50 users for 60 seconds (currently cold aggregate 600 ms; warm 890 ms).
 
 Do not proceed to AWS/Terraform/Cognito/Stripe/S3/SES steps while any item above is unchecked.
+
+## 2026-08-04 recheck
+
+- [x] Ruff and undefined symbols: 0.
+- [ ] Critical-service coverage: 86.04% (required 90%).
+- [ ] Normal API p95: 609 ms (required 500 ms).
+- [x] List API worst p95: 684 ms (required at most 1 second).
+- [ ] npm audit: DNS-BLOCKED; not PASS.
+
+The authoritative result is **NOT_READY**.

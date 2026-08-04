@@ -1,5 +1,9 @@
 name: staging-readiness-quality-gate
-on: [pull_request, workflow_dispatch]
+on:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 2 * * *"
 permissions: {contents: read}
 jobs:
   backend:
@@ -19,13 +23,17 @@ jobs:
         with: {python-version: "3.12", cache: pip}
       - run: pip install -r requirements-quality.txt
       - name: Format
-        run: ruff format --check app tests scripts
+        run: ruff format --check .
       - name: Lint
-        run: ruff check app tests scripts
-      - name: Type/import check
+        run: ruff check .
+      - name: Undefined symbols
+        run: ruff check . --select F821,F822,F823
+      - name: Compile/import check
         run: python -m compileall -q app tests scripts
       - name: Backend tests and coverage
-        run: pytest --cov=app --cov-report=term-missing --cov-fail-under=80
+        run: |
+          pytest --cov=app --cov-report=term-missing --cov-report=json:quality-results/backend-coverage.json --cov-fail-under=80
+          python scripts/check_service_coverage.py quality-results/backend-coverage.json --minimum 90
       - name: Migration and OpenAPI generated diff
         run: |
           alembic upgrade head
@@ -53,7 +61,16 @@ jobs:
       - working-directory: frontend
         run: npm run build
       - working-directory: frontend
-        run: npm audit --omit=dev
+        name: npm audit (network failures are BLOCKED, never PASS)
+        run: |
+          set +e
+          npm audit --omit=dev --json > ../quality-results/npm-audit-ci.json
+          code=$?
+          set -e
+          if [ "$code" -ne 0 ]; then
+            echo "::error::npm audit failed or was BLOCKED by registry/DNS access (exit $code)"
+            exit "$code"
+          fi
   docker:
     runs-on: ubuntu-latest
     steps:
@@ -81,11 +98,35 @@ jobs:
       - working-directory: frontend
         run: npx playwright install --with-deps chromium firefox webkit
       - working-directory: frontend
-        run: npm run test:e2e
+        run: |
+          npx playwright test --project=chromium
+          npx playwright test --project=firefox
+          npx playwright test --project=webkit
       - name: Compose smoke test
         run: |
           test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8000/health)" = 200
           test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/login)" = 200
+  performance:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose up --build -d postgres backend
+      - run: docker compose exec -T backend python -m app.quality.seed_performance
+      - name: 50-user local performance gate
+        run: |
+          docker compose run --rm -v perf-results:/results backend locust -f performance/locustfile.py --headless -H http://backend:8000 -u 50 -r 10 -t 60s --csv /results/quality --only-summary
+          docker compose run --rm -v perf-results:/results backend python - <<'PY'
+          import csv
+          rows = list(csv.DictReader(open('/results/quality_stats.csv')))
+          failures = sum(int(row['Failure Count']) for row in rows if row['Name'] != 'Aggregated')
+          requests = sum(int(row['Request Count']) for row in rows if row['Name'] != 'Aggregated')
+          normal = max(float(row['95%']) for row in rows if row['Name'].startswith('normal:'))
+          listing = max(float(row['95%']) for row in rows if row['Name'].startswith('list:'))
+          assert failures / max(requests, 1) < 0.01, (failures, requests)
+          assert normal <= 500, normal
+          assert listing <= 1000, listing
+          PY
   terraform-static:
     runs-on: ubuntu-latest
     steps:

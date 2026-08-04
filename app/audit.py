@@ -22,7 +22,9 @@ SENSITIVE_KEYS = {
 def sanitize_audit_value(value: Any) -> Any:
     if isinstance(value, Mapping):
         return {
-            str(key): "[REDACTED]" if str(key).lower() in SENSITIVE_KEYS else sanitize_audit_value(item)
+            str(key): "[REDACTED]"
+            if str(key).lower() in SENSITIVE_KEYS
+            else sanitize_audit_value(item)
             for key, item in value.items()
         }
     if isinstance(value, list):
