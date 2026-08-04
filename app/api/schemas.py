@@ -1,4 +1,5 @@
 import uuid
+from datetime import date
 
 from pydantic import BaseModel, Field
 
@@ -47,3 +48,22 @@ class ReviewCommentCreate(BaseModel):
 
 class DecisionRequest(BaseModel):
     comment: str | None = None
+
+
+class EstimateSummary(BaseModel):
+    id: uuid.UUID
+    organization_id: uuid.UUID
+    project_id: uuid.UUID
+    estimate_number: str
+    status: str
+    currency: str
+    subtotal: str
+    tax_amount: str
+    total_amount: str
+    valid_until: date
+    version: int
+
+
+class EstimateCursorPage(BaseModel):
+    items: list[EstimateSummary]
+    next_cursor: str | None

@@ -1,0 +1,13 @@
+{
+  "status": "BLOCKED",
+  "command": "npm audit --omit=dev --json",
+  "exit_code": 1,
+  "executed_at_utc": "2026-08-04T04:03:35Z",
+  "dns_error": "getaddrinfo EAI_AGAIN registry.npmjs.org",
+  "last_successful_result": {
+    "source": "quality-results/summary.md (last successful Docker build audit)",
+    "vulnerabilities": 0
+  },
+  "lockfile": "frontend/package-lock.json",
+  "lockfile_sha256": "10d9afa7adf816ea690a846baec69dc87505516dfafc599bbfc1423dfedc74d7"
+}

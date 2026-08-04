@@ -10,9 +10,23 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.auth.dependencies import AuthenticatedUser, get_current_user, get_session, require_organization_access
+from app.api.pagination import paginate_query
+from app.api.schemas import EstimateCursorPage
+from app.auth.dependencies import (
+    AuthenticatedUser,
+    get_current_user,
+    get_session,
+    require_organization_access,
+)
 from app.errors import AppError
-from app.models.billing import Contract, Estimate, EstimateItem, MaintenanceContract, MaintenancePlan, PaymentIntent
+from app.models.billing import (
+    Contract,
+    Estimate,
+    EstimateItem,
+    MaintenanceContract,
+    MaintenancePlan,
+    PaymentIntent,
+)
 from app.models.project import Project
 from app.services.billing import (
     CUSTOMER_ROLES,
@@ -65,7 +79,9 @@ class ContractCreateInput(BaseModel):
 
 class PaymentIntentCreateInput(BaseModel):
     idempotency_key: str = Field(min_length=8, max_length=255)
-    expected_amount: Decimal | None = Field(default=None, ge=0, max_digits=18, decimal_places=8)
+    expected_amount: Decimal | None = Field(
+        default=None, ge=0, max_digits=18, decimal_places=8
+    )
 
 
 class MaintenanceContractCreateInput(BaseModel):
@@ -77,27 +93,50 @@ def get_payment_provider(request: Request) -> PaymentProvider:
     provider = getattr(request.app.state, "payment_provider", None)
     if provider is None:
         provider = MockPaymentProvider(
-            outcomes=[item for item in os.getenv("MOCK_PAYMENT_OUTCOMES", "succeeded").split(",") if item],
+            outcomes=[
+                item
+                for item in os.getenv("MOCK_PAYMENT_OUTCOMES", "succeeded").split(",")
+                if item
+            ],
             webhook_secret=os.getenv("MOCK_WEBHOOK_SECRET"),
         )
         request.app.state.payment_provider = provider
     return provider
 
 
-def estimate_json(estimate: Estimate, session: Session, include_items: bool = False) -> dict[str, object]:
+def estimate_json(
+    estimate: Estimate, session: Session, include_items: bool = False
+) -> dict[str, object]:
     result: dict[str, object] = {
-        "id": str(estimate.id), "organization_id": str(estimate.organization_id),
-        "project_id": str(estimate.project_id), "estimate_number": estimate.estimate_number,
-        "status": estimate.status, "currency": estimate.currency, "subtotal": str(estimate.subtotal),
-        "tax_amount": str(estimate.tax_amount), "total_amount": str(estimate.total_amount),
-        "valid_until": estimate.valid_until.isoformat(), "version": estimate.version,
+        "id": str(estimate.id),
+        "organization_id": str(estimate.organization_id),
+        "project_id": str(estimate.project_id),
+        "estimate_number": estimate.estimate_number,
+        "status": estimate.status,
+        "currency": estimate.currency,
+        "subtotal": str(estimate.subtotal),
+        "tax_amount": str(estimate.tax_amount),
+        "total_amount": str(estimate.total_amount),
+        "valid_until": estimate.valid_until.isoformat(),
+        "version": estimate.version,
     }
     if include_items:
-        items = session.scalars(select(EstimateItem).where(EstimateItem.estimate_id == estimate.id).order_by(EstimateItem.display_order)).all()
+        items = session.scalars(
+            select(EstimateItem)
+            .where(EstimateItem.estimate_id == estimate.id)
+            .order_by(EstimateItem.display_order)
+        ).all()
         result["items"] = [
-            {"id": str(item.id), "item_type": item.item_type, "description": item.description,
-             "quantity": str(item.quantity), "unit": item.unit, "unit_price": str(item.unit_price),
-             "amount": str(item.amount), "source_type": item.source_type}
+            {
+                "id": str(item.id),
+                "item_type": item.item_type,
+                "description": item.description,
+                "quantity": str(item.quantity),
+                "unit": item.unit,
+                "unit_price": str(item.unit_price),
+                "amount": str(item.amount),
+                "source_type": item.source_type,
+            }
             for item in items
         ]
     return result
@@ -105,45 +144,73 @@ def estimate_json(estimate: Estimate, session: Session, include_items: bool = Fa
 
 def contract_json(contract: Contract) -> dict[str, object]:
     return {
-        "id": str(contract.id), "organization_id": str(contract.organization_id),
-        "project_id": str(contract.project_id), "estimate_id": str(contract.estimate_id),
-        "contract_number": contract.contract_number, "status": contract.status,
-        "contract_type": contract.contract_type, "terms_version": contract.terms_version,
+        "id": str(contract.id),
+        "organization_id": str(contract.organization_id),
+        "project_id": str(contract.project_id),
+        "estimate_id": str(contract.estimate_id),
+        "contract_number": contract.contract_number,
+        "status": contract.status,
+        "contract_type": contract.contract_type,
+        "terms_version": contract.terms_version,
         "version": contract.version,
     }
 
 
 def payment_json(intent: PaymentIntent) -> dict[str, object]:
     return {
-        "id": str(intent.id), "organization_id": str(intent.organization_id),
-        "project_id": str(intent.project_id), "contract_id": str(intent.contract_id),
-        "provider": intent.provider, "status": intent.status, "currency": intent.currency,
-        "amount": str(intent.amount), "version": intent.version,
-        "failure_code": intent.failure_code, "confirmed_at": intent.confirmed_at.isoformat() if intent.confirmed_at else None,
+        "id": str(intent.id),
+        "organization_id": str(intent.organization_id),
+        "project_id": str(intent.project_id),
+        "contract_id": str(intent.contract_id),
+        "provider": intent.provider,
+        "status": intent.status,
+        "currency": intent.currency,
+        "amount": str(intent.amount),
+        "version": intent.version,
+        "failure_code": intent.failure_code,
+        "confirmed_at": intent.confirmed_at.isoformat()
+        if intent.confirmed_at
+        else None,
     }
 
 
 def maintenance_json(contract: MaintenanceContract) -> dict[str, object]:
     return {
-        "id": str(contract.id), "organization_id": str(contract.organization_id),
-        "project_id": str(contract.project_id), "contract_id": str(contract.contract_id),
-        "maintenance_plan_id": str(contract.maintenance_plan_id), "status": contract.status,
-        "current_period_start": contract.current_period_start.isoformat() if contract.current_period_start else None,
-        "current_period_end": contract.current_period_end.isoformat() if contract.current_period_end else None,
+        "id": str(contract.id),
+        "organization_id": str(contract.organization_id),
+        "project_id": str(contract.project_id),
+        "contract_id": str(contract.contract_id),
+        "maintenance_plan_id": str(contract.maintenance_plan_id),
+        "status": contract.status,
+        "current_period_start": contract.current_period_start.isoformat()
+        if contract.current_period_start
+        else None,
+        "current_period_end": contract.current_period_end.isoformat()
+        if contract.current_period_end
+        else None,
         "version": contract.version,
     }
 
 
-def get_project_context(session: Session, project_id: uuid.UUID, authenticated: AuthenticatedUser):
+def get_project_context(
+    session: Session, project_id: uuid.UUID, authenticated: AuthenticatedUser
+):
     project = session.get(Project, project_id)
     if project is None:
         raise AppError("RESOURCE_NOT_FOUND", "Project not found")
-    access = require_organization_access(project.organization_id, authenticated, session)
+    access = require_organization_access(
+        project.organization_id, authenticated, session
+    )
     return project, access
 
 
 @router.post("/projects/{project_id}/estimates", status_code=status.HTTP_201_CREATED)
-def post_estimate(project_id: uuid.UUID, payload: EstimateCreateInput, authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)], session: Annotated[Session, Depends(get_session)]):
+def post_estimate(
+    project_id: uuid.UUID,
+    payload: EstimateCreateInput,
+    authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)],
+    session: Annotated[Session, Depends(get_session)],
+):
     project, access = get_project_context(session, project_id, authenticated)
     values = payload.model_dump()
     values["items"] = [item.model_dump() for item in payload.items]
@@ -152,15 +219,36 @@ def post_estimate(project_id: uuid.UUID, payload: EstimateCreateInput, authentic
     return estimate_json(estimate, session, True)
 
 
-@router.get("/projects/{project_id}/estimates")
-def list_estimates(project_id: uuid.UUID, authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)], session: Annotated[Session, Depends(get_session)], cursor: str | None = None, page_size: int = Query(50, ge=1, le=100)):
+@router.get("/projects/{project_id}/estimates", response_model=EstimateCursorPage)
+def list_estimates(
+    project_id: uuid.UUID,
+    authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)],
+    session: Annotated[Session, Depends(get_session)],
+    cursor: str | None = None,
+    page_size: int = Query(50, ge=1, le=100),
+):
     project, _access = get_project_context(session, project_id, authenticated)
-    statement = select(Estimate).where(Estimate.organization_id == project.organization_id, Estimate.project_id == project.id)
-    return paginate_query(session, statement, Estimate, cursor, page_size, lambda item: estimate_json(item, session))
+    statement = select(Estimate).where(
+        Estimate.organization_id == project.organization_id,
+        Estimate.project_id == project.id,
+    )
+    return paginate_query(
+        session,
+        statement,
+        Estimate,
+        cursor,
+        page_size,
+        lambda item: estimate_json(item, session),
+        scope=f"estimates:{project.organization_id}:{project.id}",
+    )
 
 
 @router.get("/estimates/{estimate_id}")
-def get_estimate(estimate_id: uuid.UUID, authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)], session: Annotated[Session, Depends(get_session)]):
+def get_estimate(
+    estimate_id: uuid.UUID,
+    authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)],
+    session: Annotated[Session, Depends(get_session)],
+):
     estimate = session.get(Estimate, estimate_id)
     if estimate is None:
         raise AppError("RESOURCE_NOT_FOUND", "Estimate not found")
@@ -168,47 +256,83 @@ def get_estimate(estimate_id: uuid.UUID, authenticated: Annotated[AuthenticatedU
     return estimate_json(estimate, session, True)
 
 
-def estimate_action(estimate_id: uuid.UUID, action: str, payload: VersionInput, authenticated: AuthenticatedUser, session: Session):
+def estimate_action(
+    estimate_id: uuid.UUID,
+    action: str,
+    payload: VersionInput,
+    authenticated: AuthenticatedUser,
+    session: Session,
+):
     estimate = session.get(Estimate, estimate_id)
     if estimate is None:
         raise AppError("RESOURCE_NOT_FOUND", "Estimate not found")
-    access = require_organization_access(estimate.organization_id, authenticated, session)
+    access = require_organization_access(
+        estimate.organization_id, authenticated, session
+    )
     transition_estimate(session, estimate, access, action, payload.version)
     session.commit()
     return estimate_json(estimate, session)
 
 
 @router.post("/estimates/{estimate_id}/submit")
-def submit_estimate(estimate_id: uuid.UUID, payload: VersionInput, authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)], session: Annotated[Session, Depends(get_session)]):
+def submit_estimate(
+    estimate_id: uuid.UUID,
+    payload: VersionInput,
+    authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)],
+    session: Annotated[Session, Depends(get_session)],
+):
     return estimate_action(estimate_id, "submit", payload, authenticated, session)
 
 
 @router.post("/estimates/{estimate_id}/approve")
-def approve_estimate(estimate_id: uuid.UUID, payload: VersionInput, authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)], session: Annotated[Session, Depends(get_session)]):
+def approve_estimate(
+    estimate_id: uuid.UUID,
+    payload: VersionInput,
+    authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)],
+    session: Annotated[Session, Depends(get_session)],
+):
     return estimate_action(estimate_id, "approve", payload, authenticated, session)
 
 
 @router.post("/estimates/{estimate_id}/reject")
-def reject_estimate(estimate_id: uuid.UUID, payload: VersionInput, authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)], session: Annotated[Session, Depends(get_session)]):
+def reject_estimate(
+    estimate_id: uuid.UUID,
+    payload: VersionInput,
+    authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)],
+    session: Annotated[Session, Depends(get_session)],
+):
     return estimate_action(estimate_id, "reject", payload, authenticated, session)
 
 
 @router.post("/estimates/{estimate_id}/contracts", status_code=status.HTTP_201_CREATED)
-def post_contract(estimate_id: uuid.UUID, payload: ContractCreateInput, authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)], session: Annotated[Session, Depends(get_session)]):
+def post_contract(
+    estimate_id: uuid.UUID,
+    payload: ContractCreateInput,
+    authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)],
+    session: Annotated[Session, Depends(get_session)],
+):
     estimate = session.get(Estimate, estimate_id)
     if estimate is None:
         raise AppError("RESOURCE_NOT_FOUND", "Estimate not found")
-    access = require_organization_access(estimate.organization_id, authenticated, session, WRITE_ROLES)
+    access = require_organization_access(
+        estimate.organization_id, authenticated, session, WRITE_ROLES
+    )
     project = session.get(Project, estimate.project_id)
     if project is None:
         raise AppError("RESOURCE_NOT_FOUND", "Project not found")
-    contract = create_contract(session, estimate, project, access, **payload.model_dump())
+    contract = create_contract(
+        session, estimate, project, access, **payload.model_dump()
+    )
     session.commit()
     return contract_json(contract)
 
 
 @router.get("/contracts/{contract_id}")
-def get_contract(contract_id: uuid.UUID, authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)], session: Annotated[Session, Depends(get_session)]):
+def get_contract(
+    contract_id: uuid.UUID,
+    authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)],
+    session: Annotated[Session, Depends(get_session)],
+):
     contract = session.get(Contract, contract_id)
     if contract is None:
         raise AppError("PAYMENT_RESOURCE_NOT_FOUND", "Contract not found")
@@ -216,55 +340,106 @@ def get_contract(contract_id: uuid.UUID, authenticated: Annotated[AuthenticatedU
     return contract_json(contract)
 
 
-def contract_accept(contract_id: uuid.UUID, party: str, payload: VersionInput, authenticated: AuthenticatedUser, session: Session):
+def contract_accept(
+    contract_id: uuid.UUID,
+    party: str,
+    payload: VersionInput,
+    authenticated: AuthenticatedUser,
+    session: Session,
+):
     contract = session.get(Contract, contract_id)
     if contract is None:
         raise AppError("PAYMENT_RESOURCE_NOT_FOUND", "Contract not found")
     roles = CUSTOMER_ROLES if party == "customer" else WRITE_ROLES
-    access = require_organization_access(contract.organization_id, authenticated, session, roles)
-    accept_contract(session, contract, access, party=party, expected_version=payload.version, request_id=uuid.uuid4())
+    access = require_organization_access(
+        contract.organization_id, authenticated, session, roles
+    )
+    accept_contract(
+        session,
+        contract,
+        access,
+        party=party,
+        expected_version=payload.version,
+        request_id=uuid.uuid4(),
+    )
     session.commit()
     return contract_json(contract)
 
 
 @router.post("/contracts/{contract_id}/customer-accept")
-def customer_accept(contract_id: uuid.UUID, payload: VersionInput, authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)], session: Annotated[Session, Depends(get_session)]):
+def customer_accept(
+    contract_id: uuid.UUID,
+    payload: VersionInput,
+    authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)],
+    session: Annotated[Session, Depends(get_session)],
+):
     return contract_accept(contract_id, "customer", payload, authenticated, session)
 
 
 @router.post("/contracts/{contract_id}/provider-accept")
-def provider_accept(contract_id: uuid.UUID, payload: VersionInput, authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)], session: Annotated[Session, Depends(get_session)]):
+def provider_accept(
+    contract_id: uuid.UUID,
+    payload: VersionInput,
+    authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)],
+    session: Annotated[Session, Depends(get_session)],
+):
     return contract_accept(contract_id, "provider", payload, authenticated, session)
 
 
-@router.post("/contracts/{contract_id}/payment-intents", status_code=status.HTTP_201_CREATED)
-def post_payment_intent(contract_id: uuid.UUID, payload: PaymentIntentCreateInput, authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)], session: Annotated[Session, Depends(get_session)], provider: Annotated[PaymentProvider, Depends(get_payment_provider)]):
+@router.post(
+    "/contracts/{contract_id}/payment-intents", status_code=status.HTTP_201_CREATED
+)
+def post_payment_intent(
+    contract_id: uuid.UUID,
+    payload: PaymentIntentCreateInput,
+    authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)],
+    session: Annotated[Session, Depends(get_session)],
+    provider: Annotated[PaymentProvider, Depends(get_payment_provider)],
+):
     contract = session.get(Contract, contract_id)
     if contract is None:
         raise AppError("PAYMENT_RESOURCE_NOT_FOUND", "Contract not found")
-    access = require_organization_access(contract.organization_id, authenticated, session, PAYMENT_ROLES)
-    intent = create_contract_payment_intent(session, contract, access, provider, **payload.model_dump())
+    access = require_organization_access(
+        contract.organization_id, authenticated, session, PAYMENT_ROLES
+    )
+    intent = create_contract_payment_intent(
+        session, contract, access, provider, **payload.model_dump()
+    )
     session.commit()
     return payment_json(intent)
 
 
 @router.post("/payment-intents/{payment_intent_id}/confirm")
-def confirm_payment_intent(payment_intent_id: uuid.UUID, payload: VersionInput, authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)], session: Annotated[Session, Depends(get_session)], provider: Annotated[PaymentProvider, Depends(get_payment_provider)]):
+def confirm_payment_intent(
+    payment_intent_id: uuid.UUID,
+    payload: VersionInput,
+    authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)],
+    session: Annotated[Session, Depends(get_session)],
+    provider: Annotated[PaymentProvider, Depends(get_payment_provider)],
+):
     intent = session.get(PaymentIntent, payment_intent_id)
     if intent is None:
         raise AppError("PAYMENT_RESOURCE_NOT_FOUND", "Payment intent not found")
-    access = require_organization_access(intent.organization_id, authenticated, session, PAYMENT_ROLES)
+    access = require_organization_access(
+        intent.organization_id, authenticated, session, PAYMENT_ROLES
+    )
     contract = session.get(Contract, intent.contract_id)
     project = session.get(Project, intent.project_id)
     if contract is None or project is None:
         raise AppError("PAYMENT_RESOURCE_NOT_FOUND", "Payment scope not found")
-    confirm_contract_payment(session, intent, contract, project, access, provider, payload.version)
+    confirm_contract_payment(
+        session, intent, contract, project, access, provider, payload.version
+    )
     session.commit()
     return payment_json(intent)
 
 
 @router.get("/payment-intents/{payment_intent_id}")
-def get_payment_intent(payment_intent_id: uuid.UUID, authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)], session: Annotated[Session, Depends(get_session)]):
+def get_payment_intent(
+    payment_intent_id: uuid.UUID,
+    authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)],
+    session: Annotated[Session, Depends(get_session)],
+):
     intent = session.get(PaymentIntent, payment_intent_id)
     if intent is None:
         raise AppError("PAYMENT_RESOURCE_NOT_FOUND", "Payment intent not found")
@@ -273,26 +448,63 @@ def get_payment_intent(payment_intent_id: uuid.UUID, authenticated: Annotated[Au
 
 
 @router.get("/maintenance-plans")
-def list_maintenance_plans(organization_id: uuid.UUID, authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)], session: Annotated[Session, Depends(get_session)]):
+def list_maintenance_plans(
+    organization_id: uuid.UUID,
+    authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)],
+    session: Annotated[Session, Depends(get_session)],
+):
     require_organization_access(organization_id, authenticated, session)
-    plans = session.scalars(select(MaintenancePlan).where(MaintenancePlan.status == "active", (MaintenancePlan.organization_id == organization_id) | MaintenancePlan.organization_id.is_(None)).order_by(MaintenancePlan.code)).all()
-    return [{"id": str(plan.id), "name": plan.name, "code": plan.code, "currency": plan.currency, "monthly_price": str(plan.monthly_price), "version": plan.version} for plan in plans]
+    plans = session.scalars(
+        select(MaintenancePlan)
+        .where(
+            MaintenancePlan.status == "active",
+            (MaintenancePlan.organization_id == organization_id)
+            | MaintenancePlan.organization_id.is_(None),
+        )
+        .order_by(MaintenancePlan.code)
+    ).all()
+    return [
+        {
+            "id": str(plan.id),
+            "name": plan.name,
+            "code": plan.code,
+            "currency": plan.currency,
+            "monthly_price": str(plan.monthly_price),
+            "version": plan.version,
+        }
+        for plan in plans
+    ]
 
 
-@router.post("/projects/{project_id}/maintenance-contracts", status_code=status.HTTP_201_CREATED)
-def post_maintenance_contract(project_id: uuid.UUID, payload: MaintenanceContractCreateInput, authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)], session: Annotated[Session, Depends(get_session)]):
+@router.post(
+    "/projects/{project_id}/maintenance-contracts", status_code=status.HTTP_201_CREATED
+)
+def post_maintenance_contract(
+    project_id: uuid.UUID,
+    payload: MaintenanceContractCreateInput,
+    authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)],
+    session: Annotated[Session, Depends(get_session)],
+):
     project, access = get_project_context(session, project_id, authenticated)
     contract = session.get(Contract, payload.contract_id)
     plan = session.get(MaintenancePlan, payload.maintenance_plan_id)
     if contract is None or plan is None:
-        raise AppError("PAYMENT_RESOURCE_NOT_FOUND", "Maintenance contract input not found")
-    maintenance = create_maintenance_contract(session, project, contract, plan, access, datetime.now(timezone.utc))
+        raise AppError(
+            "PAYMENT_RESOURCE_NOT_FOUND", "Maintenance contract input not found"
+        )
+    maintenance = create_maintenance_contract(
+        session, project, contract, plan, access, datetime.now(timezone.utc)
+    )
     session.commit()
     return maintenance_json(maintenance)
 
 
 @router.get("/maintenance-contracts/{maintenance_contract_id}")
-def get_maintenance_contract(maintenance_contract_id: uuid.UUID, authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)], session: Annotated[Session, Depends(get_session)]):
+def get_maintenance_contract(
+    maintenance_contract_id: uuid.UUID,
+    authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)],
+    session: Annotated[Session, Depends(get_session)],
+):
     contract = session.get(MaintenanceContract, maintenance_contract_id)
     if contract is None:
         raise AppError("PAYMENT_RESOURCE_NOT_FOUND", "Maintenance contract not found")
@@ -301,15 +513,24 @@ def get_maintenance_contract(maintenance_contract_id: uuid.UUID, authenticated: 
 
 
 @router.post("/maintenance-contracts/{maintenance_contract_id}/cancel")
-def cancel_maintenance_contract(maintenance_contract_id: uuid.UUID, payload: VersionInput, authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)], session: Annotated[Session, Depends(get_session)]):
+def cancel_maintenance_contract(
+    maintenance_contract_id: uuid.UUID,
+    payload: VersionInput,
+    authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)],
+    session: Annotated[Session, Depends(get_session)],
+):
     contract = session.get(MaintenanceContract, maintenance_contract_id)
     if contract is None:
         raise AppError("PAYMENT_RESOURCE_NOT_FOUND", "Maintenance contract not found")
-    access = require_organization_access(contract.organization_id, authenticated, session, WRITE_ROLES)
+    require_organization_access(
+        contract.organization_id, authenticated, session, WRITE_ROLES
+    )
     if contract.version != payload.version:
         raise AppError("VERSION_CONFLICT", "Resource was updated by another request")
     if contract.status == "terminated":
-        raise AppError("INVALID_STATE_TRANSITION", "Maintenance contract is already terminated")
+        raise AppError(
+            "INVALID_STATE_TRANSITION", "Maintenance contract is already terminated"
+        )
     contract.status = "terminated"
     contract.terminated_at = datetime.now(timezone.utc)
     session.commit()
@@ -317,7 +538,12 @@ def cancel_maintenance_contract(maintenance_contract_id: uuid.UUID, payload: Ver
 
 
 @router.post("/payment-webhooks/mock")
-async def mock_webhook(request: Request, authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)], session: Annotated[Session, Depends(get_session)], provider: Annotated[PaymentProvider, Depends(get_payment_provider)]):
+async def mock_webhook(
+    request: Request,
+    authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)],
+    session: Annotated[Session, Depends(get_session)],
+    provider: Annotated[PaymentProvider, Depends(get_payment_provider)],
+):
     payload = await request.body()
     try:
         organization_id = uuid.UUID(str(json.loads(payload)["organization_id"]))
@@ -327,4 +553,9 @@ async def mock_webhook(request: Request, authenticated: Annotated[AuthenticatedU
     signature = request.headers.get("X-Mock-Signature", "")
     event = process_mock_webhook(session, provider, organization_id, payload, signature)
     session.commit()
-    return {"id": str(event.id), "provider_event_id": event.provider_event_id, "status": event.status, "payload_hash": event.payload_hash}
+    return {
+        "id": str(event.id),
+        "provider_event_id": event.provider_event_id,
+        "status": event.status,
+        "payload_hash": event.payload_hash,
+    }

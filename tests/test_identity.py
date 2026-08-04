@@ -5,7 +5,14 @@ from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.orm import Session
 
 from app.audit import sanitize_audit_value
-from app.models import AuditLog, MembershipRole, Organization, OrganizationMembership, Role, User
+from app.models import (
+    AuditLog,
+    MembershipRole,
+    Organization,
+    OrganizationMembership,
+    Role,
+    User,
+)
 from app.seed import SYSTEM_ROLES, seed_system_roles
 
 
@@ -64,7 +71,11 @@ def test_system_role_seed_is_idempotent(db_session: Session):
 
 def test_audit_payload_redacts_secrets():
     sanitized = sanitize_audit_value(
-        {"email": "a@example.com", "password": "plain", "nested": {"access_token": "jwt"}}
+        {
+            "email": "a@example.com",
+            "password": "plain",
+            "nested": {"access_token": "jwt"},
+        }
     )
 
     assert sanitized == {

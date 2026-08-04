@@ -45,7 +45,10 @@ class CognitoAccessTokenVerifier:
                 key=self.key_provider(key_id),
                 algorithms=["RS256"],
                 issuer=self.issuer,
-                options={"verify_aud": False, "require": ["exp", "iss", "sub", "token_use"]},
+                options={
+                    "verify_aud": False,
+                    "require": ["exp", "iss", "sub", "token_use"],
+                },
             )
         except (jwt.PyJWTError, KeyError, TypeError, ValueError) as exc:
             raise TokenVerificationError("Access token validation failed") from exc
@@ -54,7 +57,10 @@ class CognitoAccessTokenVerifier:
             raise TokenVerificationError("JWT token_use must be access")
         audience = claims.get("aud")
         audiences = {audience} if isinstance(audience, str) else set(audience or [])
-        if claims.get("client_id") != self.client_id and self.client_id not in audiences:
+        if (
+            claims.get("client_id") != self.client_id
+            and self.client_id not in audiences
+        ):
             raise TokenVerificationError("JWT client does not match")
 
         return VerifiedAccessToken(
@@ -77,24 +83,50 @@ class StaticAccessTokenVerifier:
             raise TokenVerificationError("Access token expired")
         return verified
 
+
 class LocalAuthProvider:
     """Short-lived signed local sessions; authorization is always loaded from the DB."""
+
     def __init__(self, secret: str, ttl_seconds: int = 3600) -> None:
-        self.secret, self.ttl_seconds = hashlib.sha256(secret.encode()).digest(), ttl_seconds
+        self.secret, self.ttl_seconds = (
+            hashlib.sha256(secret.encode()).digest(),
+            ttl_seconds,
+        )
 
     def issue(self, subject: str) -> str:
         now = datetime.now(timezone.utc)
-        return jwt.encode({"sub": subject, "iat": now, "exp": int(now.timestamp()) + self.ttl_seconds, "token_use": "local_session"}, self.secret, algorithm="HS256")
+        return jwt.encode(
+            {
+                "sub": subject,
+                "iat": now,
+                "exp": int(now.timestamp()) + self.ttl_seconds,
+                "token_use": "local_session",
+            },
+            self.secret,
+            algorithm="HS256",
+        )
 
     def verify(self, token: str) -> VerifiedAccessToken:
         try:
-            claims = jwt.decode(token, self.secret, algorithms=["HS256"], options={"require": ["sub", "exp", "token_use"]})
+            claims = jwt.decode(
+                token,
+                self.secret,
+                algorithms=["HS256"],
+                options={"require": ["sub", "exp", "token_use"]},
+            )
             if claims["token_use"] != "local_session":
                 raise TokenVerificationError("Wrong token type")
         except (jwt.PyJWTError, KeyError) as exc:
             raise TokenVerificationError("Local token validation failed") from exc
-        return VerifiedAccessToken(str(claims["sub"]), datetime.fromtimestamp(int(claims["exp"]), timezone.utc), claims)
+        return VerifiedAccessToken(
+            str(claims["sub"]),
+            datetime.fromtimestamp(int(claims["exp"]), timezone.utc),
+            claims,
+        )
+
 
 class CognitoAuthProviderStub:
     def verify(self, _token: str) -> VerifiedAccessToken:
-        raise TokenVerificationError("Cognito is not connected in the local environment")
+        raise TokenVerificationError(
+            "Cognito is not connected in the local environment"
+        )

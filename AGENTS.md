@@ -146,3 +146,5 @@ Before apply, allow replacement of only the ECS task definition when it creates 
 - Browser binaries are cached at `/home/ubuntu/.cache/ms-playwright`. All three browser projects execute role, tenant, error-contract, workflow and 12-route axe checks without rule exclusions.
 - Coverage gates are backend 80%, important-service aggregate 90%, and frontend major-feature branches/functions/statements/lines 70%. Generated OpenAPI, configuration and type-only files are excluded from frontend coverage because they contain no executable user decisions.
 - `quality-results/quality-gate-summary.md` is authoritative. Any FAIL or BLOCKED means staging is `NOT_READY`; never weaken a threshold to obtain READY.
+- `scripts/check_service_coverage.py` owns the fixed critical-service list; the 2026-08-04 aggregate is 86.04%, below 90%.
+- `APP_PERFORMANCE_TIMING=true` is local-performance-only and emits sanitized durations/counts without SQL or secrets; production defaults to disabled.

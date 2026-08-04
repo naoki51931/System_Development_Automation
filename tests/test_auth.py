@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 import jwt
 import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -32,9 +32,13 @@ def verified(subject: str) -> VerifiedAccessToken:
     )
 
 
-def auth_client(db_session: Session, tokens: dict[str, VerifiedAccessToken]) -> TestClient:
+def auth_client(
+    db_session: Session, tokens: dict[str, VerifiedAccessToken]
+) -> TestClient:
     app = FastAPI()
-    app.state.session_factory = sessionmaker(bind=db_session.get_bind(), expire_on_commit=False)
+    app.state.session_factory = sessionmaker(
+        bind=db_session.get_bind(), expire_on_commit=False
+    )
     app.state.token_verifier = StaticAccessTokenVerifier(tokens)
 
     @app.get("/me")
@@ -58,7 +62,9 @@ def auth_client(db_session: Session, tokens: dict[str, VerifiedAccessToken]) -> 
 
 
 def test_invalid_jwt_returns_401(db_session: Session):
-    response = auth_client(db_session, {}).get("/me", headers={"Authorization": "Bearer bad"})
+    response = auth_client(db_session, {}).get(
+        "/me", headers={"Authorization": "Bearer bad"}
+    )
     assert response.status_code == 401
 
 
@@ -79,39 +85,60 @@ def test_inactive_user_returns_401(db_session: Session):
 
 def test_membership_role_and_resource_tenant_boundaries(db_session: Session):
     account = User(
-        cognito_sub="active-sub", email="active@example.com", display_name="Active", status="active"
+        cognito_sub="active-sub",
+        email="active@example.com",
+        display_name="Active",
+        status="active",
     )
     organization = Organization(name="Allowed", status="active")
     other = Organization(name="Other", status="active")
     viewer = Role(code="viewer", display_name="Viewer", is_system=True)
-    membership = OrganizationMembership(organization=organization, user=account, status="active")
+    membership = OrganizationMembership(
+        organization=organization, user=account, status="active"
+    )
     membership.roles.append(MembershipRole(role=viewer))
     db_session.add_all([membership, other])
     db_session.commit()
     client = auth_client(db_session, {"valid": verified("active-sub")})
     headers = {"Authorization": "Bearer valid"}
 
-    assert client.get(
-        f"/organizations/{organization.id}/protected",
-        params={"resource_organization_id": organization.id},
-        headers=headers,
-    ).status_code == 200
-    assert client.get(
-        f"/organizations/{other.id}/protected",
-        params={"resource_organization_id": other.id},
-        headers=headers,
-    ).status_code == 403
-    assert client.get(
-        f"/organizations/{organization.id}/protected",
-        params={"resource_organization_id": other.id},
-        headers=headers,
-    ).status_code == 403
+    assert (
+        client.get(
+            f"/organizations/{organization.id}/protected",
+            params={"resource_organization_id": organization.id},
+            headers=headers,
+        ).status_code
+        == 200
+    )
+    assert (
+        client.get(
+            f"/organizations/{other.id}/protected",
+            params={"resource_organization_id": other.id},
+            headers=headers,
+        ).status_code
+        == 403
+    )
+    assert (
+        client.get(
+            f"/organizations/{organization.id}/protected",
+            params={"resource_organization_id": other.id},
+            headers=headers,
+        ).status_code
+        == 403
+    )
 
 
 def test_role_shortage_returns_403(db_session: Session):
-    account = User(cognito_sub="no-role", email="norole@example.com", display_name="No Role", status="active")
+    account = User(
+        cognito_sub="no-role",
+        email="norole@example.com",
+        display_name="No Role",
+        status="active",
+    )
     organization = Organization(name="No Role Org", status="active")
-    db_session.add(OrganizationMembership(organization=organization, user=account, status="active"))
+    db_session.add(
+        OrganizationMembership(organization=organization, user=account, status="active")
+    )
     db_session.commit()
     client = auth_client(db_session, {"valid": verified("no-role")})
     response = client.get(
@@ -137,12 +164,17 @@ def test_cognito_access_token_validates_signature_issuer_client_and_token_use():
     }
     token = jwt.encode(claims, private_key, algorithm="RS256", headers={"kid": "key-1"})
     verifier = CognitoAccessTokenVerifier(
-        issuer=issuer, client_id=client_id, key_provider=lambda _kid: private_key.public_key()
+        issuer=issuer,
+        client_id=client_id,
+        key_provider=lambda _kid: private_key.public_key(),
     )
     assert verifier.verify(token).subject == "cognito-sub"
 
     invalid = jwt.encode(
-        {**claims, "token_use": "id"}, private_key, algorithm="RS256", headers={"kid": "key-1"}
+        {**claims, "token_use": "id"},
+        private_key,
+        algorithm="RS256",
+        headers={"kid": "key-1"},
     )
     with pytest.raises(TokenVerificationError):
         verifier.verify(invalid)

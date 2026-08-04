@@ -29,6 +29,12 @@ Application rollback selects the previous ECS task definitions and immutable ima
 
 Preserve S3 versions and audit logs. Roll back Secrets Manager by version stage, restore Cognito configuration from reviewed export, disable Stripe webhooks before reverting consumers, stop workers before DB restoration, and switch DNS only after old-target health verification. Never erase audit evidence during reset or rollback.
 
+## Final quality-gate recheck (2026-08-04)
+
+The decision is **NOT_READY**. Ruff is clean, backend coverage is 81.43%, and list
+API p95 passes. Critical-service coverage is 86.04% (required 90%), normal API p95
+is 609 ms (required 500 ms), and npm audit is DNS-BLOCKED rather than PASS.
+
 ## Data, observability and cost
 
 Use generated organizations/users/projects only, tagged with expiry. Reset by approved staging-specific procedure after exporting audit evidence. CloudWatch covers 5xx, latency, task restarts, worker lease age, retry/dead-letter count, RDS CPU/connections/storage and ALB health. Define monthly cost ceiling, daily anomaly alert, NAT/log retention limits and manual approval for scale increases.

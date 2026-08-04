@@ -28,7 +28,9 @@ class DeliveryResult:
 
 class NotificationProvider(ABC):
     @abstractmethod
-    def send(self, *, recipient_reference: str, title: str, body: str) -> DeliveryResult: ...
+    def send(
+        self, *, recipient_reference: str, title: str, body: str
+    ) -> DeliveryResult: ...
     @abstractmethod
     def get_status(self, provider_message_id: str) -> str: ...
     @abstractmethod
@@ -40,7 +42,9 @@ class MockNotificationProvider(NotificationProvider):
         self.outcomes = list(outcomes or ["delivered"])
         self.messages: dict[str, str] = {}
 
-    def send(self, *, recipient_reference: str, title: str, body: str) -> DeliveryResult:
+    def send(
+        self, *, recipient_reference: str, title: str, body: str
+    ) -> DeliveryResult:
         outcome = self.outcomes.pop(0) if self.outcomes else "delivered"
         if outcome == "unavailable":
             raise NotificationProviderUnavailable("Mock notification unavailable")
@@ -61,7 +65,14 @@ class InAppNotificationProvider(MockNotificationProvider):
 
 class EmailProvider(ABC):
     @abstractmethod
-    def send_email(self, *, recipient: str, subject: str, body_text: str, body_html: str | None = None) -> DeliveryResult: ...
+    def send_email(
+        self,
+        *,
+        recipient: str,
+        subject: str,
+        body_text: str,
+        body_html: str | None = None,
+    ) -> DeliveryResult: ...
     @abstractmethod
     def get_delivery_status(self, provider_message_id: str) -> str: ...
     @abstractmethod
@@ -73,13 +84,26 @@ class MockEmailProvider(EmailProvider):
         self.outcomes = list(outcomes or ["delivered"])
         self.messages: dict[str, dict[str, str | None]] = {}
 
-    def send_email(self, *, recipient: str, subject: str, body_text: str, body_html: str | None = None) -> DeliveryResult:
+    def send_email(
+        self,
+        *,
+        recipient: str,
+        subject: str,
+        body_text: str,
+        body_html: str | None = None,
+    ) -> DeliveryResult:
         inject("EMAIL_PROVIDER_FAILURE")
         outcome = self.outcomes.pop(0) if self.outcomes else "delivered"
         if outcome == "unavailable":
             raise EmailProviderUnavailable("Mock email unavailable")
         identifier = f"mock_email_{uuid.uuid4().hex}"
-        self.messages[identifier] = {"recipient": recipient, "subject": subject, "body_text": body_text, "body_html": body_html, "status": outcome}
+        self.messages[identifier] = {
+            "recipient": recipient,
+            "subject": subject,
+            "body_text": body_text,
+            "body_html": body_html,
+            "status": outcome,
+        }
         return DeliveryResult(identifier, outcome)
 
     def get_delivery_status(self, provider_message_id: str) -> str:
