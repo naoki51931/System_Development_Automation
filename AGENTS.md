@@ -146,5 +146,17 @@ Before apply, allow replacement of only the ECS task definition when it creates 
 - Browser binaries are cached at `/home/ubuntu/.cache/ms-playwright`. All three browser projects execute role, tenant, error-contract, workflow and 12-route axe checks without rule exclusions.
 - Coverage gates are backend 80%, important-service aggregate 90%, and frontend major-feature branches/functions/statements/lines 70%. Generated OpenAPI, configuration and type-only files are excluded from frontend coverage because they contain no executable user decisions.
 - `quality-results/quality-gate-summary.md` is authoritative. Any FAIL or BLOCKED means staging is `NOT_READY`; never weaken a threshold to obtain READY.
-- `scripts/check_service_coverage.py` owns the fixed critical-service list; the 2026-08-04 aggregate is 86.04%, below 90%.
+- `scripts/check_service_coverage.py` owns the fixed critical-service list; the 2026-08-05 aggregate is 86.12%, below 90%.
+- The 2026-08-05 audit confirmed the 50-user/60-second endpoint performance gate passes, but Compose worker health and real handler dispatch/resume fail; `npm audit` is DNS-blocked and the image build reports two moderate findings.
 - `APP_PERFORMANCE_TIMING=true` is local-performance-only and emits sanitized durations/counts without SQL or secrets; production defaults to disabled.
+
+## 2026-08-05 worker remediation
+
+- Worker registry types are `outbox`, `notification`, `email`, `document`, `ai_workflow`, `maintenance`, `estimate_expiration`, and `notification_expiration`; unknown types dead-letter.
+- Claims commit before handlers. A separate DB session renews the 60-second lease every 20 seconds; completion is an owner/lease CAS. Lease or DB loss prevents completion.
+- Worker health uses an atomic local status file plus PID, poll freshness, dead-letter count, and PostgreSQL checks. Compose requires all four services healthy.
+- Frontend production uses `.next/standalone` with `node server.js`, non-root runtime, and `HOSTNAME=0.0.0.0`; development remains `next dev`.
+- E2E setup is `APP_ENABLE_E2E_SEED=true scripts/compose-e2e-setup.sh`; it refuses production.
+- PostCSS is overridden to 8.5.23 for GHSA-fxqj-rqcc-2cmp. `npm audit --omit=dev` reports zero vulnerabilities.
+- Revision `6b1e4c9f2a10` replaces `ck_outbox_events_status` with DROP/ADD after row preflight. It takes ACCESS EXCLUSIVE locks and is not drop-free; downgrade is destructive/local-only.
+- Staging remains `NOT_READY`: backend overall coverage is 79.86%, critical-service coverage is 86.02%, and safe automatic resume of legacy partial document/AI workflow rows remains incomplete.

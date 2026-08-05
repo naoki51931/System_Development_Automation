@@ -26,6 +26,17 @@ def upgrade():
         ("dead_lettered_at", sa.DateTime(timezone=True)),
     ]:
         op.add_column("outbox_events", sa.Column(name, typ))
+    # This is a CHECK replacement, not a drop-free migration. Validate all rows
+    # before taking the ACCESS EXCLUSIVE locks required by DROP/ADD CONSTRAINT.
+    # On a large table these locks can block concurrent writers, so production
+    # execution requires a reviewed maintenance window and lock-timeout plan.
+    op.execute(
+        """DO $$ BEGIN
+        IF EXISTS (SELECT 1 FROM outbox_events WHERE status NOT IN
+          ('pending','processed','failed','queued','processing','completed','retry_wait','dead_letter'))
+        THEN RAISE EXCEPTION 'outbox_events contains status outside replacement CHECK';
+        END IF; END $$"""
+    )
     op.drop_constraint("ck_outbox_events_status", "outbox_events", type_="check")
     op.create_check_constraint(
         "ck_outbox_events_status",

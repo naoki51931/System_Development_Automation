@@ -29,11 +29,16 @@ Application rollback selects the previous ECS task definitions and immutable ima
 
 Preserve S3 versions and audit logs. Roll back Secrets Manager by version stage, restore Cognito configuration from reviewed export, disable Stripe webhooks before reverting consumers, stop workers before DB restoration, and switch DNS only after old-target health verification. Never erase audit evidence during reset or rollback.
 
-## Final quality-gate recheck (2026-08-04)
+## Final quality-gate recheck (2026-08-05)
 
-The decision is **NOT_READY**. Ruff is clean, backend coverage is 81.43%, and list
-API p95 passes. Critical-service coverage is 86.04% (required 90%), normal API p95
-is 609 ms (required 500 ms), and npm audit is DNS-BLOCKED rather than PASS.
+The remediation decision is **NOT_READY**. Ruff is clean, but backend coverage is
+79.86% (required 80%) and critical-service coverage is 86.02% (required 90%). The formal
+50-user/60-second endpoint gate now passes (normal project detail p95 490 ms and
+list worst p95 540 ms, 0% errors). Compose worker health and real handler
+dispatch and heartbeat are implemented and all four Compose services are healthy.
+Safe automatic resume of legacy partial document/AI workflow rows remains incomplete.
+The two moderate findings were the same PostCSS advisory and are fixed by 8.5.23;
+the reproducible npm audit now reports zero vulnerabilities.
 
 ## Data, observability and cost
 

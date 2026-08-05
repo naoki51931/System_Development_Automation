@@ -36,18 +36,25 @@
 # Current blocking gate
 
 - [ ] `quality-results/quality-gate-summary.md` is READY (currently NOT_READY).
-- [ ] Ruff lint is clean (currently 274 findings).
-- [ ] Important-service aggregate coverage is at least 90% (currently 85.72%).
-- [ ] Normal API p95 is at most 500 ms at 50 users for 60 seconds (currently cold aggregate 600 ms; warm 890 ms).
+- [x] Ruff lint is clean (0 findings).
+- [ ] Backend overall coverage is at least 80% (currently 79.86%).
+- [ ] Important-service aggregate coverage is at least 90% (currently 86.02%).
+- [x] Normal project-detail p95 is at most 500 ms at 50 users for 60 seconds (currently 490 ms).
+- [x] Worker health and explicit dispatch are active; all four Compose services are healthy.
+- [ ] Document/AI workflow partial-job resume is fully automatic (currently fail-closed).
+- [x] Dependency security audit completes without unresolved findings (npm audit: 0).
 
 Do not proceed to AWS/Terraform/Cognito/Stripe/S3/SES steps while any item above is unchecked.
 
-## 2026-08-04 recheck
+## 2026-08-05 recheck
 
 - [x] Ruff and undefined symbols: 0.
-- [ ] Critical-service coverage: 86.04% (required 90%).
-- [ ] Normal API p95: 609 ms (required 500 ms).
-- [x] List API worst p95: 684 ms (required at most 1 second).
-- [ ] npm audit: DNS-BLOCKED; not PASS.
+- [ ] Backend coverage: 79.86% (required 80%).
+- [ ] Critical-service coverage: 86.02% (required 90%).
+- [x] Normal project-detail p95: 490 ms (required at most 500 ms).
+- [x] List API worst p95: 540 ms (required at most 1 second).
+- [x] Compose worker health and explicit dispatch: PASS.
+- [ ] Safe partial document/AI workflow resume: FAIL.
+- [x] npm audit: PASS; PostCSS 8.5.23, zero vulnerabilities.
 
 The authoritative result is **NOT_READY**.

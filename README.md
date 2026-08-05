@@ -62,9 +62,13 @@ locust -f performance/locustfile.py --headless -u 50 -r 10 -t 20s --host http://
 See `docs/staging_readiness.md`, `docs/staging_deployment_checklist.md`, and
 `quality-results/quality-gate-summary.md`. Run
 `python scripts/check_service_coverage.py quality-results/backend-coverage.json`
-after coverage. The gate is **NOT_READY**: critical services are 86.04% (required
-90%) and 50-user normal API p95 is 609 ms (required 500 ms). Local timing headers
-require `APP_PERFORMANCE_TIMING=true` and stay disabled in production.
+after coverage. The 2026-08-05 audit gate is **NOT_READY**: critical services are
+86.12% (required 90%), the Compose worker has no healthcheck, and its runner does
+not dispatch or resume real handlers. The formal 50-user/60-second endpoint gate
+now passes (normal project detail p95 490 ms; list worst p95 540 ms; 0% errors),
+but `npm audit` remains DNS-blocked and the image build reported two moderate npm
+findings. Local timing headers require `APP_PERFORMANCE_TIMING=true` and stay
+disabled in production.
 # Quality gate remediation
 
-The reproducible local gate uses `docker compose down -v --remove-orphans`, `docker compose build --no-cache`, `docker compose up -d`, backend/frontend tests, and `cd frontend && npx playwright test`. Browser downloads are cached in `/home/ubuntu/.cache/ms-playwright`. Performance evidence uses 50 Locust users for at least 60 seconds and distinguishes cold and warm runs. See `quality-results/quality-gate-summary.md`; the current decision is **NOT_READY** because fixed important-service coverage and normal-API p95 gates remain unmet.
+The reproducible local gate uses `docker compose down -v --remove-orphans`, `docker compose build --no-cache`, `docker compose up -d`, backend/frontend tests, and `cd frontend && npx playwright test`. Browser downloads are cached in `/home/ubuntu/.cache/ms-playwright`. For a seeded Compose E2E run use `APP_ENABLE_E2E_SEED=true scripts/compose-e2e-setup.sh`; production is rejected. The production frontend is a non-root Next standalone image launched with `node server.js`. See `quality-results/quality-gate-summary.md`; the current decision is **NOT_READY** because backend coverage and safe document/AI workflow resume remain mandatory failures.

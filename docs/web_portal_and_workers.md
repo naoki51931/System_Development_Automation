@@ -16,7 +16,9 @@ The API and Next.js add no-store cache policy, CSP, frame denial, MIME sniffing 
 
 `app.workers.outbox.claim` starts a transaction and executes an ordered `SELECT ... FOR UPDATE SKIP LOCKED`. It claims `queued`/legacy `pending`/ready retry jobs or an expired processing lease, then records `locked_at`, `locked_by`, `lease_expires_at`, `heartbeat_at`, and increments `attempt_count`. Completion records `completed` and `processed_at`. Failure records a sanitized error code and bounded exponential backoff in UTC. When `max_attempts` is reached, the job becomes `dead_letter` with `dead_lettered_at`; only organization administrators can requeue it. Existing unique Outbox keys prevent the same side effect being enqueued twice, and completed jobs are never claimed.
 
-The runner uses local mock notification/email handlers and local document/storage and AI stubs. No production provider can be called. UTC scheduler entry points cover Outbox polling, notification digest/retry/expiry, email and document retry, workflow resume, daily maintenance state calculation, and estimate expiry. `maintenance.run_daily(now=...)` makes date boundaries deterministic.
+The runner resolves an explicit registry containing `outbox`, `notification`, `email`, `document`, `ai_workflow`, `maintenance`, `estimate_expiration`, and `notification_expiration`. Unknown types go directly to dead letter. Claim is committed before handler work; completion uses an owner/lease compare-and-set and occurs only after handler success. A separate session renews the 60-second lease every 20 seconds without incrementing attempts. DB heartbeat failure or owner change marks the lease lost and prevents completion. Local mock notification/email providers are the only delivery providers.
+
+Document and AI workflow rows already completed are verified and treated idempotently. Persisted legacy partial rows do not contain the source/settings/access snapshot required for safe reconstruction; the worker therefore fails closed instead of generating a duplicate artifact/version or charging a second AI run. Full automatic document and workflow resume remains a staging blocker.
 
 ## Cursor pagination
 
@@ -24,7 +26,9 @@ Projects, notifications, chat messages, audit logs, estimates, artifacts, review
 
 ## Local integration and migration
 
-`compose.yaml` defines `postgres`, `backend`, `frontend`, and `worker`, with named local volumes. Backend startup applies migrations and idempotent local seed data. Migration `6b1e4c9f2a10` adds only Outbox claim/lease/retry/dead-letter columns and a claim index. `migrations/sql/6b1e4c9f2a10_web_workers.sql` is the offline SQL; it was not applied to RDS.
+`compose.yaml` defines `postgres`, `backend`, standalone `frontend`, and `worker`, with named local volumes. Worker health reads an atomically replaced local status file, checks PID, poll freshness and PostgreSQL, and reports dead-letter count. `scripts/compose-e2e-setup.sh` requires `APP_ENABLE_E2E_SEED=true`, rejects production, runs migration, normal/E2E seeds, waits for health, and launches Playwright.
+
+Migration `6b1e4c9f2a10` adds Outbox claim/lease/retry/dead-letter columns and an index, and replaces `ck_outbox_events_status` by DROP/ADD after validating existing rows. That replacement takes ACCESS EXCLUSIVE locks and is not “drop-free”; a large production table requires a reviewed maintenance window. Downgrade restores the narrower CHECK and drops the added index/columns, so it is local-only. `migrations/sql/6b1e4c9f2a10_web_workers.sql` states the same behavior; it was not applied to RDS.
 
 This phase did not connect to or modify Cognito, Stripe, SES, S3, external AI APIs, RDS, Terraform, AWS, ECR, ECS, or any public environment.
 # Quality-gate verification addendum

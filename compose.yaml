@@ -39,13 +39,17 @@ services:
     environment: *backend-env
     command: python -m app.workers.runner
     healthcheck:
-      disable: true
+      test: ["CMD", "python", "-m", "app.workers.health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     depends_on: {backend: {condition: service_healthy}}
     volumes: ["local-artifacts:/tmp/systemnavigator-artifacts"]
   frontend:
     build:
       context: ./frontend
-      target: quality
+      target: runtime
     environment:
       NEXT_PUBLIC_API_BASE_URL: http://localhost:8000/api/v1
     depends_on: {backend: {condition: service_healthy}}
@@ -55,6 +59,18 @@ services:
       timeout: 3s
       retries: 20
     ports: ["3000:3000"]
+
+  e2e:
+    profiles: ["e2e"]
+    build:
+      context: ./frontend
+      target: quality
+    environment:
+      BASE_URL: http://frontend:3000
+    depends_on:
+      frontend: {condition: service_healthy}
+      worker: {condition: service_healthy}
+    command: npx playwright test
 volumes:
   postgres-local:
   local-artifacts:

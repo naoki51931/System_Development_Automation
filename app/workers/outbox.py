@@ -1,6 +1,6 @@
 import secrets
 from datetime import datetime, timedelta, timezone
-from sqlalchemy import or_, select
+from sqlalchemy import or_, select, update
 from sqlalchemy.orm import Session
 from app.models.communications import OutboxEvent
 
@@ -48,11 +48,54 @@ def heartbeat(
     return True
 
 
+def heartbeat_owned(
+    session: Session, job_id, worker_id: str, lease_seconds: int = 60
+) -> bool:
+    """Extend a lease atomically without incrementing attempts."""
+    now = utcnow()
+    result = session.execute(
+        update(OutboxEvent)
+        .where(
+            OutboxEvent.id == job_id,
+            OutboxEvent.status == "processing",
+            OutboxEvent.locked_by == worker_id,
+            OutboxEvent.lease_expires_at >= now,
+        )
+        .values(
+            heartbeat_at=now,
+            lease_expires_at=now + timedelta(seconds=lease_seconds),
+        )
+    )
+    return result.rowcount == 1
+
+
 def complete(session: Session, job: OutboxEvent) -> None:
     job.status = "completed"
     job.processed_at = utcnow()
     job.lease_expires_at = None
     job.last_error_code = None
+    job.locked_by = None
+
+
+def complete_owned(session: Session, job_id, worker_id: str) -> bool:
+    now = utcnow()
+    result = session.execute(
+        update(OutboxEvent)
+        .where(
+            OutboxEvent.id == job_id,
+            OutboxEvent.status == "processing",
+            OutboxEvent.locked_by == worker_id,
+            OutboxEvent.lease_expires_at >= now,
+        )
+        .values(
+            status="completed",
+            processed_at=now,
+            lease_expires_at=None,
+            locked_by=None,
+            last_error_code=None,
+        )
+    )
+    return result.rowcount == 1
 
 
 def fail(session: Session, job: OutboxEvent, error_code: str) -> None:
