@@ -17,6 +17,23 @@ The project workflow is `draft -> ai_reviewing -> human_reviewing -> approved`, 
 
 Terraform apply/destroy, AWS resource changes, ECR pushes, ECS deployments, RDS connections, and RDS migrations require explicit review and approval.
 
+## Isolated staging infrastructure
+
+The existing production Terraform root remains at `environment/` with its existing `cloud-a/prod/terraform.tfstate` state key. The additive staging root is `environment/staging/`, uses `system-navigator/staging/terraform.tfstate`, and creates only `system-navigator-staging-*` resources. See `docs/staging_terraform_layout.md` before any cloud work.
+
+Static checks only:
+
+```bash
+terraform fmt -recursive
+terraform -chdir=environment init -backend=false
+terraform -chdir=environment validate
+terraform -chdir=environment/staging init -backend=false
+terraform -chdir=environment/staging validate
+pytest -q tests/test_staging_terraform.py tests/test_web_workers.py
+```
+
+Do not copy example placeholders into an approved plan without replacing and reviewing them. Image references require a Git SHA or digest, LocalAuth is rejected in staging/production, and real `backend.hcl`, `terraform.tfvars`, secret values, account-specific ARNs, domains, and alert email addresses must not be committed. `plan`, `apply`, secret population, migration, provider connections, and AWS discovery remain separate approval points.
+
 ## Local AI, storage, review, and concurrency phase
 
 AI settings resolve project -> organization -> safe system defaults. Billing uses Decimal/NUMERIC(18,8), rounds every non-zero partial minute up, and stores rate snapshots on each AI run. Artifact files use server-generated tenant keys and are verified by MIME type, size, and SHA-256 before immutable version registration. Review comments use audited state transitions, and SQLAlchemy version columns return conflicts instead of overwriting concurrent updates.

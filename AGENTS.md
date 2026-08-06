@@ -167,3 +167,13 @@ Before apply, allow replacement of only the ECS task definition when it creates 
 - Document resume reuses the frozen template/input, deterministic artifact/version ID and storage key, and verifies render/storage SHA-256 before publication. AI resume uses frozen source/comment/settings hashes and deterministic run/version/review/billing identities.
 - Legacy processing/retry jobs without a snapshot fail closed with `RESUME_SNAPSHOT_MISSING` and require administrator review/requeue. Lease loss prevents the old worker from committing.
 - Final local results: Backend 125 passed, overall 83.09%, critical services 90.86%; Frontend 34 passed; Chromium/Firefox/WebKit 23 passed each and axe critical/serious 0. Local implementation is READY; staging remains separately approval-gated.
+
+## Staging Terraform separation
+
+- `/environment` remains the unchanged production root with state key `cloud-a/prod/terraform.tfstate` and prefix `ai-platform-prod`; do not move it or migrate its state.
+- `/environment/staging` is the staging-only root with state key `system-navigator/staging/terraform.tfstate`, prefix `system-navigator-staging`, and additive modules under `modules/staging_*`.
+- Commit only `backend.hcl.example` and `terraform.tfvars.example`. Real backend files, tfvars, state, plans, ARNs, domains, notification addresses, and secret values stay untracked.
+- Staging images must use a Git SHA or image digest; `latest` is rejected. `APP_ENV=staging` and `APP_LOCAL_AUTH_ENABLED=false` are fixed in ECS, and application startup refuses LocalAuth in staging/production.
+- Mock AI/payment/email providers are explicit staging flags. Cognito, Stripe test mode, SES Sandbox, HTTPS/DNS, and secret values remain disabled/unpopulated until separately approved.
+- Staging owns its RDS, artifact bucket, ECS cluster/services/tasks, ALB/target groups, logs, secrets, IAM roles, monitoring, and migration-only task. Never share production RDS, S3, secrets, identity, services, DNS, or provider configuration.
+- Run `terraform init -backend=false` and `terraform validate` separately in `/environment` and `/environment/staging`. A plan, apply, migration, AWS discovery/change, provider connection, or push always requires the documented human approval.

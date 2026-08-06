@@ -2,6 +2,9 @@
 
 ## Before apply
 
+- [ ] Confirm production key remains `cloud-a/prod/terraform.tfstate` and staging key is `system-navigator/staging/terraform.tfstate`
+- [ ] Replace every `REPLACE_*` value outside Git; confirm staging S3/RDS names differ from production
+- [ ] Select dedicated VPC (recommended) or review existing VPC/subnet/SG blast radius
 - [ ] Pin Git commit and image digests; all quality gates pass
 - [ ] Review offline migration SQL, lock duration and forward-fix/downgrade decision
 - [ ] Review saved Terraform plan and every destroy/replacement target
@@ -12,11 +15,14 @@
 - [ ] Review S3 CORS/public-block/versioning and SES Sandbox recipients
 - [ ] Configure CloudWatch alarms, log retention, budget and anomaly notifications
 - [ ] Record approvals for AWS, RDS, provider connection, plan and migration
+- [ ] Confirm HTTPS has ACM ARN/domain/zone and HTTP redirects; do not create DNS/ACM implicitly
+- [ ] Confirm mock-provider banner/indicators are visible while mocks remain enabled
 
 ## During apply
 
 - [ ] Apply only the reviewed saved plan
 - [ ] Run migration-only task; capture output and schema revision
+- [ ] Stop deployment if migration exits non-zero or Alembic head is not confirmed
 - [ ] Run idempotent reference seed and separate synthetic test-data seed
 - [ ] Deploy backend, worker and frontend pinned task definitions
 - [ ] Verify ALB health, HTTPS certificate, DNS and smoke endpoints
@@ -45,6 +51,8 @@
 - [x] Dependency security audit completes without unresolved findings (npm audit: 0).
 
 Do not proceed to AWS/Terraform/Cognito/Stripe/S3/SES steps while any item above is unchecked.
+
+`terraform plan` itself requires named human approval. An approved plan must show no production address, state migration, `moved`/import block, or replacement of the running production ALB/ECS/RDS/S3/VPC. Apply requires a second approval of the saved plan. Rollback must identify the prior immutable task revisions, schema compatibility decision, worker stop point, and snapshot restore-to-new-instance path.
 
 ## 2026-08-05 recheck
 

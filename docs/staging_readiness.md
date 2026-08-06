@@ -10,6 +10,10 @@ A dedicated VPC/ALB/HTTPS service set would contain ECS backend/frontend/worker,
 
 Approval is required before: Terraform plan, any destroy/replacement, secret registration, RDS access/migration, ECR push, ECS deployment, DNS/HTTPS change, Cognito/Stripe/S3/SES connection, external AI enabling, or data reset. Set AWS Budgets alerts and service quotas before creation.
 
+The code boundary now exists without changing AWS: production stays in `environment/` with key `cloud-a/prod/terraform.tfstate`; staging is `environment/staging/` with key `system-navigator/staging/terraform.tfstate`. Staging defaults to a dedicated VPC but can consume an explicitly supplied existing VPC plus two public and two private subnets. The modes are mutually exclusive. A dedicated VPC provides the strongest routing and security boundary; existing-VPC subnets reduce NAT cost but increase shared blast radius and require a separate network review.
+
+All staging resource names contain `system-navigator-staging`. Images use immutable Git SHA `57109fa` by default or a digest, never `latest`. Mock AI/payment/email are visibly enabled by environment variables; Cognito, Stripe, and SES are disabled until approved. Stripe is test-only and rejects live mode; SES requires Sandbox. The application refuses to start with LocalAuth enabled in staging or production.
+
 ## Migration, seed and deploy order
 
 1. Freeze a tested Git commit and immutable image digests.
@@ -21,6 +25,8 @@ Approval is required before: Terraform plan, any destroy/replacement, secret reg
 7. deploy backend, worker, then frontend; verify ALB health, HTTPS, DNS and CloudWatch.
 8. Execute tenant, billing-test, S3, document, email-sandbox, worker and alarm smoke tests.
 
+The migration task runs `alembic upgrade head` independently; backend startup never runs migration. Required order is verified snapshot, migration task, exit code 0, Alembic head verification, backend update, then worker update. Any migration failure stops service updates.
+
 S3 uses blocked public access, encryption, tenant-prefixed keys, CORS limited to the staging origin, lifecycle rules, and versioning. Stripe uses test keys/webhooks only. Cognito uses a separate pool and callback URLs. SES Sandbox restricts verified recipients; Mailpit remains the local alternative.
 
 ## Rollback
@@ -28,6 +34,8 @@ S3 uses blocked public access, encryption, tenant-prefixed keys, CORS limited to
 Application rollback selects the previous ECS task definitions and immutable image digests, then stops new workers if schema compatibility is uncertain. Prefer a forward fix for additive migrations. Downgrade is allowed only when offline SQL review proves it non-destructive and no newer data depends on it. Otherwise restore an RDS snapshot into a new instance and switch only after validation.
 
 Preserve S3 versions and audit logs. Roll back Secrets Manager by version stage, restore Cognito configuration from reviewed export, disable Stripe webhooks before reverting consumers, stop workers before DB restoration, and switch DNS only after old-target health verification. Never erase audit evidence during reset or rollback.
+
+The staging RDS is private, encrypted, Single-AZ by default, deletion-protected, and retains seven days of backups. AWS manages its master password in Secrets Manager. Application and migration identities must be provisioned after approval: migration owns DDL; application owns only runtime DML. Terraform creates additional empty secret containers and IAM references only; values are inserted through a separately approved, audited procedure.
 
 ## Final quality-gate recheck (2026-08-05)
 
@@ -43,6 +51,8 @@ the reproducible npm audit now reports zero vulnerabilities.
 ## Data, observability and cost
 
 Use generated organizations/users/projects only, tagged with expiry. Reset by approved staging-specific procedure after exporting audit evidence. CloudWatch covers 5xx, latency, task restarts, worker lease age, retry/dead-letter count, RDS CPU/connections/storage and ALB health. Define monthly cost ceiling, daily anomaly alert, NAT/log retention limits and manual approval for scale increases.
+
+Chargeable components are NAT Gateway/EIP, ALB, ECS Fargate, RDS, S3 requests/storage, Secrets Manager, CloudWatch logs/alarms, SNS, AWS Budgets, and optionally Route53/ACM data transfer. Cost controls are Single-AZ RDS, small tasks, desired count one, short logs, lifecycle rules, and approved off-hours scheduling. Replacing NAT with reviewed VPC endpoints can reduce recurring cost without making tasks public; WAF can remain an explicit later option, not a reason to relax ALB or TLS controls.
 # 2026-08-03 quality-gate re-evaluation
 
 Local clean Compose reconstruction, all three browser suites, accessibility, document/DB fault injection, worker competition, secret scanning, migration and OpenAPI checks pass. Staging is still **NOT_READY**: Ruff has 274 findings, important-service aggregate coverage is 85.72% against 90%, and the 50-user/60-second normal API p95 gate (500 ms) is not met. No staging action may begin until all are remediated and the deployment checklist receives its explicit approvals.
