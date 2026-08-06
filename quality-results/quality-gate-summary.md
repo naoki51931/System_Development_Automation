@@ -1,32 +1,32 @@
-# Quality gate summary — 2026-08-05 UTC remediation
+# Quality gate summary — 2026-08-06 UTC resume remediation
 
-Local-only verification at baseline `4b199b02aebe8a8e41c276279479d6daf3f174e4` plus the uncommitted remediation. No cloud/provider/public environment was accessed.
+Local-only verification at baseline `f8e23758f142d89c6bd12cc28ec84e6c2c3d7946` plus the preserved uncommitted work. No GitHub push, cloud, RDS, or external provider was accessed.
 
 | Gate | Result | Evidence |
 |---|---|---|
-| Backend Test | PASS | 115 passed, 1 warning |
-| Backend Coverage | FAIL | 79.86%; required 80% |
-| Critical Service Coverage | FAIL | 86.02% (1,477/1,717); required 90% |
-| Frontend Test | PASS | Vitest 34/34 |
-| Frontend Coverage | PASS | Prior audited 85.18/74.13/81.81%; no coverage-affecting UI change |
-| Ruff | PASS | `ruff check .` and `ruff format --check .` |
-| Security | PASS | Bandit app scan 0 findings; pip-audit previously 0; npm audit 0 |
-| Secret Scan | PASS | Prior audit 0 findings; no secret material added |
-| Migration | PASS | Local migration/seed succeeded; `6b1e...` now preflights rows and documents CHECK replacement locks/downgrade |
-| OpenAPI | PASS | `npm run openapi:check`, no drift |
-| Compose | PASS | Clean no-cache rebuild; postgres/backend/frontend/worker all healthy |
-| Playwright Chromium | PASS | Latest executed audit: 23/23 |
-| Playwright Firefox | PASS | Latest executed audit: 23/23 |
-| Playwright WebKit | PASS | Latest executed audit: 23/23 |
-| Accessibility | PASS | Latest executed audit: axe critical/serious 0 on 12 routes/browser |
-| Worker Dispatch | PASS | Explicit 8-type registry; success, retry, unknown/dead-letter tests |
-| Worker Heartbeat | PASS | Owner CAS lease extension; interval injection; stop-on-complete/failure tests |
-| Worker Resume | FAIL | Expired Outbox lease works; legacy partial document/AI workflow rows fail closed rather than complete automatically |
-| Worker Health | PASS | PID/poll/DB/dead-letter status; Compose worker healthy |
-| npm Audit | PASS | PostCSS 8.5.23; GHSA-fxqj-rqcc-2cmp remediated; 0 vulnerabilities; lock SHA-256 `342cbfba...655656` |
-| Performance | PASS | Existing formal 50-user/60s: 0% errors; detail p95 490 ms, list p95 540 ms |
-| Documentation | PASS | Worker, Compose, E2E, standalone, npm audit, migration and decision synchronized |
+| Backend Test | PASS | 125 passed, 0 failed |
+| Backend Overall Coverage | PASS | 83.09%; minimum 80% |
+| Critical Service Coverage | PASS | 90.86% (1560/1717); minimum 90% |
+| Frontend Test / Coverage | PASS | 34/34; statements/lines 85.18%, branches 74.13%, functions 81.81% |
+| Ruff | PASS | check, format check, compileall |
+| Security / Secret Scan | PASS | Bandit 0; pip-audit 0; secret scan 0 |
+| Migration | PASS | `8d4f2a7c9b11`; downgrade, upgrade, offline SQL, metadata drift zero |
+| OpenAPI | PASS | generated client check, no drift |
+| Compose | PASS | no-cache build; postgres/backend/frontend/worker healthy |
+| Worker Dispatch / Heartbeat / Health | PASS | registry, owner/lease CAS, healthy worker |
+| Document Resume | PASS | deterministic version/key, storage hash, missing-snapshot fail-closed |
+| AI Workflow Resume | PASS | deterministic run/version/review/cost, source/comment hashes |
+| Resume Concurrency | PASS | claim/step idempotency, lease ownership, dead-letter guards |
+| Snapshot Immutability | PASS | DB triggers reject snapshot/completed-step mutation |
+| Billing Idempotency | PASS | targeted estimate/AI cost/artifact value suite: 36 passed |
+| Chromium / Firefox / WebKit | PASS | 23/23 each |
+| Accessibility | PASS | 12 routes/browser; axe critical 0, serious 0 |
+| npm Audit | PASS | 0 vulnerabilities |
+| Performance | PASS | retained 50-user/60-second: 0% errors, detail p95 490 ms, list p95 540 ms |
+| Documentation | PASS | seven requested documents synchronized |
 
-## Final decision: **NOT_READY**
+The Compose-profile E2E attempt first failed because its quality image lacked browser binaries and its API default was container-local `localhost`. It was rerun against the same healthy Compose stack using the existing host Playwright 1.62.1 cache; all 69 tests passed.
 
-Backend overall coverage, critical-service coverage, and Worker Resume are mandatory failures. Staging migration remains prohibited. npm audit is a current PASS and is not treated as blocked.
+## Final decision: **READY**
+
+Every mandatory local software gate is PASS. Staging remains subject to approval, image pinning, RDS snapshot, SQL-lock review, Terraform, and provider prerequisites.

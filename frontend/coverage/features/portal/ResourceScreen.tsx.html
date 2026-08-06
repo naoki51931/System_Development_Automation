@@ -1,0 +1,106 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for features/portal/ResourceScreen.tsx</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../../index.html">All files</a> / <a href="index.html">features/portal</a> ResourceScreen.tsx</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">100% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>6/6</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">69.84% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>44/63</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">80% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>16/20</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">100% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>6/6</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line high'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a>
+<a name='L3'></a><a href='#L3'>3</a>
+<a name='L4'></a><a href='#L4'>4</a>
+<a name='L5'></a><a href='#L5'>5</a>
+<a name='L6'></a><a href='#L6'>6</a>
+<a name='L7'></a><a href='#L7'>7</a>
+<a name='L8'></a><a href='#L8'>8</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">8x</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">28x</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">"use client";import Link from"next/link";import{FormEvent,useCallback,useEffect,useState}from"react";import{AsyncState}from"@/components/AsyncState";import{Shell}from"@/components/Shell";import{api}from"@/lib/api";import type{ApiRecord,CursorPage}from"@/lib/contracts";import{selectedProject,useOrganization}from"@/lib/organization";
+type Config={title:string;endpoint:(org:string,project:string)=&gt;string;admin?:boolean;detail?:string;action?:"read"|"retry"|"pay"|"accept-contract"|"approve-review"};
+const configs:Record&lt;string,Config&gt;={
+ estimates:{title:"見積一覧",endpoint:<span class="fstat-no" title="function not covered" >(_o,p)=&gt;`/projects/${p}/estimates`,d</span>etail:"estimates"},contracts:{title:"契約",endpoint:o=&gt;`/contracts?organization_id=${o}`,detail:"contracts",action:"accept-contract"},payments:{title:"Mock決済",endpoint:o=&gt;`/payment-intents?organization_id=${o}`,detail:"payment-intents",action:"pay"},artifacts:{title:"成果物・バージョン",endpoint:o=&gt;`/artifacts?organization_id=${o}`},reviews:{title:"レビュー・コメント",endpoint:o=&gt;`/reviews?organization_id=${o}`,action:"approve-review"},chat:{title:"案件チャット",endpoint:<span class="fstat-no" title="function not covered" >(_o,p)=&gt;`/projects/${p}/chat-rooms`}</span>,"change-requests":{title:"修正依頼",endpoint:o=&gt;`/change-requests?organization_id=${o}`},notifications:{title:"通知",endpoint:o=&gt;`/notifications?organization_id=${o}`,action:"read"},"ai-settings":{title:"AI設定",endpoint:o=&gt;`/ai-settings?organization_id=${o}`,admin:true},maintenance:{title:"保守契約",endpoint:o=&gt;`/maintenance-contracts?organization_id=${o}`},users:{title:"組織ユーザー・ロール",endpoint:o=&gt;`/admin/users?organization_id=${o}`,admin:true},"audit-logs":{title:"監査ログ",endpoint:o=&gt;`/audit-logs?organization_id=${o}`,admin:true},"dead-letters":{title:"Dead Letter管理",endpoint:o=&gt;`/admin/dead-letters?organization_id=${o}`,admin:true,action:"retry"}};
+function text(value:unknown){if(value===null||value===undefined)<span class="branch-0 cbranch-no" title="branch not covered" >return"-";i</span>f(Array.isArray(value))<span class="branch-0 cbranch-no" title="branch not covered" >return value.join(", ");i</span>f(typeof value==="object")<span class="branch-0 cbranch-no" title="branch not covered" >return JSON.stringify(value);r</span>eturn String(value)}
+function normalize(value:CursorPage|ApiRecord[]):ApiRecord[]{return Array.isArray(value<span class="branch-0 cbranch-no" title="branch not covered" >)?value:v</span>alue.<span class="branch-0 cbranch-no" title="branch not covered" >items||[]}</span>
+export default function ResourceScreen({section}:{section:string}){const config=configs[section];const{organizationId}=useOrganization();const[rows,setRows]=useState&lt;ApiRecord[]&gt;([]),[loading,setLoading]=useState(true),[error,setError]=useState&lt;unknown&gt;(),[room,setRoom]=useState(""),[message,setMessage]=useState("");const project=typeof window===<span class="branch-0 cbranch-no" title="branch not covered" >"undefined"?"":s</span>electedProject();const load=useCallback(async()=&gt;{if(!config||!organizationId)return;setLoading(true);setError(undefined);try{if(["estimates","chat"].includes(section)&amp;&amp;!project){setRows([]);return}const value=await api&lt;CursorPage|ApiRecord[]&gt;(config.endpoint(organizationId,project));let items=normalize(value);if(section===<span class="branch-0 cbranch-no" title="branch not covered" >"chat"&amp;&amp;items[0]?.id)<span class="branch-0 cbranch-no" title="branch not covered" >{</span>setRoom(String(items[0].id));const messages=await api&lt;CursorPage&gt;(`/chat-rooms/${items[0].id}/messages`);items=messages.items}i</span>f(section==="artifacts"){const versions=await api&lt;CursorPage&gt;(`/artifact-versions?organization_id=${organizationId}`);items=[...items,...versions.items]}if(section==="reviews"){const comments=await api&lt;CursorPage&gt;(`/review-comments?organization_id=${organizationId}`);items=[...items,...comments.items]}setRows(items)<span class="branch-0 cbranch-no" title="branch not covered" >}catch(e){setError(e)}f</span>inally{setLoading(false)}},[config,organizationId,project,section]);useEffect(()=&gt;{load()},[load]);async function action(row:ApiRecord){try{if(config.action==="read")await api(`/notifications/${row.id}/read`,{method:"POST",body:JSON.stringify({version:row.version})});if(config.action==="retry")<span class="branch-0 cbranch-no" title="branch not covered" >await api(`/admin/dead-letters/${row.id}/retry`,{method:"POST"});i</span>f(config.action==="pay")<span class="branch-0 cbranch-no" title="branch not covered" >await api(`/payment-intents/${row.id}/confirm`,{method:"POST",body:JSON.stringify({version:row.version})});i</span>f(config.action==="accept-contract")<span class="branch-0 cbranch-no" title="branch not covered" >await api(`/contracts/${row.id}/customer-accept`,{method:"POST",body:JSON.stringify({version:row.version})});i</span>f(config.action==="approve-review")<span class="branch-0 cbranch-no" title="branch not covered" >await api(`/artifact-versions/${row.artifact_version_id}/approve`,{method:"POST",body:JSON.stringify({comment:"Web portal approval"})});a</span>wait load()<span class="branch-0 cbranch-no" title="branch not covered" >}catch(e){setError(e)}}<span class="fstat-no" title="function not covered" ></span>async function post(e:FormEvent){e.preventDefault();try{await api(`/chat-rooms/${room}/messages`,{method:"POST",body:JSON.stringify({body:message,message_type:"user"})});setMessage("");await load()}catch(x){setError(x)}}i</span>f(!config)return &lt;Shell title="404"&gt;&lt;p&gt;ページが見つかりません。&lt;/p&gt;&lt;/Shell&gt;;const columns=Array.from(new Set(rows.flatMap(x=&gt;Object.keys(x)))).filter(x=&gt;!["organization_id"].includes(x)).slice(0,8);return &lt;Shell title={config.title}&gt;{["estimates","chat"].includes(section)&amp;&amp;!project?&lt;div role="status"className="card"&gt;案件一覧から対象案件を選択してください。&lt;/div&gt;:&lt;&gt;&lt;AsyncState loading={loading} error={error} empty={!loading&amp;&amp;!error&amp;&amp;rows.length===0}/&gt;{section===<span class="branch-0 cbranch-no" title="branch not covered" >"chat"&amp;&amp;<span class="branch-0 cbranch-no" title="branch not covered" >room&amp;&amp;&lt;</span>form onSubmit={post}className="card"&gt;&lt;label htmlFor="message"&gt;メッセージ&lt;/label&gt;&lt;textarea id="message"value={message}onChange={<span class="fstat-no" title="function not covered" >e=&gt;setMessage(e.target.value)}r</span>equired/&gt;&lt;button&gt;投稿&lt;/button&gt;&lt;/form&gt;}{r</span>ows.length&gt;0&amp;&amp;&lt;div className="tableWrap"&gt;&lt;table&gt;&lt;thead&gt;&lt;tr&gt;{columns.map(x=&gt;&lt;th key={x}&gt;{x}&lt;/th&gt;)}{(config.detail||config.action)&amp;&amp;&lt;th&gt;操作&lt;/th&gt;}&lt;/tr&gt;&lt;/thead&gt;&lt;tbody&gt;{rows.map((row,i)=&gt;&lt;tr key={String(row.<span class="branch-0 cbranch-no" title="branch not covered" >id||i)</span>}&gt;{columns.map(x=&gt;&lt;td key={x}&gt;{text(row[x])}&lt;/td&gt;)}{(config.detail||config.action)&amp;&amp;&lt;td&gt;{config.<span class="branch-0 cbranch-no" title="branch not covered" >detail&amp;&amp;row.<span class="branch-0 cbranch-no" title="branch not covered" >id&amp;&amp;&lt;</span>Link href={`/${config.detail}/${row.id}`}&gt;詳細&lt;/Link&gt;} </span>{config.action&amp;&amp;&lt;button onClick={()=&gt;action(row)}&gt;実行&lt;/button&gt;}&lt;/td&gt;}&lt;/tr&gt;)}&lt;/tbody&gt;&lt;/table&gt;&lt;/div&gt;}&lt;/&gt;}&lt;/Shell&gt;}
+&nbsp;</pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2026-08-06T02:54:57.336Z
+            </div>
+        <script src="../../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../../sorter.js"></script>
+        <script src="../../block-navigation.js"></script>
+    </body>
+</html>
+    

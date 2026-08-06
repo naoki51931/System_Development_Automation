@@ -72,3 +72,11 @@ disabled in production.
 # Quality gate remediation
 
 The reproducible local gate uses `docker compose down -v --remove-orphans`, `docker compose build --no-cache`, `docker compose up -d`, backend/frontend tests, and `cd frontend && npx playwright test`. Browser downloads are cached in `/home/ubuntu/.cache/ms-playwright`. For a seeded Compose E2E run use `APP_ENABLE_E2E_SEED=true scripts/compose-e2e-setup.sh`; production is rejected. The production frontend is a non-root Next standalone image launched with `node server.js`. See `quality-results/quality-gate-summary.md`; the current decision is **NOT_READY** because backend coverage and safe document/AI workflow resume remain mandatory failures.
+
+## Resumable Document and AI workflows (2026-08-06)
+
+Migration `8d4f2a7c9b11` introduces immutable schema-version `1` `workflow_job_inputs` snapshots and durable `workflow_job_steps`. Document generation resumes with a deterministic artifact version/storage key and verifies render/storage SHA-256. AI revision resumes from frozen source/comment/settings hashes and deterministic AI run, artifact version, review, and billing identities, preventing duplicate versions, reviews, or AI cost.
+
+Snapshots and completed steps cannot be changed or deleted. A partial job without a snapshot is never reconstructed from current template, AI setting, comments, pricing, actor, or artifact; it records `RESUME_SNAPSHOT_MISSING`, `resume_block_reason`, and `resume_blocked_at` for administrator review/requeue. Worker owner/lease CAS prevents a lease-lost worker from committing.
+
+Final local evidence: Backend 125/125, overall 83.09%, critical services 90.86%, Frontend 34/34, and Chromium/Firefox/WebKit 23/23 each with axe critical/serious 0. The local software gate is READY; staging/cloud execution still requires checklist approvals.

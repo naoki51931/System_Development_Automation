@@ -160,3 +160,10 @@ Before apply, allow replacement of only the ECS task definition when it creates 
 - PostCSS is overridden to 8.5.23 for GHSA-fxqj-rqcc-2cmp. `npm audit --omit=dev` reports zero vulnerabilities.
 - Revision `6b1e4c9f2a10` replaces `ck_outbox_events_status` with DROP/ADD after row preflight. It takes ACCESS EXCLUSIVE locks and is not drop-free; downgrade is destructive/local-only.
 - Staging remains `NOT_READY`: backend overall coverage is 79.86%, critical-service coverage is 86.02%, and safe automatic resume of legacy partial document/AI workflow rows remains incomplete.
+
+## 2026-08-06 resumable workflow completion
+
+- Revision `8d4f2a7c9b11` adds `workflow_job_inputs`, `workflow_job_steps`, deterministic job keys, parent/requeue links, `resume_block_reason`, and `resume_blocked_at`. Snapshots use schema version `1`; PostgreSQL rejects snapshot UPDATE/DELETE and changes to completed steps.
+- Document resume reuses the frozen template/input, deterministic artifact/version ID and storage key, and verifies render/storage SHA-256 before publication. AI resume uses frozen source/comment/settings hashes and deterministic run/version/review/billing identities.
+- Legacy processing/retry jobs without a snapshot fail closed with `RESUME_SNAPSHOT_MISSING` and require administrator review/requeue. Lease loss prevents the old worker from committing.
+- Final local results: Backend 125 passed, overall 83.09%, critical services 90.86%; Frontend 34 passed; Chromium/Firefox/WebKit 23 passed each and axe critical/serious 0. Local implementation is READY; staging remains separately approval-gated.

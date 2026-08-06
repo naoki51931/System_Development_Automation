@@ -58,3 +58,15 @@ Do not proceed to AWS/Terraform/Cognito/Stripe/S3/SES steps while any item above
 - [x] npm audit: PASS; PostCSS 8.5.23, zero vulnerabilities.
 
 The authoritative result is **NOT_READY**.
+
+## 2026-08-06 resume completion recheck
+
+- [x] Backend 125 passed; overall 83.09% and critical services 90.86% (1560/1717).
+- [x] Immutable snapshot/step triggers, schema version `1`, deterministic version/run/review/cost identities, hash validation, and missing-snapshot fail-closed tests pass.
+- [x] Migration `8d4f2a7c9b11`: downgrade, upgrade, offline SQL, and metadata drift checks pass.
+- [x] Compose services healthy; reference seed succeeds twice.
+- [x] Chromium/Firefox/WebKit 23/23 each; axe critical/serious 0.
+- [x] Ruff, Security, Secret Scan, OpenAPI, and npm audit pass.
+- [ ] Pin Git commit/image digests and obtain every AWS/RDS/provider/Terraform approval above.
+
+Local software quality is **READY**. Staging migration remains prohibited until the remaining approval/deployment prerequisites are checked.

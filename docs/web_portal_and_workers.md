@@ -36,3 +36,11 @@ This phase did not connect to or modify Cognito, Stripe, SES, S3, external AI AP
 Post-login navigation performs a same-origin reload so the cookie-auth organization provider is re-established reliably. Organization switching remains server-authorized and clears tenant-scoped session cache. The three-browser suite covers six roles, tenant denial, 403/404/409, Mock payment, chat, review, change requests, notifications, and axe checks on 12 portal/admin routes.
 
 Document rendering injects `DOCUMENT_RENDER_FAILURE` before any artifact, version, hash or local-storage side effect. Worker tests require claim exclusivity, leases/heartbeats, bounded retry, dead letter and idempotency. PostgreSQL deadlock/lock-timeout classification is test-only and exposes no production fault endpoint.
+
+## Immutable snapshots and resume
+
+`workflow_job_inputs` stores one immutable input per document or AI job: tenant/project/job links, input type, schema version `1`, source/actor references, access-context hash, frozen settings/template JSON, payload/hash, deterministic idempotency key, and timestamp. `workflow_job_steps` records deterministic named steps, status/attempts, result reference/hash, and timestamps. PostgreSQL triggers reject snapshot UPDATE/DELETE and completed-step mutation.
+
+Document steps cover snapshot, version reservation, rendering, storage, hash verification, DB commit, and completion. Resume reuses the version/key and rejects DB-without-file or hash mismatch. AI steps cover snapshot, AI-run reservation, revision/version/storage, review, cost, state, and completion; source and comment-set hashes are verified and MockAIProvider is the executing boundary. Unique deterministic identities prevent duplicate artifact versions, AI runs, reviews, estimate lines, pricing snapshots, and cost.
+
+Processing/retry jobs without snapshots become blocked with `RESUME_SNAPSHOT_MISSING`, `resume_block_reason=immutable_snapshot_missing`, and `resume_blocked_at`; mutable current state is never guessed. Administrator requeue is explicit and tenant-checked, dead letters do not auto-resume, and a lease-lost worker cannot commit.

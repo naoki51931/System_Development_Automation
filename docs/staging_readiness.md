@@ -46,3 +46,9 @@ Use generated organizations/users/projects only, tagged with expiry. Reset by ap
 # 2026-08-03 quality-gate re-evaluation
 
 Local clean Compose reconstruction, all three browser suites, accessibility, document/DB fault injection, worker competition, secret scanning, migration and OpenAPI checks pass. Staging is still **NOT_READY**: Ruff has 274 findings, important-service aggregate coverage is 85.72% against 90%, and the 50-user/60-second normal API p95 gate (500 ms) is not met. No staging action may begin until all are remediated and the deployment checklist receives its explicit approvals.
+
+## 2026-08-06 resume gate result
+
+The local implementation gate is **READY**: Backend 125 passed, overall 83.09% (minimum 80%), critical services 90.86% (minimum 90%), Frontend 34 passed above its 70% thresholds, migration `8d4f2a7c9b11` downgrade/upgrade/offline SQL/metadata checks passed, all four Compose services are healthy, and Chromium/Firefox/WebKit each passed 23 tests with axe critical/serious 0. Snapshot absence fails closed and billing/artifact/AI identities are idempotent.
+
+This does not authorize staging. Git/image pinning, SQL/lock review, RDS snapshot, provider/security approvals, Terraform review, and named checklist approvers remain required before cloud action.
