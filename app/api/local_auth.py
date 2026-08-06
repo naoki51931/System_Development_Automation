@@ -29,7 +29,7 @@ class SwitchInput(BaseModel):
 def enabled():
     settings = get_settings()
     if (
-        settings.environment.lower() in {"production", "prod"}
+        settings.environment.lower() in {"staging", "production", "prod"}
         or not settings.local_auth_enabled
     ):
         raise HTTPException(404, "Local authentication is disabled")

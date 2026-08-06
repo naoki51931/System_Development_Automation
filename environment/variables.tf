@@ -47,3 +47,45 @@ variable "github_repository" {
   type        = string
   description = "GitHubリポジトリ名"
 }
+
+# Production safety boundaries. These flags are intentionally not wired to the
+# legacy production resources; true is rejected before any future provider work.
+variable "enable_local_auth" {
+  type        = bool
+  description = "ProductionでLocalAuthを拒否する安全境界"
+  default     = false
+  validation {
+    condition     = !var.enable_local_auth
+    error_message = "LocalAuth is forbidden in production."
+  }
+}
+
+variable "enable_mock_ai" {
+  type        = bool
+  description = "ProductionでMock AIを拒否する安全境界"
+  default     = false
+  validation {
+    condition     = !var.enable_mock_ai
+    error_message = "Mock AI is forbidden in production."
+  }
+}
+
+variable "enable_mock_payment" {
+  type        = bool
+  description = "ProductionでMock paymentを拒否する安全境界"
+  default     = false
+  validation {
+    condition     = !var.enable_mock_payment
+    error_message = "Mock payment is forbidden in production."
+  }
+}
+
+variable "enable_mock_email" {
+  type        = bool
+  description = "ProductionでMock emailを拒否する安全境界"
+  default     = false
+  validation {
+    condition     = !var.enable_mock_email
+    error_message = "Mock email is forbidden in production."
+  }
+}

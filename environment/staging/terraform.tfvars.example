@@ -1,0 +1,66 @@
+aws_account_id = "123456789012"
+aws_region     = "eu-west-2"
+environment    = "staging"
+name_prefix    = "system-navigator-staging"
+
+container_image_tag       = "57109fa"
+backend_image_repository  = "REPLACE_WITH_BACKEND_ECR_REPOSITORY"
+worker_image_repository   = "REPLACE_WITH_WORKER_ECR_REPOSITORY"
+frontend_image_repository = "REPLACE_WITH_FRONTEND_ECR_REPOSITORY"
+
+enable_local_auth   = false
+enable_mock_ai       = true
+enable_mock_payment  = true
+enable_mock_email    = true
+enable_cognito       = false
+enable_stripe        = false
+enable_ses           = false
+enable_s3_storage    = true
+stripe_mode          = "test"
+
+desired_count_backend  = 1
+desired_count_worker   = 1
+desired_count_frontend = 1
+db_instance_class      = "db.t4g.small"
+db_multi_az            = false
+backup_retention_days  = 7
+deletion_protection    = true
+log_retention_days     = 14
+
+artifact_bucket_name            = "REPLACE_WITH_UNIQUE_STAGING_BUCKET"
+production_artifact_bucket_name = "REPLACE_WITH_PRODUCTION_BUCKET_NAME"
+rds_identifier                  = "system-navigator-staging-db"
+production_rds_identifier       = "REPLACE_WITH_PRODUCTION_RDS_IDENTIFIER"
+
+create_vpc                  = true
+vpc_cidr                    = "10.30.0.0/16"
+existing_vpc_id             = ""
+existing_private_subnet_ids = []
+existing_public_subnet_ids  = []
+
+domain_name         = "staging.example.com"
+route53_zone_id     = "REPLACE_ME"
+acm_certificate_arn = "REPLACE_ME"
+enable_https        = false
+
+alarm_notification_email = "REPLACE_ME"
+monthly_budget_amount     = 100
+
+github_oidc_provider_arn = "REPLACE_WITH_EXISTING_GITHUB_OIDC_PROVIDER_ARN"
+github_org               = "REPLACE_GITHUB_ORG"
+github_repository        = "REPLACE_GITHUB_REPOSITORY"
+
+cognito_user_pool_id  = ""
+cognito_app_client_id = ""
+cognito_issuer        = ""
+cognito_domain        = ""
+
+stripe_secret_key_secret_arn = ""
+stripe_webhook_secret_arn    = ""
+stripe_publishable_key       = ""
+stripe_webhook_endpoint      = ""
+
+ses_region            = "eu-west-2"
+ses_from_address      = ""
+ses_configuration_set = ""
+ses_sandbox_mode      = true
