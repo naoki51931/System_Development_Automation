@@ -114,7 +114,7 @@ variable "db_multi_az" {
 }
 variable "backup_retention_days" {
   type    = number
-  default = 7
+  default = 3
 }
 variable "deletion_protection" {
   type    = bool

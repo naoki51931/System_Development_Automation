@@ -23,7 +23,7 @@ desired_count_worker   = 1
 desired_count_frontend = 1
 db_instance_class      = "db.t4g.small"
 db_multi_az            = false
-backup_retention_days  = 7
+backup_retention_days  = 3
 deletion_protection    = true
 log_retention_days     = 14
 

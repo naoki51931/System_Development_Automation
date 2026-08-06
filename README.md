@@ -34,6 +34,8 @@ pytest -q tests/test_staging_terraform.py tests/test_web_workers.py
 
 Do not copy example placeholders into an approved plan without replacing and reviewing them. Image references require a Git SHA or digest, LocalAuth is rejected in staging/production, and real `backend.hcl`, `terraform.tfvars`, secret values, account-specific ARNs, domains, and alert email addresses must not be committed. `plan`, `apply`, secret population, migration, provider connections, and AWS discovery remain separate approval points.
 
+Staging RDS is intentionally low-cost: `db.t4g.small`, Single-AZ, 20 GB gp3, and three-day backup retention. It remains private, encrypted, and deletion-protected. Only production uses the high-availability Multi-AZ RDS configuration; production Terraform and backend configuration are separate and unchanged.
+
 ## Local AI, storage, review, and concurrency phase
 
 AI settings resolve project -> organization -> safe system defaults. Billing uses Decimal/NUMERIC(18,8), rounds every non-zero partial minute up, and stores rate snapshots on each AI run. Artifact files use server-generated tenant keys and are verified by MIME type, size, and SHA-256 before immutable version registration. Review comments use audited state transitions, and SQLAlchemy version columns return conflicts instead of overwriting concurrent updates.

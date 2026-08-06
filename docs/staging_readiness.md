@@ -35,7 +35,7 @@ Application rollback selects the previous ECS task definitions and immutable ima
 
 Preserve S3 versions and audit logs. Roll back Secrets Manager by version stage, restore Cognito configuration from reviewed export, disable Stripe webhooks before reverting consumers, stop workers before DB restoration, and switch DNS only after old-target health verification. Never erase audit evidence during reset or rollback.
 
-The staging RDS is private, encrypted, Single-AZ by default, deletion-protected, and retains seven days of backups. AWS manages its master password in Secrets Manager. Application and migration identities must be provisioned after approval: migration owns DDL; application owns only runtime DML. Terraform creates additional empty secret containers and IAM references only; values are inserted through a separately approved, audited procedure.
+The staging RDS uses an intentionally low-cost `db.t4g.small`, Single-AZ configuration with 20 GB gp3 storage and three-day backup retention. It remains private, encrypted, and deletion-protected. The high-availability Multi-AZ RDS configuration is production-only. AWS manages the staging master password in Secrets Manager. Application and migration identities must be provisioned after approval: migration owns DDL; application owns only runtime DML. Terraform creates additional empty secret containers and IAM references only; values are inserted through a separately approved, audited procedure.
 
 ## Final quality-gate recheck (2026-08-05)
 

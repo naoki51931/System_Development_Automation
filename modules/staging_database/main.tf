@@ -53,7 +53,7 @@ resource "aws_db_instance" "main" {
   engine                          = "postgres"
   engine_version                  = "17"
   instance_class                  = var.instance_class
-  allocated_storage               = 30
+  allocated_storage               = 20
   max_allocated_storage           = 100
   storage_type                    = "gp3"
   storage_encrypted               = true
