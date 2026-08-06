@@ -53,6 +53,10 @@ the reproducible npm audit now reports zero vulnerabilities.
 Use generated organizations/users/projects only, tagged with expiry. Reset by approved staging-specific procedure after exporting audit evidence. CloudWatch covers 5xx, latency, task restarts, worker lease age, retry/dead-letter count, RDS CPU/connections/storage and ALB health. Define monthly cost ceiling, daily anomaly alert, NAT/log retention limits and manual approval for scale increases.
 
 Chargeable components are NAT Gateway/EIP, ALB, ECS Fargate, RDS, S3 requests/storage, Secrets Manager, CloudWatch logs/alarms, SNS, AWS Budgets, and optionally Route53/ACM data transfer. Cost controls are Single-AZ RDS, small tasks, desired count one, short logs, lifecycle rules, and approved off-hours scheduling. Replacing NAT with reviewed VPC endpoints can reduce recurring cost without making tasks public; WAF can remain an explicit later option, not a reason to relax ALB or TLS controls.
+
+## Read-only AWS discovery (2026-08-06)
+
+Account, region, state backend/KMS, production inventory, non-colliding staging VPC/RDS/S3 candidates, OIDC provider, and base RDS orderability are confirmed. The gate remains **NOT_READY_FOR_TERRAFORM_PLAN_REVIEW** because staging ECR repositories and the `57109fa` image/digest do not exist, the staging-only deploy role and Secret containers are missing, ACM is absent, notification/Budget inputs are absent, and quota verification is incomplete. See `quality-results/aws-read-only-discovery-2026-08-06.md`. No plan or AWS mutation was performed.
 # 2026-08-03 quality-gate re-evaluation
 
 Local clean Compose reconstruction, all three browser suites, accessibility, document/DB fault injection, worker competition, secret scanning, migration and OpenAPI checks pass. Staging is still **NOT_READY**: Ruff has 274 findings, important-service aggregate coverage is 85.72% against 90%, and the 50-user/60-second normal API p95 gate (500 ms) is not met. No staging action may begin until all are remediated and the deployment checklist receives its explicit approvals.

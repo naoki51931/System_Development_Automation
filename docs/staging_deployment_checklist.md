@@ -2,6 +2,10 @@
 
 ## Before apply
 
+- [x] Read-only discovery confirmed account `557604519341`, region `eu-west-2`, state backend/KMS, production inventory, and staging name non-collision
+- [ ] Create/approve staging ECR repositories and publish reviewed backend/worker/frontend image digest; `57109fa` is currently absent
+- [ ] Create/approve staging-only GitHub role restricted to the repository `staging` environment
+- [ ] Resolve ACM, alert target/SNS/Budget, Secret containers, and incomplete quota evidence before plan review
 - [ ] Confirm production key remains `cloud-a/prod/terraform.tfstate` and staging key is `system-navigator/staging/terraform.tfstate`
 - [ ] Replace every `REPLACE_*` value outside Git; confirm staging S3/RDS names differ from production
 - [ ] Select dedicated VPC (recommended) or review existing VPC/subnet/SG blast radius

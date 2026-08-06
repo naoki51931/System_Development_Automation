@@ -10,6 +10,8 @@ terraform.tfvars
 backend.hcl
 backend.hcl.bak
 .terraform.lock.hcl
+environment/staging/backend.hcl.discovery
+environment/staging/terraform.tfvars.discovery
 
 # Secrets
 .env
