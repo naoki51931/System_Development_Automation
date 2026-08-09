@@ -250,13 +250,13 @@ def test_prerequisite_trust_budget_dns_and_outputs_are_safe():
     assert '!var.enable_custom_domain || can(regex("^staging\\\\."' in variables
     assert 'default = "USD"' in variables
     assert 'var.budget_currency == "USD"' in variables
-    assert 'default = 150' in variables
+    assert "default = 150" in variables
     assert "var.monthly_budget_amount == 150" in variables
     assert notifications.count('type = "ACTUAL"') == 3
     assert notifications.count('type = "FORECASTED"') == 1
     assert "var.alarm_notification_email" in notifications
-    assert 'count        = var.enable_budget ? 1 : 0' in notifications
-    assert 'try(aws_budgets_budget.monthly[0].name, null)' in notifications
+    assert "count        = var.enable_budget ? 1 : 0" in notifications
+    assert "try(aws_budgets_budget.monthly[0].name, null)" in notifications
     for name in (
         "app_ecr_repository_url",
         "frontend_ecr_repository_url",
@@ -278,17 +278,17 @@ def test_custom_domain_is_disabled_without_removing_other_prerequisites():
     staging_example = text(STAGING / "terraform.tfvars.example")
     notifications = text(ROOT / "modules/staging_notifications/main.tf")
 
-    assert 'count           = var.enable_custom_domain ? 1 : 0' in prerequisite_main
+    assert "count           = var.enable_custom_domain ? 1 : 0" in prerequisite_main
     assert 'variable "enable_custom_domain"' in prerequisite_vars
     assert "default     = false" in prerequisite_vars
-    assert 'enable_custom_domain = false' in prerequisite_example
+    assert "enable_custom_domain = false" in prerequisite_example
     assert 'domain_name          = ""' in prerequisite_example
     assert 'route53_zone_id      = ""' in prerequisite_example
     assert 'variable "enable_custom_domain"' in staging_vars
     assert "var.enable_custom_domain && var.enable_https" in staging_dns
-    assert 'enable_custom_domain  = false' in staging_example
-    assert 'enable_https          = false' in staging_example
-    assert 'create_route53_record = false' in staging_example
+    assert "enable_custom_domain  = false" in staging_example
+    assert "enable_https          = false" in staging_example
+    assert "create_route53_record = false" in staging_example
     assert 'module "ecr"' in prerequisite_main
     assert 'module "deploy_role"' in prerequisite_main
     assert 'module "notifications"' in prerequisite_main
