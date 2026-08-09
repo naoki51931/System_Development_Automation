@@ -1,33 +1,38 @@
 # Staging Budget and image-push result
 
-- Timestamp: `2026-08-09T10:51:27Z`
-- Git HEAD: `f1876f00cf7e75ae6cdd54729a76d92156eda92c`
+- Timestamp: `2026-08-09T11:08:00Z`
+- Image source Git HEAD: `a5d22280475a729b8b174d4f23a4597e7d89fac3`
+- Image tag: `a5d22280475a`
 - AWS account: `557604519341`
 - Region: `eu-west-2`
 
 ## Phase A: SNS confirmation
 
-`system-navigator-staging-alerts` exists and its email endpoint is the approved monitoring address. The subscription remains `PendingConfirmation`, so `SNS_EMAIL_CONFIRMATION=BLOCKED` pending a human opening the AWS confirmation email. No confirmation link was opened automatically.
+`system-navigator-staging-alerts` exists and points to the approved monitoring address. The subscription remains `PendingConfirmation`, so `SNS_EMAIL_CONFIRMATION=BLOCKED` until a human opens the AWS confirmation email. No confirmation link was opened automatically.
 
 ## Phase B: Budget
 
-The reviewed saved plan `environment/staging-prerequisites/enable-staging-budget.tfplan` contained exactly **1 add, 0 change, 0 replace, 0 destroy**. The only action was creation of `system-navigator-staging-monthly` with the requested 100 GBP monthly limit and four notification rules. ECR, IAM and SNS were no-op, and production impact was zero.
+AWS Budgets rejected the former 100 GBP setting because this account accepts USD only. Terraform validation now permits only USD and fixes the approved staging amount at 150.
 
-Applying that saved plan failed without creating the Budget. AWS Budgets returned `InvalidParameterException`: this account supports the unit set `[USD]`, so `GBP` was rejected. Terraform state remains unchanged and an AWS read confirms that the Budget does not exist. No permission was broadened and the currency was not changed automatically.
+The reviewed saved plan `environment/staging-prerequisites/enable-staging-budget-usd.tfplan` contained exactly **1 add, 0 change, 0 replace, 0 destroy**. Its only action created `system-navigator-staging-monthly`; ECR, IAM and SNS were no-op and production impact was zero.
 
-The post-apply convergence plan was not run because apply did not succeed. With the approved GBP input unchanged, the saved Budget create remains unapplied.
+Apply succeeded. AWS reports a 150 USD monthly cost Budget with Actual 50%, Actual 80%, Actual 100%, and Forecasted 100% notifications. All four notifications use the approved monitoring email. The post-apply Terraform plan returned `No changes` with exit code 0.
 
-## Phase C: ECR image push
+## Phase C: ECR images
 
-Not started. The workflow requires a successful Budget phase before image build, ECR login, push, digest capture, and scan. Therefore:
+Both linux/amd64 images were rebuilt from the recorded source commit with `--pull`, non-root runtime users, expected commands, and healthchecks. Only the immutable source tag was pushed; `latest` was not used.
 
-- Image tag: not generated for a build/push
-- App image push/digest/scan: not performed
-- Frontend image push/digest/scan: not performed
-- Main staging ignored tfvars digest update: not performed
+- App repository: `system-navigator-staging-app`
+- App registry digest: `sha256:4f998698fc78e37c46695c793d0fe1e9f01c1eac095fddf0ec772836bb818c50`
+- App scan: `COMPLETE`; CRITICAL 4, HIGH 8, MEDIUM 5
+- Frontend repository: `system-navigator-staging-frontend`
+- Frontend registry digest: `sha256:5c2eeeee402293fa783c9a6dd67b6f03dce00b3651ef73d314f773d3371e82dc`
+- Frontend scan: `COMPLETE`; CRITICAL 0, HIGH 0
 
-No ECR image, GitHub branch, main staging infrastructure, RDS, ECS service, ALB, or migration was changed.
+The app scan violates the required zero-CRITICAL/zero-HIGH gate. Therefore `IMAGE_APPROVAL=FAIL`, and no digest URI was written to main staging tfvars. The pushed images remain staging candidates only and must not be deployed.
+
+No GitHub push, main staging plan/apply, RDS, ECS deployment, ALB creation, migration, Cognito, Stripe, SES, or production change occurred.
 
 ## Decision
 
-**NOT_READY_FOR_MAIN_STAGING_PLAN_APPROVAL**. Human input is required to decide whether the Budget may use USD and, if so, the approved USD amount. SNS email confirmation also remains a manual prerequisite.
+**NOT_READY_FOR_MAIN_STAGING_PLAN_APPROVAL**. Remediate and rebuild the app image until its registry scan reports CRITICAL 0 and HIGH 0. SNS email confirmation also remains a manual prerequisite.
