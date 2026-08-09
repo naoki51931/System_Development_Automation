@@ -43,5 +43,5 @@ output "rds_master_secret_arn" {
   sensitive = true
 }
 output "github_staging_deploy_role_arn" {
-  value = module.security.github_staging_deploy_role_arn
+  value = var.prerequisite_github_deploy_role_arn
 }

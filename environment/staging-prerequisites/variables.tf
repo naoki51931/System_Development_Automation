@@ -28,3 +28,70 @@ variable "retain_tagged_images" {
   type    = number
   default = 20
 }
+variable "environment" {
+  type    = string
+  default = "staging"
+  validation {
+    condition     = var.environment == "staging"
+    error_message = "This root is staging-only."
+  }
+}
+variable "name_prefix" {
+  type    = string
+  default = "system-navigator-staging"
+  validation {
+    condition     = var.name_prefix == "system-navigator-staging"
+    error_message = "The prerequisite prefix must remain staging-specific."
+  }
+}
+variable "github_oidc_provider_arn" { type = string }
+variable "github_org" { type = string }
+variable "github_repository" { type = string }
+variable "github_environment" {
+  type    = string
+  default = "staging"
+  validation {
+    condition     = var.github_environment == "staging"
+    error_message = "GitHub trust must use the staging Environment."
+  }
+}
+variable "state_bucket_name" { type = string }
+variable "state_kms_key_arn" { type = string }
+variable "domain_name" {
+  type = string
+  validation {
+    condition     = can(regex("^staging\\.", var.domain_name))
+    error_message = "The ACM domain must be staging-specific."
+  }
+}
+variable "route53_zone_id" {
+  type = string
+  validation {
+    condition     = trimspace(var.route53_zone_id) != ""
+    error_message = "A Route53 hosted zone ID is required."
+  }
+}
+variable "alarm_notification_email" {
+  type      = string
+  sensitive = true
+  validation {
+    condition     = can(regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", var.alarm_notification_email))
+    error_message = "A valid staging notification email is required."
+  }
+}
+variable "monthly_budget_amount" {
+  type    = number
+  default = 100
+  validation {
+    condition     = var.monthly_budget_amount == 100
+    error_message = "The approved initial staging Budget is 100."
+  }
+}
+variable "budget_currency" {
+  type    = string
+  default = "GBP"
+  validation {
+    condition     = var.budget_currency == "GBP"
+    error_message = "The approved initial staging Budget currency is GBP."
+  }
+}

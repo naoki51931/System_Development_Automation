@@ -44,23 +44,15 @@ enable_vpc_endpoints        = true
 
 domain_name         = "staging.true-camera-test.com"
 route53_zone_id     = "Z05220783EQSOCLA4YS4T"
-acm_certificate_arn = ""
+acm_certificate_arn = "REPLACE_WITH_PREREQUISITE_ACM_CERTIFICATE_ARN"
 enable_https        = true
-create_acm_certificate = true
 create_route53_record   = true
 
-alarm_notification_email = "REPLACE_WITH_NOTIFICATION_EMAIL"
-monthly_budget_amount     = 100
-monthly_budget_currency   = "GBP"
-rds_connections_threshold    = 80
-rds_free_storage_threshold   = 5368709120
+prerequisite_sns_topic_arn          = "REPLACE_WITH_PREREQUISITE_SNS_TOPIC_ARN"
+prerequisite_github_deploy_role_arn = "REPLACE_WITH_PREREQUISITE_GITHUB_DEPLOY_ROLE_ARN"
+rds_connections_threshold           = 80
+rds_free_storage_threshold          = 5368709120
 rds_freeable_memory_threshold = 268435456
-
-github_oidc_provider_arn = "REPLACE_WITH_EXISTING_GITHUB_OIDC_PROVIDER_ARN"
-github_org               = "REPLACE_GITHUB_ORG"
-github_repository        = "REPLACE_GITHUB_REPOSITORY"
-staging_app_repository_name      = "system-navigator-staging-app"
-staging_frontend_repository_name = "system-navigator-staging-frontend"
 
 cognito_user_pool_id  = ""
 cognito_app_client_id = ""

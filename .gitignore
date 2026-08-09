@@ -12,6 +12,10 @@ backend.hcl.bak
 .terraform.lock.hcl
 environment/staging/backend.hcl.discovery
 environment/staging/terraform.tfvars.discovery
+environment/staging-prerequisites/backend.hcl
+environment/staging-prerequisites/terraform.tfvars
+environment/staging-prerequisites/*.tfplan
+environment/staging-prerequisites/*-plan.txt
 
 # Secrets
 .env

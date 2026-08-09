@@ -173,31 +173,13 @@ variable "enable_https" {
   type    = bool
   default = false
 }
-variable "alarm_notification_email" {
-  type      = string
-  default   = ""
-  sensitive = true
-  validation {
-    condition     = can(regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", var.alarm_notification_email))
-    error_message = "A valid human-confirmed staging alarm notification email is required."
-  }
-}
-variable "monthly_budget_amount" {
-  type    = number
-  default = 100
-  validation {
-    condition     = var.monthly_budget_amount == 100
-    error_message = "The approved initial staging monthly Budget is 100."
-  }
-}
-variable "monthly_budget_currency" {
+variable "prerequisite_sns_topic_arn" {
   type        = string
-  description = "Human-approved AWS billing currency for the staging budget."
-  default     = "GBP"
-  validation {
-    condition     = var.monthly_budget_currency == "GBP"
-    error_message = "The approved initial staging Budget currency is GBP."
-  }
+  description = "SNS topic ARN output from staging-prerequisites."
+}
+variable "prerequisite_github_deploy_role_arn" {
+  type        = string
+  description = "GitHub deploy role ARN output from staging-prerequisites."
 }
 variable "rds_connections_threshold" {
   type        = number
@@ -258,11 +240,6 @@ variable "enable_vpc_endpoints" {
   default     = true
 }
 
-variable "create_acm_certificate" {
-  type        = bool
-  description = "Create and DNS-validate a staging ACM certificate."
-  default     = true
-}
 variable "create_route53_record" {
   type        = bool
   description = "Create the staging alias record after the ALB exists."
@@ -319,31 +296,6 @@ variable "ses_sandbox_mode" {
   type    = bool
   default = true
 }
-variable "github_oidc_provider_arn" {
-  type = string
-}
-variable "github_org" {
-  type = string
-}
-variable "github_repository" {
-  type = string
-}
-variable "staging_app_repository_name" {
-  type    = string
-  default = "system-navigator-staging-app"
-}
-variable "staging_frontend_repository_name" {
-  type    = string
-  default = "system-navigator-staging-frontend"
-}
-variable "state_bucket_name" {
-  type    = string
-  default = "ai-platform-terraform-state-557604519341"
-}
-variable "state_kms_key_arn" {
-  type = string
-}
-
 check "network_selection" {
   assert {
     condition     = var.create_vpc ? (var.existing_vpc_id == "" && length(var.existing_private_subnet_ids) == 0 && length(var.existing_public_subnet_ids) == 0) : (var.existing_vpc_id != "" && length(var.existing_private_subnet_ids) >= 2 && length(var.existing_public_subnet_ids) >= 2)
@@ -353,8 +305,8 @@ check "network_selection" {
 }
 check "https_inputs" {
   assert {
-    condition     = !var.enable_https || (var.domain_name != "" && var.route53_zone_id != "" && (var.create_acm_certificate != (var.acm_certificate_arn != "")))
-    error_message = "HTTPS requires domain/zone and exactly one certificate source: create_acm_certificate or acm_certificate_arn."
+    condition     = !var.enable_https || (var.domain_name != "" && var.route53_zone_id != "" && var.acm_certificate_arn != "")
+    error_message = "HTTPS requires domain/zone and the certificate ARN output from staging-prerequisites."
   }
 }
 check "image_identity" {

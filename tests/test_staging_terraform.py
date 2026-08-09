@@ -5,6 +5,7 @@ import re
 ROOT = Path(__file__).resolve().parents[1]
 PRODUCTION_BACKEND = ROOT / "environment/backend.hcl.example"
 STAGING = ROOT / "environment/staging"
+PREREQUISITES = ROOT / "environment/staging-prerequisites"
 
 
 def text(path: Path) -> str:
@@ -83,9 +84,8 @@ def test_staging_required_common_variables_are_declared():
         "artifact_bucket_name",
         "domain_name",
         "route53_zone_id",
-        "alarm_notification_email",
-        "monthly_budget_amount",
-        "monthly_budget_currency",
+        "prerequisite_sns_topic_arn",
+        "prerequisite_github_deploy_role_arn",
         "rds_connections_threshold",
         "rds_free_storage_threshold",
         "rds_freeable_memory_threshold",
@@ -135,15 +135,15 @@ def test_staging_service_boundaries_and_migration_command():
 
 def test_preplan_resources_are_scoped_and_private():
     ecr = text(ROOT / "modules/staging_ecr/main.tf")
-    security = text(ROOT / "modules/staging_security/main.tf")
+    deploy = text(ROOT / "modules/staging_deploy_role/main.tf")
     network = text(ROOT / "modules/staging_network/main.tf")
-    dns = text(STAGING / "dns.tf")
+    dns = text(ROOT / "modules/staging_dns/main.tf")
     assert 'image_tag_mutability = "IMMUTABLE"' in ecr
     assert "scan_on_push = true" in ecr
     assert "aws_ecr_lifecycle_policy" in ecr
-    assert 'environment:staging"' in security
-    assert "repo:${var.github_org}/${var.github_repository}:*" not in security
-    assert "AdministratorAccess" not in security
+    assert "environment:${var.github_environment}" in deploy
+    assert "repo:${var.github_org}/${var.github_repository}:*" not in deploy
+    assert "AdministratorAccess" not in deploy
     assert "aws_vpc_endpoint" in network
     assert '"ecr.api"' in network and '"secretsmanager"' in network
     assert "aws_acm_certificate_validation" in dns
@@ -165,7 +165,8 @@ def test_ignore_rules_cover_local_terraform_material():
 
 def test_staging_monitoring_matches_approved_notification_policy():
     monitoring = text(ROOT / "modules/staging_monitoring/main.tf")
-    example = text(STAGING / "terraform.tfvars.example")
+    notifications = text(ROOT / "modules/staging_notifications/main.tf")
+    example = text(PREREQUISITES / "terraform.tfvars.example")
     ecs = text(ROOT / "modules/staging_ecs/main.tf")
     for metric in (
         "HTTPCode_ELB_5XX_Count",
@@ -181,11 +182,81 @@ def test_staging_monitoring_matches_approved_notification_policy():
         "FreeableMemory",
     ):
         assert metric in monitoring
-    assert 'name = "${var.name_prefix}-alerts"' in monitoring
-    assert 'protocol  = "email"' in monitoring
-    assert "subscriber_email_addresses" in monitoring
+    assert 'name = "${var.name_prefix}-alerts"' in notifications
+    assert 'protocol  = "email"' in notifications
+    assert "subscriber_email_addresses" in notifications
     assert 'alarm_notification_email = "REPLACE_WITH_NOTIFICATION_EMAIL"' in example
     assert "info@nagi-neco.com" not in example
     assert "monthly_budget_amount     = 100" in example
-    assert 'monthly_budget_currency   = "GBP"' in example
+    assert 'budget_currency           = "GBP"' in example
     assert 'name  = "containerInsights"' in ecs
+
+
+def test_prerequisite_root_is_complete_and_isolated():
+    root_tf = "\n".join(text(path) for path in PREREQUISITES.glob("*.tf"))
+    modules = "\n".join(
+        text(path)
+        for module in (
+            "staging_ecr",
+            "staging_deploy_role",
+            "staging_dns",
+            "staging_notifications",
+        )
+        for path in (ROOT / "modules" / module).glob("*.tf")
+    )
+    combined = root_tf + modules
+    backend = text(PREREQUISITES / "backend.hcl.example")
+    assert 'key          = "system-navigator/staging/prerequisites.tfstate"' in backend
+    assert "cloud-a/prod/terraform.tfstate" not in backend
+    assert "system-navigator/staging/terraform.tfstate" not in backend
+    for resource in (
+        "aws_db_instance",
+        "aws_ecs_cluster",
+        "aws_ecs_service",
+        "aws_lb ",
+        "aws_vpc ",
+        "aws_subnet",
+        "aws_secretsmanager_secret",
+        "aws_s3_bucket",
+        "terraform_remote_state",
+    ):
+        assert resource not in combined
+    for required in (
+        'module "ecr"',
+        'module "deploy_role"',
+        'module "dns"',
+        'module "notifications"',
+    ):
+        assert required in root_tf
+
+
+def test_prerequisite_trust_budget_dns_and_outputs_are_safe():
+    deploy = text(ROOT / "modules/staging_deploy_role/main.tf")
+    dns = text(ROOT / "modules/staging_dns/main.tf")
+    notifications = text(ROOT / "modules/staging_notifications/main.tf")
+    variables = text(PREREQUISITES / "variables.tf")
+    outputs = text(PREREQUISITES / "outputs.tf")
+    assert "sts.amazonaws.com" in deploy
+    assert "environment:${var.github_environment}" in deploy
+    assert 'actions   = ["iam:PassRole"]' in deploy
+    assert "role/${var.name_prefix}-*" in deploy
+    assert "ai-platform-prod" not in deploy
+    assert "AdministratorAccess" not in deploy
+    assert "aws_acm_certificate_validation" in dns
+    assert "var.domain_name" in dns and "var.route53_zone_id" in dns
+    assert 'condition     = can(regex("^staging\\\\."' in variables
+    assert 'default = "GBP"' in variables
+    assert "default = 100" in variables
+    assert notifications.count('type = "ACTUAL"') == 3
+    assert notifications.count('type = "FORECASTED"') == 1
+    assert "var.alarm_notification_email" in notifications
+    for name in (
+        "app_ecr_repository_url",
+        "frontend_ecr_repository_url",
+        "github_deploy_role_arn",
+        "acm_certificate_arn",
+        "sns_topic_arn",
+        "alert_email_address",
+        "budget_name",
+    ):
+        assert f'output "{name}"' in outputs

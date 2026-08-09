@@ -48,17 +48,7 @@ module "storage" {
 }
 
 module "security" {
-  source                           = "../../modules/staging_security"
-  name_prefix                      = var.name_prefix
-  github_oidc_provider_arn         = var.github_oidc_provider_arn
-  github_org                       = var.github_org
-  github_repository                = var.github_repository
-  aws_account_id                   = var.aws_account_id
-  aws_region                       = var.aws_region
-  staging_app_repository_name      = var.staging_app_repository_name
-  staging_frontend_repository_name = var.staging_frontend_repository_name
-  state_bucket_name                = var.state_bucket_name
-  state_kms_key_arn                = var.state_kms_key_arn
+  source = "../../modules/staging_security"
   secret_names = toset(concat(
     ["database"],
     var.enable_cognito ? ["cognito"] : [],
@@ -132,13 +122,10 @@ module "monitoring" {
   alb_arn_suffix                = module.ecs.alb_arn_suffix
   target_group_arn_suffixes     = module.ecs.target_group_arn_suffixes
   db_identifier                 = module.database.identifier
-  alarm_notification_email      = var.alarm_notification_email
-  monthly_budget_amount         = var.monthly_budget_amount
-  monthly_budget_currency       = var.monthly_budget_currency
+  sns_topic_arn                 = var.prerequisite_sns_topic_arn
   desired_count_backend         = var.desired_count_backend
   desired_count_worker          = var.desired_count_worker
   rds_connections_threshold     = var.rds_connections_threshold
   rds_free_storage_threshold    = var.rds_free_storage_threshold
   rds_freeable_memory_threshold = var.rds_freeable_memory_threshold
-  aws_account_id                = var.aws_account_id
 }
