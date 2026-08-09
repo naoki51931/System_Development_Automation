@@ -2,6 +2,11 @@ variable "name_prefix" { type = string }
 variable "alarm_notification_email" { type = string }
 variable "monthly_budget_amount" { type = number }
 variable "budget_currency" { type = string }
+variable "enable_budget" {
+  type        = bool
+  description = "Create the separately approved staging monthly Budget and its notifications."
+  default     = false
+}
 
 resource "aws_sns_topic" "alerts" { name = "${var.name_prefix}-alerts" }
 
@@ -12,6 +17,7 @@ resource "aws_sns_topic_subscription" "email" {
 }
 
 resource "aws_budgets_budget" "monthly" {
+  count        = var.enable_budget ? 1 : 0
   name         = "${var.name_prefix}-monthly"
   budget_type  = "COST"
   limit_amount = tostring(var.monthly_budget_amount)
@@ -40,4 +46,4 @@ resource "aws_budgets_budget" "monthly" {
 
 output "sns_topic_arn" { value = aws_sns_topic.alerts.arn }
 output "alert_email_address" { value = var.alarm_notification_email }
-output "budget_name" { value = aws_budgets_budget.monthly.name }
+output "budget_name" { value = try(aws_budgets_budget.monthly[0].name, null) }

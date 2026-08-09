@@ -17,6 +17,7 @@ domain_name          = ""
 route53_zone_id      = ""
 
 alarm_notification_email = "REPLACE_WITH_NOTIFICATION_EMAIL"
+enable_budget             = false
 monthly_budget_amount     = 100
 budget_currency           = "GBP"
 

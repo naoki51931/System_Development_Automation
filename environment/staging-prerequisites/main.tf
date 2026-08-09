@@ -42,6 +42,7 @@ module "notifications" {
   source                   = "../../modules/staging_notifications"
   name_prefix              = var.name_prefix
   alarm_notification_email = var.alarm_notification_email
+  enable_budget            = var.enable_budget
   monthly_budget_amount    = var.monthly_budget_amount
   budget_currency          = var.budget_currency
 }

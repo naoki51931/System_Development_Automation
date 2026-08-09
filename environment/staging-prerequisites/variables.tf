@@ -94,6 +94,11 @@ variable "monthly_budget_amount" {
     error_message = "The approved initial staging Budget is 100."
   }
 }
+variable "enable_budget" {
+  type        = bool
+  description = "Create the staging Budget only after its separate human approval."
+  default     = false
+}
 variable "budget_currency" {
   type    = string
   default = "GBP"

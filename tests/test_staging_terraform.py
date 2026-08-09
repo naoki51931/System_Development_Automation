@@ -190,6 +190,7 @@ def test_staging_monitoring_matches_approved_notification_policy():
     assert "info@nagi-neco.com" not in example
     assert "monthly_budget_amount     = 100" in example
     assert 'budget_currency           = "GBP"' in example
+    assert "enable_budget             = false" in example
     assert 'name  = "containerInsights"' in ecs
 
 
@@ -252,6 +253,8 @@ def test_prerequisite_trust_budget_dns_and_outputs_are_safe():
     assert notifications.count('type = "ACTUAL"') == 3
     assert notifications.count('type = "FORECASTED"') == 1
     assert "var.alarm_notification_email" in notifications
+    assert 'count        = var.enable_budget ? 1 : 0' in notifications
+    assert 'try(aws_budgets_budget.monthly[0].name, null)' in notifications
     for name in (
         "app_ecr_repository_url",
         "frontend_ecr_repository_url",
