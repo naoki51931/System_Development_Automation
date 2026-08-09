@@ -88,10 +88,10 @@ variable "alarm_notification_email" {
 }
 variable "monthly_budget_amount" {
   type    = number
-  default = 100
+  default = 150
   validation {
-    condition     = var.monthly_budget_amount == 100
-    error_message = "The approved initial staging Budget is 100."
+    condition     = var.monthly_budget_amount == 150
+    error_message = "The approved staging Budget is 150 USD."
   }
 }
 variable "enable_budget" {
@@ -101,9 +101,9 @@ variable "enable_budget" {
 }
 variable "budget_currency" {
   type    = string
-  default = "GBP"
+  default = "USD"
   validation {
-    condition     = var.budget_currency == "GBP"
-    error_message = "The approved initial staging Budget currency is GBP."
+    condition     = var.budget_currency == "USD"
+    error_message = "This AWS account supports only USD for the staging Budget."
   }
 }

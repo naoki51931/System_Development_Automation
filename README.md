@@ -36,9 +36,9 @@ Do not copy example placeholders into an approved plan without replacing and rev
 
 Staging RDS is intentionally low-cost: `db.t4g.small`, Single-AZ, 20 GB gp3, and three-day backup retention. It remains private, encrypted, and deletion-protected. Only production uses the high-availability Multi-AZ RDS configuration; production Terraform and backend configuration are separate and unchanged.
 
-Pre-plan preparation uses `environment/staging-prerequisites` for two ECR repositories, the staging-only GitHub OIDC role, SNS email subscription, and the 100 GBP Budget. `true-camera-test.com` is not used. Custom domain, ACM, Route53 alias and HTTPS remain disabled until a new domain is approved. Main staging temporarily exposes only its ALB HTTP DNS name and accepts only full `repository@sha256:...` image URIs. The dependency is prerequisites → staging only.
+Pre-plan preparation uses `environment/staging-prerequisites` for two ECR repositories, the staging-only GitHub OIDC role, SNS email subscription, and the 150 USD Budget. AWS Budgets rejected the former 100 GBP setting because this account accepts USD only. `true-camera-test.com` is not used. Custom domain, ACM, Route53 alias and HTTPS remain disabled until a new domain is approved. Main staging temporarily exposes only its ALB HTTP DNS name and accepts only full `repository@sha256:...` image URIs. The dependency is prerequisites → staging only.
 
-The staging notification recipient remains `info@nagi-neco.com` and Budget is 100 GBP; real values live only in ignored prerequisite tfvars. CloudWatch alarms use the prerequisite SNS topic, while AWS Budgets notifies the address directly. SNS confirmation is manual. ALB HTTP access is temporary, non-production, non-customer, and must not carry credentials, payment flows, real authentication, or sensitive data.
+The staging notification recipient remains `info@nagi-neco.com` and Budget is 150 USD; real values live only in ignored prerequisite tfvars. CloudWatch alarms use the prerequisite SNS topic, while AWS Budgets notifies the address directly. SNS confirmation is manual. ALB HTTP access is temporary, non-production, non-customer, and must not carry credentials, payment flows, real authentication, or sensitive data.
 
 ## Local AI, storage, review, and concurrency phase
 

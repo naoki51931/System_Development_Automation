@@ -10,9 +10,9 @@
 - [ ] Require ECR scan critical/high = 0 and copy registry digests—not local image IDs—into ignored tfvars
 - [ ] Create/approve staging-only GitHub role restricted to the repository `staging` environment
 - [ ] Configure GitHub Environment branch protection for `agent/final-quality-gate` or approved `main`
-- [x] Alert target is `info@nagi-neco.com`; Budget is 100 GBP; values remain in ignored tfvars
+- [x] Alert target is `info@nagi-neco.com`; Budget is 150 USD; values remain in ignored tfvars
 - [ ] Approve no-NAT endpoints or explicitly approve EIP quota/cost for a NAT alternative
-- [x] Approve Budget amount/currency: 100 GBP
+- [x] Approve Budget amount/currency: 150 USD (AWS rejected the former 100 GBP setting; this account accepts USD only)
 - [ ] After an approved apply, manually confirm the SNS email subscription; expect `PendingConfirmation` before confirmation
 - [x] Exclude SES inbound, MX changes, receiving S3/Inbox API, and `nagi-neco.com` DNS/mail changes
 - [ ] Confirm production key remains `cloud-a/prod/terraform.tfstate` and staging key is `system-navigator/staging/terraform.tfstate`

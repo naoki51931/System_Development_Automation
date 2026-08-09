@@ -188,8 +188,8 @@ def test_staging_monitoring_matches_approved_notification_policy():
     assert "subscriber_email_addresses" in notifications
     assert 'alarm_notification_email = "REPLACE_WITH_NOTIFICATION_EMAIL"' in example
     assert "info@nagi-neco.com" not in example
-    assert "monthly_budget_amount     = 100" in example
-    assert 'budget_currency           = "GBP"' in example
+    assert "monthly_budget_amount     = 150" in example
+    assert 'budget_currency           = "USD"' in example
     assert "enable_budget             = false" in example
     assert 'name  = "containerInsights"' in ecs
 
@@ -248,8 +248,10 @@ def test_prerequisite_trust_budget_dns_and_outputs_are_safe():
     assert "var.domain_name" in dns and "var.route53_zone_id" in dns
     assert 'variable "enable_custom_domain"' in variables
     assert '!var.enable_custom_domain || can(regex("^staging\\\\."' in variables
-    assert 'default = "GBP"' in variables
-    assert "default = 100" in variables
+    assert 'default = "USD"' in variables
+    assert 'var.budget_currency == "USD"' in variables
+    assert 'default = 150' in variables
+    assert "var.monthly_budget_amount == 150" in variables
     assert notifications.count('type = "ACTUAL"') == 3
     assert notifications.count('type = "FORECASTED"') == 1
     assert "var.alarm_notification_email" in notifications
