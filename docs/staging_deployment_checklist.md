@@ -5,6 +5,8 @@
 - [x] Read-only discovery confirmed account `557604519341`, region `eu-west-2`, state backend/KMS, production inventory, and staging name non-collision
 - [ ] Create/approve staging ECR repositories and publish reviewed backend/worker/frontend image digest; `57109fa` is currently absent
 - [ ] Approve the two-repository design (`staging-app`, `staging-frontend`) and prerequisites state; do not use routine `-target`
+- [ ] Review one prerequisites plan containing only ECR, staging deploy IAM, ACM validation, SNS subscription, and Budget
+- [ ] Copy approved prerequisite ECR URLs/role/certificate/SNS outputs into ignored main staging inputs; never add a reverse state dependency
 - [ ] Require ECR scan critical/high = 0 and copy registry digests—not local image IDs—into ignored tfvars
 - [ ] Create/approve staging-only GitHub role restricted to the repository `staging` environment
 - [ ] Configure GitHub Environment branch protection for `agent/final-quality-gate` or approved `main`
@@ -80,7 +82,7 @@ The authoritative result is **NOT_READY**.
 
 ## 2026-08-06 resume completion recheck
 
-- [x] Backend 138 passed; overall 83.09% and critical services 90.86% (1560/1717).
+- [x] Backend 140 passed; overall 83.09% and critical services 90.86% (1560/1717).
 - [x] Immutable snapshot/step triggers, schema version `1`, deterministic version/run/review/cost identities, hash validation, and missing-snapshot fail-closed tests pass.
 - [x] Migration `8d4f2a7c9b11`: downgrade, upgrade, offline SQL, and metadata drift checks pass.
 - [x] Compose services healthy; reference seed succeeds twice.

@@ -7,7 +7,7 @@ Local-only verification resumed at baseline `22d9480e63f2246b40e7e84bea8c1206e22
 | Git diff / Terraform fmt | PASS | `git diff --check`; recursive fmt check |
 | Terraform validate | PASS | Bootstrap, production, staging, and staging-prerequisites |
 | Terraform safety | PASS | 16 passed, 1 skipped (provider-schema test), 121 deselected |
-| Backend Test | PASS | 138 passed, 0 failed on local Compose PostgreSQL |
+| Backend Test | PASS | 140 passed, 0 failed on local Compose PostgreSQL |
 | Backend Overall Coverage | PASS | 83.09%; minimum 80% |
 | Critical Service Coverage | PASS | 90.86% (1560/1717); minimum 90% |
 | Frontend Test / Coverage | PASS | 34/34; statements/lines 85.18%, branches 74.13%, functions 81.81% |
@@ -27,11 +27,12 @@ Local-only verification resumed at baseline `22d9480e63f2246b40e7e84bea8c1206e22
 | npm Audit | PASS | runtime `--omit=dev`: 0 vulnerabilities; nanoid pinned to 3.3.17 |
 | Local Images | PASS | app and frontend linux/amd64, non-root, healthchecks present |
 | Staging Notifications | PASS | SNS email variable, manual confirmation, alarms complete; Budget 100 GBP |
+| Prerequisite Root Boundary | PASS | ECR/IAM/ACM validation/SNS/Budget only; explicit one-way main inputs |
 | Performance | PASS | retained 50-user/60-second: 0% errors, detail p95 490 ms, list p95 540 ms |
 | Documentation | PASS | seven requested documents synchronized |
 
 The Compose-profile E2E attempt first failed because its quality image lacked browser binaries and its API default was container-local `localhost`. It was rerun against the same healthy Compose stack using the existing host Playwright 1.62.1 cache; all 69 tests passed.
 
-## Final decision: **READY_FOR_PRE_PLAN_RESOURCE_APPROVAL**
+## Final decision: **READY_FOR_STAGING_PREREQUISITES_PLAN_APPROVAL**
 
 Every mandatory pre-plan local gate is PASS. This authorizes only human review of prerequisite resource scope. Terraform plan/apply, AWS changes, ECR/GitHub push, image digest capture, RDS access/migration, and staging deployment remain prohibited pending the documented approvals and human inputs.
