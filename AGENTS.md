@@ -178,3 +178,13 @@ Before apply, allow replacement of only the ECS task definition when it creates 
 - Staging owns its RDS, artifact bucket, ECS cluster/services/tasks, ALB/target groups, logs, secrets, IAM roles, monitoring, and migration-only task. Never share production RDS, S3, secrets, identity, services, DNS, or provider configuration.
 - Staging RDS is the low-cost profile: `db.t4g.small`, Single-AZ, 20 GB gp3, and three-day backup retention, while remaining private, encrypted, and deletion-protected. The high-availability Multi-AZ profile is production-only; do not change production modules, tfvars, or backend when tuning staging.
 - Run `terraform init -backend=false` and `terraform validate` separately in `/environment` and `/environment/staging`. A plan, apply, migration, AWS discovery/change, provider connection, or push always requires the documented human approval.
+
+## Staging pre-plan resource preparation
+
+- `environment/staging-prerequisites` owns only immutable, scan-on-push `system-navigator-staging-app` and `system-navigator-staging-frontend` ECR repositories in a distinct state. Never use permanent `-target` to bootstrap them from main state.
+- Backend, worker, and migration share one reviewed application digest with separate commands/roles. Main staging accepts only account/region ECR URIs pinned with `@sha256`; local image IDs are not registry digests.
+- GitHub trust is exactly the `staging` Environment. Enforce approved branches in GitHub Environment protection; never broaden trust to `repo:...:*`.
+- Initial networking is dedicated `10.30.0.0/16`, isolated DB subnets, no NAT, and explicit ECR/S3/Logs/Monitoring/Secrets/STS/KMS endpoints. Review egress before enabling non-mock providers.
+- HTTPS is DNS-validated from the first main apply. Alert email and Budget amount/currency are human inputs kept only in ignored tfvars; SNS email requires confirmation.
+- Initially create only the database Secret container. Optional containers appear only with their providers, and Terraform never manages Secret values.
+- The local pre-plan gate is `READY_FOR_PRE_PLAN_RESOURCE_APPROVAL` only. Stop before any Terraform plan until humans approve the two-repository prerequisite scope, no-NAT endpoint design, Budget amount/currency, alarm email, GitHub Environment protection, and all ignored tfvars. No AWS change, plan/apply, ECR/GitHub push, RDS connection, or migration is implied.

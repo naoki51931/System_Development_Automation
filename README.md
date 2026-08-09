@@ -36,6 +36,10 @@ Do not copy example placeholders into an approved plan without replacing and rev
 
 Staging RDS is intentionally low-cost: `db.t4g.small`, Single-AZ, 20 GB gp3, and three-day backup retention. It remains private, encrypted, and deletion-protected. Only production uses the high-availability Multi-AZ RDS configuration; production Terraform and backend configuration are separate and unchanged.
 
+Pre-plan preparation uses `environment/staging-prerequisites` for two ECR repositories, followed by separately approved push and registry digest capture. Main staging accepts only full `repository@sha256:...` URIs, uses a dedicated endpoint-only VPC by default, creates HTTPS/DNS validation, and restricts GitHub trust to the `staging` Environment. See `quality-results/staging-pre-plan-remediation-2026-08-06.md` before approving any prerequisite plan or image push.
+
+The current local result is `READY_FOR_PRE_PLAN_RESOURCE_APPROVAL`, not permission to run a plan. Human inputs still required are `alarm_notification_email` and `monthly_budget_amount`/currency (100 or 150 GBP are candidates), plus approval of the endpoint-only network choice. The current 4/5 EIP use makes a one-NAT alternative consume the final available EIP.
+
 ## Local AI, storage, review, and concurrency phase
 
 AI settings resolve project -> organization -> safe system defaults. Billing uses Decimal/NUMERIC(18,8), rounds every non-zero partial minute up, and stores rate snapshots on each AI run. Artifact files use server-generated tenant keys and are verified by MIME type, size, and SHA-256 before immutable version registration. Review comments use audited state transitions, and SQLAlchemy version columns return conflicts instead of overwriting concurrent updates.

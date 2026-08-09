@@ -10,7 +10,7 @@
 
 Staging uses prefix `system-navigator-staging` for VPC, subnets, NAT, ALB, ECS cluster/services/tasks, RDS, IAM, SNS, and alarms. Log groups are `/system-navigator/staging/{backend,worker,frontend,migration}`. Empty secret containers are `/system-navigator/staging/{database,cognito,stripe,email,ai/openai,ai/anthropic}`. The distinct RDS master secret is generated and managed by RDS. Production RDS, S3, Secrets, Cognito, ECS, ALB, logs, DNS, and provider configuration are never inputs to staging.
 
-The default is a staging-only VPC. Setting `create_vpc=false` requires an existing VPC and at least two private and two public subnet IDs; supplying both modes fails validation. A dedicated VPC costs more because of NAT but provides clearer routing, quota, SG, and incident boundaries. A shared VPC is permitted only after network review.
+The default is a staging-only VPC. Setting `create_vpc=false` requires an existing VPC and at least two private and two public subnet IDs; supplying both modes fails validation. The selected initial dedicated VPC uses no NAT and explicit endpoints because 4/5 EIPs are already allocated; one NAT would consume the final EIP. A shared VPC is permitted only after network review.
 
 ## Workloads and least privilege
 
@@ -22,7 +22,7 @@ Backend runs `uvicorn app.main:app --host 0.0.0.0 --port 8000`, worker runs `pyt
 
 Mock AI/payment/email default to true and must be shown clearly in the UI during testing. Cognito, Stripe, and SES default off. Cognito inputs are pool/client/issuer/domain; Stripe accepts secret ARNs, a publishable test key, and an HTTPS webhook endpoint; SES requires Sandbox, region, from address, and configuration set. Live Stripe mode and LocalAuth fail validation, and application startup refuses LocalAuth in staging/production.
 
-Terraform never stores application secret values in code. Populate secret versions only through the separately approved secret-registration runbook, then record version ARNs without logging values. Staging SES sends only to verified Sandbox recipients. HTTPS requires an existing ACM ARN, domain, and Route53 zone; the ALB redirects HTTP to HTTPS when enabled. Terraform does not create Route53 records, ACM certificates, Cognito pools, Stripe webhooks, or SES identities in this phase.
+Terraform never stores application secret values in code. Populate secret versions only through the separately approved secret-registration runbook, then record version ARNs without logging values. Staging SES sends only to verified Sandbox recipients. HTTPS uses an ACM certificate in eu-west-2 for `staging.true-camera-test.com`, DNS validation and an alias in Route53 zone `Z05220783EQSOCLA4YS4T`; the ALB listens on 443 and redirects HTTP 80. Terraform may create only these staging certificate/records after approval; it does not create Cognito pools, Stripe webhooks, or SES identities in this phase.
 
 ## Data, migration, monitoring, and rollback
 
@@ -37,3 +37,9 @@ Rollback selects previous immutable ECS task definitions, stops workers if schem
 Allowed static workflow: `terraform fmt -recursive`, `terraform init -backend=false`, `terraform validate`, and local tests. Run production and staging roots separately. Before a plan, supply reviewed account ID, repositories/digests, unique bucket, production comparison names, OIDC provider ARN, network inputs, notification destination, and—if enabled—ACM/DNS/Cognito/Stripe/SES inputs.
 
 Real AWS IDs, resource existence, quotas, IAM permissions, AZ/subnet capacity, ECR image presence, certificate/zone ownership, RDS engine availability, prices, alarm delivery, custom metric emission, and provider credentials remain unverified. Read-only AWS discovery requires human approval. Terraform plan, apply, secret registration, migration, ECS/ECR, DNS, Cognito, Stripe, and SES each remain separately approved actions.
+
+## Pre-plan bootstrap and digest contract
+
+`environment/staging-prerequisites` is a small, independently reviewed state owning only `system-navigator-staging-app` and `system-navigator-staging-frontend`. It avoids the repository/image circular dependency and permanent `-target`. After its approved apply and image push, main staging consumes full ECR `repository@sha256:...` values; backend and worker must share a digest.
+
+The dedicated VPC has two public, two private application, and two isolated database subnets. The default avoids a fifth EIP/NAT and creates private ECR API/DKR, S3, Logs, Monitoring, Secrets Manager, STS, and KMS endpoints. Terraform can request and DNS-validate the staging certificate, create the alias, and enforce HTTP redirect in one main graph. See `quality-results/staging-pre-plan-remediation-2026-08-06.md` for staged approval and rollback details.

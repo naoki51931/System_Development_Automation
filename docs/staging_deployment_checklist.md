@@ -4,8 +4,13 @@
 
 - [x] Read-only discovery confirmed account `557604519341`, region `eu-west-2`, state backend/KMS, production inventory, and staging name non-collision
 - [ ] Create/approve staging ECR repositories and publish reviewed backend/worker/frontend image digest; `57109fa` is currently absent
+- [ ] Approve the two-repository design (`staging-app`, `staging-frontend`) and prerequisites state; do not use routine `-target`
+- [ ] Require ECR scan critical/high = 0 and copy registry digests—not local image IDs—into ignored tfvars
 - [ ] Create/approve staging-only GitHub role restricted to the repository `staging` environment
+- [ ] Configure GitHub Environment branch protection for `agent/final-quality-gate` or approved `main`
 - [ ] Resolve ACM, alert target/SNS/Budget, Secret containers, and incomplete quota evidence before plan review
+- [ ] Approve no-NAT endpoints or explicitly approve EIP quota/cost for a NAT alternative
+- [ ] Approve Budget amount/currency and confirm the SNS email subscription outside Git
 - [ ] Confirm production key remains `cloud-a/prod/terraform.tfstate` and staging key is `system-navigator/staging/terraform.tfstate`
 - [ ] Replace every `REPLACE_*` value outside Git; confirm staging S3/RDS names differ from production
 - [ ] Select dedicated VPC (recommended) or review existing VPC/subnet/SG blast radius
@@ -45,13 +50,13 @@
 - [ ] Preserve audit logs and record evidence/approvers
 # Current blocking gate
 
-- [ ] `quality-results/quality-gate-summary.md` is READY (currently NOT_READY).
+- [x] `quality-results/quality-gate-summary.md` is READY_FOR_PRE_PLAN_RESOURCE_APPROVAL.
 - [x] Ruff lint is clean (0 findings).
-- [ ] Backend overall coverage is at least 80% (currently 79.86%).
-- [ ] Important-service aggregate coverage is at least 90% (currently 86.02%).
+- [x] Backend overall coverage is at least 80% (currently 83.09%).
+- [x] Important-service aggregate coverage is at least 90% (currently 90.86%).
 - [x] Normal project-detail p95 is at most 500 ms at 50 users for 60 seconds (currently 490 ms).
 - [x] Worker health and explicit dispatch are active; all four Compose services are healthy.
-- [ ] Document/AI workflow partial-job resume is fully automatic (currently fail-closed).
+- [x] Document/AI workflow snapshot-based resume is automatic; legacy rows without snapshots fail closed by design.
 - [x] Dependency security audit completes without unresolved findings (npm audit: 0).
 
 Do not proceed to AWS/Terraform/Cognito/Stripe/S3/SES steps while any item above is unchecked.
@@ -73,7 +78,7 @@ The authoritative result is **NOT_READY**.
 
 ## 2026-08-06 resume completion recheck
 
-- [x] Backend 125 passed; overall 83.09% and critical services 90.86% (1560/1717).
+- [x] Backend 137 passed; overall 83.09% and critical services 90.86% (1560/1717).
 - [x] Immutable snapshot/step triggers, schema version `1`, deterministic version/run/review/cost identities, hash validation, and missing-snapshot fail-closed tests pass.
 - [x] Migration `8d4f2a7c9b11`: downgrade, upgrade, offline SQL, and metadata drift checks pass.
 - [x] Compose services healthy; reference seed succeeds twice.
