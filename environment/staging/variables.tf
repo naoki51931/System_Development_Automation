@@ -161,6 +161,11 @@ variable "domain_name" {
   type    = string
   default = ""
 }
+variable "enable_custom_domain" {
+  type        = bool
+  description = "Enable a separately approved custom domain, ACM certificate and Route53 alias."
+  default     = false
+}
 variable "route53_zone_id" {
   type    = string
   default = ""
@@ -243,7 +248,7 @@ variable "enable_vpc_endpoints" {
 variable "create_route53_record" {
   type        = bool
   description = "Create the staging alias record after the ALB exists."
-  default     = true
+  default     = false
 }
 
 variable "cognito_user_pool_id" {
@@ -305,8 +310,8 @@ check "network_selection" {
 }
 check "https_inputs" {
   assert {
-    condition     = !var.enable_https || (var.domain_name != "" && var.route53_zone_id != "" && var.acm_certificate_arn != "")
-    error_message = "HTTPS requires domain/zone and the certificate ARN output from staging-prerequisites."
+    condition     = var.enable_custom_domain ? (var.enable_https && var.create_route53_record && var.domain_name != "" && var.route53_zone_id != "" && var.acm_certificate_arn != "") : (!var.enable_https && !var.create_route53_record && var.domain_name == "" && var.route53_zone_id == "" && var.acm_certificate_arn == "")
+    error_message = "Custom domains require HTTPS, Route53 and ACM inputs; disabled custom domains require all domain settings to remain off and empty."
   }
 }
 check "image_identity" {

@@ -32,6 +32,7 @@ module "deploy_role" {
 }
 
 module "dns" {
+  count           = var.enable_custom_domain ? 1 : 0
   source          = "../../modules/staging_dns"
   domain_name     = var.domain_name
   route53_zone_id = var.route53_zone_id

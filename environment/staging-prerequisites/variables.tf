@@ -57,18 +57,25 @@ variable "github_environment" {
 }
 variable "state_bucket_name" { type = string }
 variable "state_kms_key_arn" { type = string }
+variable "enable_custom_domain" {
+  type        = bool
+  description = "Create staging ACM and Route53 validation resources. Keep false until a new domain is approved."
+  default     = false
+}
 variable "domain_name" {
-  type = string
+  type    = string
+  default = ""
   validation {
-    condition     = can(regex("^staging\\.", var.domain_name))
-    error_message = "The ACM domain must be staging-specific."
+    condition     = !var.enable_custom_domain || can(regex("^staging\\.", var.domain_name))
+    error_message = "When custom domains are enabled, the ACM domain must be staging-specific."
   }
 }
 variable "route53_zone_id" {
-  type = string
+  type    = string
+  default = ""
   validation {
-    condition     = trimspace(var.route53_zone_id) != ""
-    error_message = "A Route53 hosted zone ID is required."
+    condition     = !var.enable_custom_domain || trimspace(var.route53_zone_id) != ""
+    error_message = "When custom domains are enabled, a Route53 hosted zone ID is required."
   }
 }
 variable "alarm_notification_email" {

@@ -8,7 +8,7 @@ output "alb_dns_name" {
   value = module.ecs.alb_dns_name
 }
 output "staging_url" {
-  value = var.enable_https ? "https://${var.domain_name}" : "http://${module.ecs.alb_dns_name}"
+  value = var.enable_custom_domain && var.enable_https ? "https://${var.domain_name}" : "http://${module.ecs.alb_dns_name}"
 }
 output "acm_certificate_arn" {
   value = local.effective_acm_certificate_arn

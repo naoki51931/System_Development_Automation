@@ -12,8 +12,9 @@ github_org               = "REPLACE_ME"
 github_repository        = "REPLACE_ME"
 github_environment       = "staging"
 
-domain_name     = "staging.example.com"
-route53_zone_id = "REPLACE_ME"
+enable_custom_domain = false
+domain_name          = ""
+route53_zone_id      = ""
 
 alarm_notification_email = "REPLACE_WITH_NOTIFICATION_EMAIL"
 monthly_budget_amount     = 100

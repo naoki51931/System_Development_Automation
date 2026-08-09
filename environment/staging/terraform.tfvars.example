@@ -42,11 +42,12 @@ existing_public_subnet_ids  = []
 enable_nat_gateway          = false
 enable_vpc_endpoints        = true
 
-domain_name         = "staging.true-camera-test.com"
-route53_zone_id     = "Z05220783EQSOCLA4YS4T"
-acm_certificate_arn = "REPLACE_WITH_PREREQUISITE_ACM_CERTIFICATE_ARN"
-enable_https        = true
-create_route53_record   = true
+enable_custom_domain  = false
+domain_name           = ""
+route53_zone_id       = ""
+acm_certificate_arn   = ""
+enable_https          = false
+create_route53_record = false
 
 prerequisite_sns_topic_arn          = "REPLACE_WITH_PREREQUISITE_SNS_TOPIC_ARN"
 prerequisite_github_deploy_role_arn = "REPLACE_WITH_PREREQUISITE_GITHUB_DEPLOY_ROLE_ARN"

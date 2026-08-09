@@ -82,6 +82,7 @@ def test_staging_required_common_variables_are_declared():
         "backup_retention_days",
         "deletion_protection",
         "artifact_bucket_name",
+        "enable_custom_domain",
         "domain_name",
         "route53_zone_id",
         "prerequisite_sns_topic_arn",
@@ -244,7 +245,8 @@ def test_prerequisite_trust_budget_dns_and_outputs_are_safe():
     assert "AdministratorAccess" not in deploy
     assert "aws_acm_certificate_validation" in dns
     assert "var.domain_name" in dns and "var.route53_zone_id" in dns
-    assert 'condition     = can(regex("^staging\\\\."' in variables
+    assert 'variable "enable_custom_domain"' in variables
+    assert '!var.enable_custom_domain || can(regex("^staging\\\\."' in variables
     assert 'default = "GBP"' in variables
     assert "default = 100" in variables
     assert notifications.count('type = "ACTUAL"') == 3
@@ -260,3 +262,41 @@ def test_prerequisite_trust_budget_dns_and_outputs_are_safe():
         "budget_name",
     ):
         assert f'output "{name}"' in outputs
+
+
+def test_custom_domain_is_disabled_without_removing_other_prerequisites():
+    prerequisite_main = text(PREREQUISITES / "main.tf")
+    prerequisite_vars = text(PREREQUISITES / "variables.tf")
+    prerequisite_example = text(PREREQUISITES / "terraform.tfvars.example")
+    staging_vars = text(STAGING / "variables.tf")
+    staging_dns = text(STAGING / "dns.tf")
+    staging_example = text(STAGING / "terraform.tfvars.example")
+    notifications = text(ROOT / "modules/staging_notifications/main.tf")
+
+    assert 'count           = var.enable_custom_domain ? 1 : 0' in prerequisite_main
+    assert 'variable "enable_custom_domain"' in prerequisite_vars
+    assert "default     = false" in prerequisite_vars
+    assert 'enable_custom_domain = false' in prerequisite_example
+    assert 'domain_name          = ""' in prerequisite_example
+    assert 'route53_zone_id      = ""' in prerequisite_example
+    assert 'variable "enable_custom_domain"' in staging_vars
+    assert "var.enable_custom_domain && var.enable_https" in staging_dns
+    assert 'enable_custom_domain  = false' in staging_example
+    assert 'enable_https          = false' in staging_example
+    assert 'create_route53_record = false' in staging_example
+    assert 'module "ecr"' in prerequisite_main
+    assert 'module "deploy_role"' in prerequisite_main
+    assert 'module "notifications"' in prerequisite_main
+    assert 'name = "${var.name_prefix}-alerts"' in notifications
+    assert notifications.count('type = "ACTUAL"') == 3
+    assert notifications.count('type = "FORECASTED"') == 1
+
+
+def test_deprecated_domain_has_no_active_configuration_reference():
+    active_paths = [
+        *PREREQUISITES.glob("*.tf"),
+        PREREQUISITES / "terraform.tfvars.example",
+        *STAGING.glob("*.tf"),
+        STAGING / "terraform.tfvars.example",
+    ]
+    assert all("true-camera-test" not in text(path) for path in active_paths)

@@ -44,7 +44,7 @@ module "storage" {
   enabled     = var.enable_s3_storage
   bucket_name = var.artifact_bucket_name
   name_prefix = var.name_prefix
-  cors_origin = var.enable_https ? "https://${var.domain_name}" : ""
+  cors_origin = var.enable_custom_domain && var.enable_https ? "https://${var.domain_name}" : ""
 }
 
 module "security" {
@@ -98,7 +98,7 @@ module "ecs" {
   enable_ses                      = var.enable_ses
   enable_s3_storage               = var.enable_s3_storage
   stripe_mode                     = var.stripe_mode
-  enable_https                    = var.enable_https
+  enable_https                    = var.enable_custom_domain && var.enable_https
   acm_certificate_arn             = local.effective_acm_certificate_arn
   cognito_user_pool_id            = var.cognito_user_pool_id
   cognito_app_client_id           = var.cognito_app_client_id
