@@ -30,6 +30,10 @@ Staging RDS is PostgreSQL, private, encrypted, Single-AZ by default, deletion-pr
 
 Monitoring defines ECS CPU/memory, ALB 5xx/unhealthy targets, RDS CPU/connections/storage, worker heartbeat, dead-letter growth, SNS notification, and a tag-filtered monthly budget. Before production-like testing, verify the application emits the two custom worker metrics.
 
+The approved recipient is `info@nagi-neco.com`, supplied only by ignored tfvars. ALB alarms cover five 5xx in five minutes, unhealthy targets, and p95 response time above two seconds for five minutes. ECS alarms cover CPU/memory above 80% for five minutes and backend/worker running task deficits through Container Insights. Worker heartbeat missing/older than 120 seconds and any dead letter alert immediately. RDS covers CPU, connections (default 80), free storage below 5 GiB, and freeable memory below 256 MiB; instance-sensitive thresholds are variables. CloudWatch uses the staging SNS topic; Budget uses direct email for actual 50/80/100% and forecasted 100% of 100 GBP.
+
+The SNS email subscription is not auto-confirmed and remains `PendingConfirmation` until a human accepts AWS's confirmation message. `info@nagi-neco.com` is not an application customer-mail destination. Initial staging keeps MockEmailProvider enabled and SES outbound/inbound disabled; `alerts@staging.true-camera-test.com`, MX changes, receiving S3, and Inbox API are rejected initial designs.
+
 Rollback selects previous immutable ECS task definitions, stops workers if schema compatibility is uncertain, and prefers a forward fix. A database restore creates a new instance from the verified snapshot; it never overwrites the old RDS. Preserve S3 versions, Secrets versions, logs, and audit evidence.
 
 ## Validation and approval boundaries
@@ -43,3 +47,5 @@ Real AWS IDs, resource existence, quotas, IAM permissions, AZ/subnet capacity, E
 `environment/staging-prerequisites` is a small, independently reviewed state owning only `system-navigator-staging-app` and `system-navigator-staging-frontend`. It avoids the repository/image circular dependency and permanent `-target`. After its approved apply and image push, main staging consumes full ECR `repository@sha256:...` values; backend and worker must share a digest.
 
 The dedicated VPC has two public, two private application, and two isolated database subnets. The default avoids a fifth EIP/NAT and creates private ECR API/DKR, S3, Logs, Monitoring, Secrets Manager, STS, and KMS endpoints. Terraform can request and DNS-validate the staging certificate, create the alias, and enforce HTTP redirect in one main graph. See `quality-results/staging-pre-plan-remediation-2026-08-06.md` for staged approval and rollback details.
+
+Apply ordering is dependency-driven without permanent `-target`: the independent prerequisites root creates ECR first; the main graph can then create the deploy role, ACM validation, SNS and Budget before their consumers, followed by network/storage/security, RDS/ECS/ALB, the Route53 ALB alias and CloudWatch alarms. Image push/digest capture remains a separately approved boundary before task definitions and services. The ALB alias cannot be placed in the prerequisites state because its target does not exist until the runtime-base graph; alarm resources likewise require ALB/ECS/RDS identifiers.

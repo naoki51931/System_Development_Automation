@@ -123,17 +123,22 @@ module "ecs" {
 }
 
 module "monitoring" {
-  source                    = "../../modules/staging_monitoring"
-  name_prefix               = var.name_prefix
-  cluster_name              = module.ecs.cluster_name
-  backend_service_name      = module.ecs.backend_service_name
-  worker_service_name       = module.ecs.worker_service_name
-  frontend_service_name     = module.ecs.frontend_service_name
-  alb_arn_suffix            = module.ecs.alb_arn_suffix
-  target_group_arn_suffixes = module.ecs.target_group_arn_suffixes
-  db_identifier             = module.database.identifier
-  alarm_notification_email  = var.alarm_notification_email
-  monthly_budget_amount     = var.monthly_budget_amount
-  monthly_budget_currency   = var.monthly_budget_currency
-  aws_account_id            = var.aws_account_id
+  source                        = "../../modules/staging_monitoring"
+  name_prefix                   = var.name_prefix
+  cluster_name                  = module.ecs.cluster_name
+  backend_service_name          = module.ecs.backend_service_name
+  worker_service_name           = module.ecs.worker_service_name
+  frontend_service_name         = module.ecs.frontend_service_name
+  alb_arn_suffix                = module.ecs.alb_arn_suffix
+  target_group_arn_suffixes     = module.ecs.target_group_arn_suffixes
+  db_identifier                 = module.database.identifier
+  alarm_notification_email      = var.alarm_notification_email
+  monthly_budget_amount         = var.monthly_budget_amount
+  monthly_budget_currency       = var.monthly_budget_currency
+  desired_count_backend         = var.desired_count_backend
+  desired_count_worker          = var.desired_count_worker
+  rds_connections_threshold     = var.rds_connections_threshold
+  rds_free_storage_threshold    = var.rds_free_storage_threshold
+  rds_freeable_memory_threshold = var.rds_freeable_memory_threshold
+  aws_account_id                = var.aws_account_id
 }

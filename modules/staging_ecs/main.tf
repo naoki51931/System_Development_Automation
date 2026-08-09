@@ -201,6 +201,11 @@ locals {
 
 resource "aws_ecs_cluster" "main" {
   name = "${var.name_prefix}-cluster"
+
+  setting {
+    name  = "containerInsights"
+    value = "enabled"
+  }
 }
 resource "aws_cloudwatch_log_group" "service" {
   for_each          = toset(["backend", "worker", "frontend", "migration"])

@@ -42,16 +42,19 @@ existing_public_subnet_ids  = []
 enable_nat_gateway          = false
 enable_vpc_endpoints        = true
 
-domain_name         = "staging.example.com"
-route53_zone_id     = "REPLACE_ME"
+domain_name         = "staging.true-camera-test.com"
+route53_zone_id     = "Z05220783EQSOCLA4YS4T"
 acm_certificate_arn = ""
 enable_https        = true
 create_acm_certificate = true
 create_route53_record   = true
 
-alarm_notification_email = "REPLACE_ME"
+alarm_notification_email = "REPLACE_WITH_NOTIFICATION_EMAIL"
 monthly_budget_amount     = 100
-monthly_budget_currency   = "USD"
+monthly_budget_currency   = "GBP"
+rds_connections_threshold    = 80
+rds_free_storage_threshold   = 5368709120
+rds_freeable_memory_threshold = 268435456
 
 github_oidc_provider_arn = "REPLACE_WITH_EXISTING_GITHUB_OIDC_PROVIDER_ARN"
 github_org               = "REPLACE_GITHUB_ORG"

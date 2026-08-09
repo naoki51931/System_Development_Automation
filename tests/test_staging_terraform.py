@@ -85,6 +85,10 @@ def test_staging_required_common_variables_are_declared():
         "route53_zone_id",
         "alarm_notification_email",
         "monthly_budget_amount",
+        "monthly_budget_currency",
+        "rds_connections_threshold",
+        "rds_free_storage_threshold",
+        "rds_freeable_memory_threshold",
     }
     declared = set(re.findall(r'variable "([^"]+)"', variables))
     assert required <= declared
@@ -157,3 +161,31 @@ def test_ignore_rules_cover_local_terraform_material():
         "**/.terraform/",
     ):
         assert pattern in ignore
+
+
+def test_staging_monitoring_matches_approved_notification_policy():
+    monitoring = text(ROOT / "modules/staging_monitoring/main.tf")
+    example = text(STAGING / "terraform.tfvars.example")
+    ecs = text(ROOT / "modules/staging_ecs/main.tf")
+    for metric in (
+        "HTTPCode_ELB_5XX_Count",
+        "UnHealthyHostCount",
+        "TargetResponseTime",
+        "CPUUtilization",
+        "MemoryUtilization",
+        "RunningTaskCount",
+        "WorkerHeartbeatAgeSeconds",
+        "DeadLetterCount",
+        "DatabaseConnections",
+        "FreeStorageSpace",
+        "FreeableMemory",
+    ):
+        assert metric in monitoring
+    assert 'name = "${var.name_prefix}-alerts"' in monitoring
+    assert 'protocol  = "email"' in monitoring
+    assert "subscriber_email_addresses" in monitoring
+    assert 'alarm_notification_email = "REPLACE_WITH_NOTIFICATION_EMAIL"' in example
+    assert "info@nagi-neco.com" not in example
+    assert "monthly_budget_amount     = 100" in example
+    assert 'monthly_budget_currency   = "GBP"' in example
+    assert 'name  = "containerInsights"' in ecs

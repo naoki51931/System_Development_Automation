@@ -8,9 +8,11 @@
 - [ ] Require ECR scan critical/high = 0 and copy registry digests—not local image IDs—into ignored tfvars
 - [ ] Create/approve staging-only GitHub role restricted to the repository `staging` environment
 - [ ] Configure GitHub Environment branch protection for `agent/final-quality-gate` or approved `main`
-- [ ] Resolve ACM, alert target/SNS/Budget, Secret containers, and incomplete quota evidence before plan review
+- [x] Alert target is `info@nagi-neco.com`; Budget is 100 GBP; values remain in ignored tfvars
 - [ ] Approve no-NAT endpoints or explicitly approve EIP quota/cost for a NAT alternative
-- [ ] Approve Budget amount/currency and confirm the SNS email subscription outside Git
+- [x] Approve Budget amount/currency: 100 GBP
+- [ ] After an approved apply, manually confirm the SNS email subscription; expect `PendingConfirmation` before confirmation
+- [x] Exclude SES inbound, MX changes, receiving S3/Inbox API, and `nagi-neco.com` DNS/mail changes
 - [ ] Confirm production key remains `cloud-a/prod/terraform.tfstate` and staging key is `system-navigator/staging/terraform.tfstate`
 - [ ] Replace every `REPLACE_*` value outside Git; confirm staging S3/RDS names differ from production
 - [ ] Select dedicated VPC (recommended) or review existing VPC/subnet/SG blast radius
@@ -78,7 +80,7 @@ The authoritative result is **NOT_READY**.
 
 ## 2026-08-06 resume completion recheck
 
-- [x] Backend 137 passed; overall 83.09% and critical services 90.86% (1560/1717).
+- [x] Backend 138 passed; overall 83.09% and critical services 90.86% (1560/1717).
 - [x] Immutable snapshot/step triggers, schema version `1`, deterministic version/run/review/cost identities, hash validation, and missing-snapshot fail-closed tests pass.
 - [x] Migration `8d4f2a7c9b11`: downgrade, upgrade, offline SQL, and metadata drift checks pass.
 - [x] Compose services healthy; reference seed succeeds twice.

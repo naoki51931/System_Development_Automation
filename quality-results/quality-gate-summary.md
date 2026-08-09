@@ -6,8 +6,8 @@ Local-only verification resumed at baseline `22d9480e63f2246b40e7e84bea8c1206e22
 |---|---|---|
 | Git diff / Terraform fmt | PASS | `git diff --check`; recursive fmt check |
 | Terraform validate | PASS | Bootstrap, production, staging, and staging-prerequisites |
-| Terraform safety | PASS | 15 passed, 1 skipped (provider-schema test), 121 deselected |
-| Backend Test | PASS | 137 passed, 0 failed on local Compose PostgreSQL |
+| Terraform safety | PASS | 16 passed, 1 skipped (provider-schema test), 121 deselected |
+| Backend Test | PASS | 138 passed, 0 failed on local Compose PostgreSQL |
 | Backend Overall Coverage | PASS | 83.09%; minimum 80% |
 | Critical Service Coverage | PASS | 90.86% (1560/1717); minimum 90% |
 | Frontend Test / Coverage | PASS | 34/34; statements/lines 85.18%, branches 74.13%, functions 81.81% |
@@ -26,6 +26,7 @@ Local-only verification resumed at baseline `22d9480e63f2246b40e7e84bea8c1206e22
 | Accessibility | PASS | 12 routes/browser; axe critical 0, serious 0 |
 | npm Audit | PASS | runtime `--omit=dev`: 0 vulnerabilities; nanoid pinned to 3.3.17 |
 | Local Images | PASS | app and frontend linux/amd64, non-root, healthchecks present |
+| Staging Notifications | PASS | SNS email variable, manual confirmation, alarms complete; Budget 100 GBP |
 | Performance | PASS | retained 50-user/60-second: 0% errors, detail p95 490 ms, list p95 540 ms |
 | Documentation | PASS | seven requested documents synchronized |
 

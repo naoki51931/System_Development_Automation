@@ -35,29 +35,24 @@ variable "monthly_budget_currency" {
 variable "aws_account_id" {
   type = string
 }
+variable "desired_count_backend" {
+  type = number
+}
+variable "desired_count_worker" {
+  type = number
+}
+variable "rds_connections_threshold" {
+  type = number
+}
+variable "rds_free_storage_threshold" {
+  type = number
+}
+variable "rds_freeable_memory_threshold" {
+  type = number
+}
 
 resource "aws_sns_topic" "alerts" {
   name = "${var.name_prefix}-alerts"
-}
-data "aws_iam_policy_document" "alerts" {
-  statement {
-    sid       = "AllowBudgetNotifications"
-    actions   = ["sns:Publish"]
-    resources = [aws_sns_topic.alerts.arn]
-    principals {
-      type        = "Service"
-      identifiers = ["budgets.amazonaws.com"]
-    }
-    condition {
-      test     = "StringEquals"
-      variable = "aws:SourceAccount"
-      values   = [var.aws_account_id]
-    }
-  }
-}
-resource "aws_sns_topic_policy" "alerts" {
-  arn    = aws_sns_topic.alerts.arn
-  policy = data.aws_iam_policy_document.alerts.json
 }
 resource "aws_sns_topic_subscription" "email" {
   count     = var.alarm_notification_email == "" ? 0 : 1
@@ -83,7 +78,7 @@ resource "aws_cloudwatch_metric_alarm" "ecs_cpu" {
   metric_name         = "CPUUtilization"
   comparison_operator = "GreaterThanThreshold"
   threshold           = 80
-  evaluation_periods  = 3
+  evaluation_periods  = 1
   period              = 300
   statistic           = "Average"
   dimensions = {
@@ -98,7 +93,7 @@ resource "aws_cloudwatch_metric_alarm" "ecs_memory" {
   metric_name         = "MemoryUtilization"
   comparison_operator = "GreaterThanThreshold"
   threshold           = 80
-  evaluation_periods  = 3
+  evaluation_periods  = 1
   period              = 300
   statistic           = "Average"
   dimensions = {
@@ -110,9 +105,9 @@ resource "aws_cloudwatch_metric_alarm" "alb_5xx" {
   alarm_name          = "${var.name_prefix}-alb-5xx"
   namespace           = "AWS/ApplicationELB"
   metric_name         = "HTTPCode_ELB_5XX_Count"
-  comparison_operator = "GreaterThanThreshold"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
   threshold           = 5
-  evaluation_periods  = 2
+  evaluation_periods  = 1
   period              = 300
   statistic           = "Sum"
   dimensions = {
@@ -127,11 +122,44 @@ resource "aws_cloudwatch_metric_alarm" "unhealthy_targets" {
   metric_name         = "UnHealthyHostCount"
   comparison_operator = "GreaterThanThreshold"
   threshold           = 0
-  evaluation_periods  = 2
+  evaluation_periods  = 1
   period              = 60
   statistic           = "Maximum"
   dimensions = {
     LoadBalancer = var.alb_arn_suffix, TargetGroup = var.target_group_arn_suffixes[count.index]
+  }
+  alarm_actions = local.alarm_actions
+}
+resource "aws_cloudwatch_metric_alarm" "alb_response_time" {
+  alarm_name          = "${var.name_prefix}-alb-response-time-p95"
+  namespace           = "AWS/ApplicationELB"
+  metric_name         = "TargetResponseTime"
+  comparison_operator = "GreaterThanThreshold"
+  threshold           = 2
+  evaluation_periods  = 5
+  period              = 60
+  extended_statistic  = "p95"
+  dimensions = {
+    LoadBalancer = var.alb_arn_suffix
+  }
+  alarm_actions = local.alarm_actions
+}
+resource "aws_cloudwatch_metric_alarm" "running_tasks" {
+  for_each = {
+    backend = { service = var.backend_service_name, desired = var.desired_count_backend }
+    worker  = { service = var.worker_service_name, desired = var.desired_count_worker }
+  }
+  alarm_name          = "${var.name_prefix}-${each.key}-running-tasks"
+  namespace           = "ECS/ContainerInsights"
+  metric_name         = "RunningTaskCount"
+  comparison_operator = "LessThanThreshold"
+  threshold           = each.value.desired
+  evaluation_periods  = 1
+  period              = 60
+  statistic           = "Minimum"
+  treat_missing_data  = "breaching"
+  dimensions = {
+    ClusterName = var.cluster_name, ServiceName = each.value.service
   }
   alarm_actions = local.alarm_actions
 }
@@ -140,7 +168,7 @@ resource "aws_cloudwatch_metric_alarm" "rds_cpu" {
   namespace           = "AWS/RDS"
   metric_name         = "CPUUtilization"
   comparison_operator = "GreaterThanThreshold"
-  threshold           = 80
+  threshold           = var.rds_connections_threshold
   evaluation_periods  = 3
   period              = 300
   statistic           = "Average"
@@ -168,7 +196,21 @@ resource "aws_cloudwatch_metric_alarm" "rds_storage" {
   namespace           = "AWS/RDS"
   metric_name         = "FreeStorageSpace"
   comparison_operator = "LessThanThreshold"
-  threshold           = 5368709120
+  threshold           = var.rds_free_storage_threshold
+  evaluation_periods  = 2
+  period              = 300
+  statistic           = "Minimum"
+  dimensions = {
+    DBInstanceIdentifier = var.db_identifier
+  }
+  alarm_actions = local.alarm_actions
+}
+resource "aws_cloudwatch_metric_alarm" "rds_freeable_memory" {
+  alarm_name          = "${var.name_prefix}-rds-freeable-memory"
+  namespace           = "AWS/RDS"
+  metric_name         = "FreeableMemory"
+  comparison_operator = "LessThanThreshold"
+  threshold           = var.rds_freeable_memory_threshold
   evaluation_periods  = 2
   period              = 300
   statistic           = "Minimum"
@@ -219,32 +261,32 @@ resource "aws_budgets_budget" "monthly" {
     values = ["user:Environment$staging"]
   }
   notification {
-    comparison_operator       = "GREATER_THAN"
-    threshold                 = 50
-    threshold_type            = "PERCENTAGE"
-    notification_type         = "ACTUAL"
-    subscriber_sns_topic_arns = [aws_sns_topic.alerts.arn]
+    comparison_operator        = "GREATER_THAN"
+    threshold                  = 50
+    threshold_type             = "PERCENTAGE"
+    notification_type          = "ACTUAL"
+    subscriber_email_addresses = [var.alarm_notification_email]
   }
   notification {
-    comparison_operator       = "GREATER_THAN"
-    threshold                 = 80
-    threshold_type            = "PERCENTAGE"
-    notification_type         = "ACTUAL"
-    subscriber_sns_topic_arns = [aws_sns_topic.alerts.arn]
+    comparison_operator        = "GREATER_THAN"
+    threshold                  = 80
+    threshold_type             = "PERCENTAGE"
+    notification_type          = "ACTUAL"
+    subscriber_email_addresses = [var.alarm_notification_email]
   }
   notification {
-    comparison_operator       = "GREATER_THAN"
-    threshold                 = 100
-    threshold_type            = "PERCENTAGE"
-    notification_type         = "ACTUAL"
-    subscriber_sns_topic_arns = [aws_sns_topic.alerts.arn]
+    comparison_operator        = "GREATER_THAN"
+    threshold                  = 100
+    threshold_type             = "PERCENTAGE"
+    notification_type          = "ACTUAL"
+    subscriber_email_addresses = [var.alarm_notification_email]
   }
   notification {
-    comparison_operator       = "GREATER_THAN"
-    threshold                 = 100
-    threshold_type            = "PERCENTAGE"
-    notification_type         = "FORECASTED"
-    subscriber_sns_topic_arns = [aws_sns_topic.alerts.arn]
+    comparison_operator        = "GREATER_THAN"
+    threshold                  = 100
+    threshold_type             = "PERCENTAGE"
+    notification_type          = "FORECASTED"
+    subscriber_email_addresses = [var.alarm_notification_email]
 
   }
 }

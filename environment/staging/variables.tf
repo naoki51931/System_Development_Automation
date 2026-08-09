@@ -177,15 +177,54 @@ variable "alarm_notification_email" {
   type      = string
   default   = ""
   sensitive = true
+  validation {
+    condition     = can(regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", var.alarm_notification_email))
+    error_message = "A valid human-confirmed staging alarm notification email is required."
+  }
 }
 variable "monthly_budget_amount" {
   type    = number
   default = 100
+  validation {
+    condition     = var.monthly_budget_amount == 100
+    error_message = "The approved initial staging monthly Budget is 100."
+  }
 }
 variable "monthly_budget_currency" {
   type        = string
   description = "Human-approved AWS billing currency for the staging budget."
-  default     = "USD"
+  default     = "GBP"
+  validation {
+    condition     = var.monthly_budget_currency == "GBP"
+    error_message = "The approved initial staging Budget currency is GBP."
+  }
+}
+variable "rds_connections_threshold" {
+  type        = number
+  description = "Alarm threshold below the safe connection limit for the selected staging DB class."
+  default     = 80
+  validation {
+    condition     = var.rds_connections_threshold > 0
+    error_message = "The RDS connections threshold must be positive."
+  }
+}
+variable "rds_free_storage_threshold" {
+  type        = number
+  description = "FreeStorageSpace alarm threshold in bytes."
+  default     = 5368709120
+  validation {
+    condition     = var.rds_free_storage_threshold > 0
+    error_message = "The RDS free-storage threshold must be positive."
+  }
+}
+variable "rds_freeable_memory_threshold" {
+  type        = number
+  description = "FreeableMemory alarm threshold in bytes for db.t4g.small."
+  default     = 268435456
+  validation {
+    condition     = var.rds_freeable_memory_threshold > 0
+    error_message = "The RDS freeable-memory threshold must be positive."
+  }
 }
 
 variable "create_vpc" {

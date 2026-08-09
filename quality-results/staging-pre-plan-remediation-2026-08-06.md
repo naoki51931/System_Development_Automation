@@ -19,7 +19,7 @@ Both repositories are immutable, scan-on-push, AES256 encrypted, `force_delete=f
 
 Security results: Bandit 0, pip-audit 0 known vulnerabilities, npm runtime audit critical/high/moderate/low all 0, tracked-file secret scan 0, and no credential/private-key file in runtime images. Trivy is unavailable locally; ECR scan-on-push must show zero critical/high findings before promotion.
 
-Final local gates: all four Terraform roots validate; recursive fmt passes; Terraform safety tests are 15 passed/1 provider-schema skip; backend is 137 passed with 83.09% overall and 90.86% critical-service coverage; frontend is 34 passed; build and OpenAPI drift checks pass; all four Compose services are healthy and the reference seed succeeds twice.
+Final local gates: all four Terraform roots validate; recursive fmt passes; Terraform safety tests are 16 passed/1 provider-schema skip; backend is 138 passed with 83.09% overall and 90.86% critical-service coverage; frontend is 34 passed; build and OpenAPI drift checks pass; all four Compose services are healthy and the reference seed succeeds twice.
 
 ### Planned push — not executed
 
@@ -47,7 +47,9 @@ HTTPS option A is selected from the first main apply. HTTP-only is unsuitable fo
 
 ## SNS, Budget, and Secrets
 
-Monitoring creates `system-navigator-staging-alerts`, an optional email subscription from ignored tfvars, and an account-limited AWS Budgets publish policy. The recipient must confirm the SNS email. Budget amount and AWS billing currency require human approval; 100 or 150 GBP are discussion values only. Alerts are actual 50/80/100% and forecasted 100%.
+Monitoring creates `system-navigator-staging-alerts` with an email subscription to the approved operations recipient `info@nagi-neco.com`, supplied only through ignored tfvars. It remains `PendingConfirmation` until a human confirms the AWS email; automatic confirmation is prohibited. CloudWatch ALB/ECS/worker/RDS alarms publish to SNS. AWS Budgets sends actual 50/80/100% and forecasted 100% notifications directly to the same address for the approved 100 GBP monthly budget.
+
+This existing mailbox is monitoring-only. Initial staging does not build `alerts@staging.true-camera-test.com`, SES inbound, MX changes, a receiving S3 bucket, or an Inbox API, and does not change `nagi-neco.com` DNS/mail service. Application mail remains MockEmailProvider; SES outbound is disabled.
 
 Initially only `/system-navigator/staging/database` is created. Cognito, Stripe, email, OpenAI, and Anthropic containers are conditional on enabling those real providers. Terraform manages no Secret version/value. RDS has a distinct managed master Secret. Secret rollback uses the 30-day recovery window and never force-deletes populated data.
 
@@ -73,8 +75,8 @@ Quota supplementation found Fargate actual maximum 0.5/8 vCPU, EIP 4/5, one NAT 
 | application/frontend registry digest URIs | REQUIRES_RESOURCE_CREATION after approved push |
 | artifact bucket, staging DB, ACM ARN, alias | GENERATED_BY_TERRAFORM in main state |
 | production artifact bucket/DB identifier | CONFIRMED |
-| alarm email | REQUIRES_HUMAN_INPUT; ignored tfvars only |
-| Budget amount and billing currency | REQUIRES_HUMAN_INPUT |
+| alarm email | CONFIRMED: `info@nagi-neco.com`; ignored tfvars only |
+| Budget amount and billing currency | CONFIRMED: 100 GBP; ignored tfvars only |
 | zone `Z05220783EQSOCLA4YS4T`, domain `staging.true-camera-test.com` | CONFIRMED |
 | Cognito pool/client, SES from address | NOT_REQUIRED_INITIAL_STAGE |
 
@@ -85,6 +87,8 @@ Quota supplementation found Fargate actual maximum 0.5/8 vCPU, EIP 4/5, one NAT 
 3. Review one complete main staging plan for IAM, endpoint-only VPC, S3, database Secret container, SNS/Budget, ACM/DNS, RDS, ECS/ALB/tasks/services. Main state is applied as a graph without routine `-target`.
 4. After approved apply and snapshot controls, run migration task only; exit 0 and Alembic head are mandatory before service stabilization.
 5. Run HTTPS, LocalAuth rejection, Mock banner, tenant, worker, S3, alarm, Budget, and rollback smoke tests.
+
+Within the approved main graph, Terraform dependency edges order the staging deploy role, ACM validation, SNS and Budget before consumers, then network/storage/security and runtime base, then the ALB alias and CloudWatch alarms. Alias and alarm resources stay out of the ECR prerequisites state because they require ALB/ECS/RDS outputs. This preserves the requested operational phases without routine `-target` or fragile hand-copied cross-state identifiers.
 
 The prerequisites state is a narrow bootstrap boundary; further state fragmentation is rejected because it increases cross-state coupling. Stop before main plan review if repository URLs/digests are absent, backend/worker digests differ, scans contain critical/high findings, Budget/alert inputs or GitHub Environment protection are unresolved, the CIDR gains a collision, endpoint/NAT policy changes without approval, or production addresses/state appear in a diff.
 
