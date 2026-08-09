@@ -5,6 +5,7 @@ export const metadata = {
   title: "SystemNavigator AI",
   description: "AIと人が、システム開発を完成までナビゲート。",
 };
+export const dynamic = "force-dynamic";
 
 export default function Layout({children}: {children: React.ReactNode}) {
   const mockProviders = [

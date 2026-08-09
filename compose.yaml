@@ -50,6 +50,9 @@ services:
     build:
       context: ./frontend
       target: runtime
+      args:
+        NEXT_PUBLIC_API_BASE_URL: http://localhost:8000/api/v1
+        NEXT_PUBLIC_LOCAL_AUTH_ENABLED: "true"
     environment:
       NEXT_PUBLIC_API_BASE_URL: http://localhost:8000/api/v1
     depends_on: {backend: {condition: service_healthy}}

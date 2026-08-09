@@ -1,12 +1,14 @@
 aws_account_id = "123456789012"
 aws_region     = "eu-west-2"
+state_bucket_name = "ai-platform-terraform-state-557604519341"
+state_kms_key_arn = "REPLACE_WITH_STAGING_STATE_KMS_KEY_ARN"
 environment    = "staging"
 name_prefix    = "system-navigator-staging"
 
-container_image_tag       = "57109fa"
-backend_image_repository  = "REPLACE_WITH_BACKEND_ECR_REPOSITORY"
-worker_image_repository   = "REPLACE_WITH_WORKER_ECR_REPOSITORY"
-frontend_image_repository = "REPLACE_WITH_FRONTEND_ECR_REPOSITORY"
+container_image_tag = "57109fa"
+backend_image_uri   = "123456789012.dkr.ecr.eu-west-2.amazonaws.com/system-navigator-staging-app@sha256:REPLACE_WITH_64_HEX_DIGEST"
+worker_image_uri    = "123456789012.dkr.ecr.eu-west-2.amazonaws.com/system-navigator-staging-app@sha256:REPLACE_WITH_64_HEX_DIGEST"
+frontend_image_uri  = "123456789012.dkr.ecr.eu-west-2.amazonaws.com/system-navigator-staging-frontend@sha256:REPLACE_WITH_64_HEX_DIGEST"
 
 enable_local_auth   = false
 enable_mock_ai       = true
@@ -37,18 +39,25 @@ vpc_cidr                    = "10.30.0.0/16"
 existing_vpc_id             = ""
 existing_private_subnet_ids = []
 existing_public_subnet_ids  = []
+enable_nat_gateway          = false
+enable_vpc_endpoints        = true
 
 domain_name         = "staging.example.com"
 route53_zone_id     = "REPLACE_ME"
-acm_certificate_arn = "REPLACE_ME"
-enable_https        = false
+acm_certificate_arn = ""
+enable_https        = true
+create_acm_certificate = true
+create_route53_record   = true
 
 alarm_notification_email = "REPLACE_ME"
 monthly_budget_amount     = 100
+monthly_budget_currency   = "USD"
 
 github_oidc_provider_arn = "REPLACE_WITH_EXISTING_GITHUB_OIDC_PROVIDER_ARN"
 github_org               = "REPLACE_GITHUB_ORG"
 github_repository        = "REPLACE_GITHUB_REPOSITORY"
+staging_app_repository_name      = "system-navigator-staging-app"
+staging_frontend_repository_name = "system-navigator-staging-frontend"
 
 cognito_user_pool_id  = ""
 cognito_app_client_id = ""

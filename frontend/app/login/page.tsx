@@ -6,18 +6,27 @@ import { api } from "@/lib/api";
 type LocalUser = { id: string; display_name: string; email: string };
 
 export default function Login() {
+  const localAuthEnabled = process.env.NEXT_PUBLIC_LOCAL_AUTH_ENABLED !== "false";
   const [users, setUsers] = useState<LocalUser[]>([]);
   const [id, setId] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
+    if (!localAuthEnabled) return;
     api<LocalUser[]>("/auth/local/users")
       .then((items) => {
         setUsers(items);
         setId(items[0]?.id || "");
       })
       .catch(() => setError("LocalAuthは利用できません"));
-  }, []);
+  }, [localAuthEnabled]);
+
+  if (!localAuthEnabled) {
+    return <main>
+      <h1>SystemNavigator AI</h1>
+      <p>LocalAuthはステージングでは無効です。承認済みの認証プロバイダーを使用してください。</p>
+    </main>;
+  }
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();

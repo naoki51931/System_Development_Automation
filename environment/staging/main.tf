@@ -12,17 +12,19 @@ provider "aws" {
 }
 
 module "network" {
-  source      = "../../modules/staging_network"
-  create_vpc  = var.create_vpc
-  name_prefix = var.name_prefix
-  vpc_cidr    = var.vpc_cidr
+  source               = "../../modules/staging_network"
+  create_vpc           = var.create_vpc
+  name_prefix          = var.name_prefix
+  vpc_cidr             = var.vpc_cidr
+  aws_region           = var.aws_region
+  enable_nat_gateway   = var.enable_nat_gateway
+  enable_vpc_endpoints = var.enable_vpc_endpoints
 }
 
 locals {
   vpc_id             = var.create_vpc ? module.network.vpc_id : var.existing_vpc_id
   public_subnet_ids  = var.create_vpc ? module.network.public_subnet_ids : var.existing_public_subnet_ids
   private_subnet_ids = var.create_vpc ? module.network.private_subnet_ids : var.existing_private_subnet_ids
-  image_suffix       = startswith(var.container_image_tag, "sha256:") ? "@${var.container_image_tag}" : ":${var.container_image_tag}"
 }
 
 resource "aws_security_group" "tasks" {
@@ -46,11 +48,24 @@ module "storage" {
 }
 
 module "security" {
-  source                   = "../../modules/staging_security"
-  name_prefix              = var.name_prefix
-  github_oidc_provider_arn = var.github_oidc_provider_arn
-  github_org               = var.github_org
-  github_repository        = var.github_repository
+  source                           = "../../modules/staging_security"
+  name_prefix                      = var.name_prefix
+  github_oidc_provider_arn         = var.github_oidc_provider_arn
+  github_org                       = var.github_org
+  github_repository                = var.github_repository
+  aws_account_id                   = var.aws_account_id
+  aws_region                       = var.aws_region
+  staging_app_repository_name      = var.staging_app_repository_name
+  staging_frontend_repository_name = var.staging_frontend_repository_name
+  state_bucket_name                = var.state_bucket_name
+  state_kms_key_arn                = var.state_kms_key_arn
+  secret_names = toset(concat(
+    ["database"],
+    var.enable_cognito ? ["cognito"] : [],
+    var.enable_stripe ? ["stripe"] : [],
+    var.enable_ses ? ["email"] : [],
+    var.enable_mock_ai ? [] : ["ai/openai", "ai/anthropic"],
+  ))
 }
 
 module "database" {
@@ -58,7 +73,7 @@ module "database" {
   name_prefix           = var.name_prefix
   identifier            = var.rds_identifier
   vpc_id                = local.vpc_id
-  subnet_ids            = local.private_subnet_ids
+  subnet_ids            = var.create_vpc ? module.network.database_subnet_ids : local.private_subnet_ids
   application_sg_id     = aws_security_group.tasks.id
   instance_class        = var.db_instance_class
   multi_az              = var.db_multi_az
@@ -74,9 +89,9 @@ module "ecs" {
   application_sg_id               = aws_security_group.tasks.id
   public_subnet_ids               = local.public_subnet_ids
   private_subnet_ids              = local.private_subnet_ids
-  backend_image                   = "${var.backend_image_repository}${local.image_suffix}"
-  worker_image                    = "${var.worker_image_repository}${local.image_suffix}"
-  frontend_image                  = "${var.frontend_image_repository}${local.image_suffix}"
+  backend_image                   = var.backend_image_uri
+  worker_image                    = var.worker_image_uri
+  frontend_image                  = var.frontend_image_uri
   desired_count_backend           = var.desired_count_backend
   desired_count_worker            = var.desired_count_worker
   desired_count_frontend          = var.desired_count_frontend
@@ -94,7 +109,7 @@ module "ecs" {
   enable_s3_storage               = var.enable_s3_storage
   stripe_mode                     = var.stripe_mode
   enable_https                    = var.enable_https
-  acm_certificate_arn             = var.acm_certificate_arn
+  acm_certificate_arn             = local.effective_acm_certificate_arn
   cognito_user_pool_id            = var.cognito_user_pool_id
   cognito_app_client_id           = var.cognito_app_client_id
   cognito_issuer                  = var.cognito_issuer
@@ -119,4 +134,6 @@ module "monitoring" {
   db_identifier             = module.database.identifier
   alarm_notification_email  = var.alarm_notification_email
   monthly_budget_amount     = var.monthly_budget_amount
+  monthly_budget_currency   = var.monthly_budget_currency
+  aws_account_id            = var.aws_account_id
 }

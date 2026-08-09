@@ -2,21 +2,23 @@ variable "name_prefix" { type = string }
 variable "github_oidc_provider_arn" { type = string }
 variable "github_org" { type = string }
 variable "github_repository" { type = string }
-
-locals {
-  secret_names = toset([
-    "database",
-    "cognito",
-    "stripe",
-    "email",
-    "ai/openai",
-    "ai/anthropic",
-  ])
+variable "aws_account_id" { type = string }
+variable "aws_region" { type = string }
+variable "staging_app_repository_name" { type = string }
+variable "staging_frontend_repository_name" { type = string }
+variable "state_bucket_name" { type = string }
+variable "state_kms_key_arn" { type = string }
+variable "secret_names" {
+  type = set(string)
+  validation {
+    condition     = contains(var.secret_names, "database")
+    error_message = "The staging database Secret container is always required."
+  }
 }
 
 # Containers only. Secret values are populated by a separately approved procedure.
 resource "aws_secretsmanager_secret" "application" {
-  for_each                = local.secret_names
+  for_each                = var.secret_names
   name                    = "/system-navigator/staging/${each.key}"
   recovery_window_in_days = 30
 }
@@ -48,6 +50,26 @@ resource "aws_iam_role" "github_staging_deploy" {
 
 data "aws_iam_policy_document" "github_staging_deploy" {
   statement {
+    sid       = "EcrLogin"
+    actions   = ["ecr:GetAuthorizationToken"]
+    resources = ["*"]
+  }
+  statement {
+    sid = "PushReviewedStagingImages"
+    actions = [
+      "ecr:BatchCheckLayerAvailability",
+      "ecr:CompleteLayerUpload",
+      "ecr:GetDownloadUrlForLayer",
+      "ecr:InitiateLayerUpload",
+      "ecr:PutImage",
+      "ecr:UploadLayerPart",
+    ]
+    resources = [
+      "arn:aws:ecr:${var.aws_region}:${var.aws_account_id}:repository/${var.staging_app_repository_name}",
+      "arn:aws:ecr:${var.aws_region}:${var.aws_account_id}:repository/${var.staging_frontend_repository_name}",
+    ]
+  }
+  statement {
     sid       = "RegisterTaskDefinitions"
     actions   = ["ecs:RegisterTaskDefinition", "ecs:DescribeTaskDefinition"]
     resources = ["*"]
@@ -61,6 +83,31 @@ data "aws_iam_policy_document" "github_staging_deploy" {
     sid       = "PassStagingRolesOnly"
     actions   = ["iam:PassRole"]
     resources = ["arn:aws:iam::*:role/${var.name_prefix}-*"]
+  }
+  statement {
+    sid       = "ReadStagingLogs"
+    actions   = ["logs:DescribeLogStreams", "logs:GetLogEvents", "logs:FilterLogEvents"]
+    resources = ["arn:aws:logs:${var.aws_region}:${var.aws_account_id}:log-group:/system-navigator/staging/*"]
+  }
+  statement {
+    sid       = "ListStagingState"
+    actions   = ["s3:ListBucket"]
+    resources = ["arn:aws:s3:::${var.state_bucket_name}"]
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"
+      values   = ["system-navigator/staging/*"]
+    }
+  }
+  statement {
+    sid       = "UseStagingStateObjects"
+    actions   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
+    resources = ["arn:aws:s3:::${var.state_bucket_name}/system-navigator/staging/*"]
+  }
+  statement {
+    sid       = "UseStagingStateKey"
+    actions   = ["kms:Decrypt", "kms:Encrypt", "kms:GenerateDataKey", "kms:DescribeKey"]
+    resources = [var.state_kms_key_arn]
   }
 }
 resource "aws_iam_role_policy" "github_staging_deploy" {

@@ -9,6 +9,10 @@ backend.hcl
 __pycache__
 *.pyc
 .pytest_cache
+.ruff_cache
+.mypy_cache
+.coverage
+.coverage.*
 .venv
 frontend
 quality-results

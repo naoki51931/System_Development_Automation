@@ -19,6 +19,10 @@ variable "container_image_tag" {
   type        = string
   description = "ECSで実行するコンテナイメージのタグ"
   default     = "v4"
+  validation {
+    condition     = var.container_image_tag != "latest"
+    error_message = "The mutable latest tag is forbidden in production."
+  }
 }
 
 variable "vpc_cidr" {

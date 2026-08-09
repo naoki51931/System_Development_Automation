@@ -4,6 +4,9 @@ COPY package.json package-lock.json* ./
 RUN npm ci --ignore-scripts && npm cache clean --force
 
 FROM deps AS build
+ARG NEXT_PUBLIC_API_BASE_URL=/api/v1
+ARG NEXT_PUBLIC_LOCAL_AUTH_ENABLED=false
+ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL NEXT_PUBLIC_LOCAL_AUTH_ENABLED=$NEXT_PUBLIC_LOCAL_AUTH_ENABLED
 COPY . .
 RUN npm run build
 

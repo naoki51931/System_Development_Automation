@@ -29,18 +29,30 @@ variable "container_image_tag" {
   type    = string
   default = "57109fa"
   validation {
-    condition     = var.container_image_tag != "latest" && (can(regex("^[0-9a-f]{7,40}$", var.container_image_tag)) || can(regex("^sha256:[0-9a-f]{64}$", var.container_image_tag)))
-    error_message = "Use a 7-40 character Git SHA or sha256 image digest; latest is forbidden."
+    condition     = var.container_image_tag != "latest" && can(regex("^[0-9a-f]{7,40}$", var.container_image_tag))
+    error_message = "Use a 7-40 character Git SHA; latest is forbidden. Runtime images are pinned separately by digest."
   }
 }
-variable "backend_image_repository" {
+variable "backend_image_uri" {
   type = string
+  validation {
+    condition     = can(regex("^[0-9]{12}\\.dkr\\.ecr\\.[a-z0-9-]+\\.amazonaws\\.com/[a-z0-9][a-z0-9._/-]*@sha256:[0-9a-f]{64}$", var.backend_image_uri))
+    error_message = "backend_image_uri must be a complete ECR URI pinned by sha256 digest."
+  }
 }
-variable "worker_image_repository" {
+variable "worker_image_uri" {
   type = string
+  validation {
+    condition     = can(regex("^[0-9]{12}\\.dkr\\.ecr\\.[a-z0-9-]+\\.amazonaws\\.com/[a-z0-9][a-z0-9._/-]*@sha256:[0-9a-f]{64}$", var.worker_image_uri))
+    error_message = "worker_image_uri must be a complete ECR URI pinned by sha256 digest."
+  }
 }
-variable "frontend_image_repository" {
+variable "frontend_image_uri" {
   type = string
+  validation {
+    condition     = can(regex("^[0-9]{12}\\.dkr\\.ecr\\.[a-z0-9-]+\\.amazonaws\\.com/[a-z0-9][a-z0-9._/-]*@sha256:[0-9a-f]{64}$", var.frontend_image_uri))
+    error_message = "frontend_image_uri must be a complete ECR URI pinned by sha256 digest."
+  }
 }
 
 variable "enable_local_auth" {
@@ -170,6 +182,11 @@ variable "monthly_budget_amount" {
   type    = number
   default = 100
 }
+variable "monthly_budget_currency" {
+  type        = string
+  description = "Human-approved AWS billing currency for the staging budget."
+  default     = "USD"
+}
 
 variable "create_vpc" {
   type    = bool
@@ -190,6 +207,27 @@ variable "existing_public_subnet_ids" {
 variable "vpc_cidr" {
   type    = string
   default = "10.30.0.0/16"
+}
+variable "enable_nat_gateway" {
+  type        = bool
+  description = "Use one NAT gateway. Keep false while EIP quota is constrained."
+  default     = false
+}
+variable "enable_vpc_endpoints" {
+  type        = bool
+  description = "Create private endpoints required by ECS tasks when NAT is disabled."
+  default     = true
+}
+
+variable "create_acm_certificate" {
+  type        = bool
+  description = "Create and DNS-validate a staging ACM certificate."
+  default     = true
+}
+variable "create_route53_record" {
+  type        = bool
+  description = "Create the staging alias record after the ALB exists."
+  default     = true
 }
 
 variable "cognito_user_pool_id" {
@@ -251,6 +289,21 @@ variable "github_org" {
 variable "github_repository" {
   type = string
 }
+variable "staging_app_repository_name" {
+  type    = string
+  default = "system-navigator-staging-app"
+}
+variable "staging_frontend_repository_name" {
+  type    = string
+  default = "system-navigator-staging-frontend"
+}
+variable "state_bucket_name" {
+  type    = string
+  default = "ai-platform-terraform-state-557604519341"
+}
+variable "state_kms_key_arn" {
+  type = string
+}
 
 check "network_selection" {
   assert {
@@ -261,8 +314,18 @@ check "network_selection" {
 }
 check "https_inputs" {
   assert {
-    condition     = !var.enable_https || (var.acm_certificate_arn != "" && var.domain_name != "" && var.route53_zone_id != "")
-    error_message = "HTTPS requires an ACM certificate, domain name, and Route53 zone."
+    condition     = !var.enable_https || (var.domain_name != "" && var.route53_zone_id != "" && (var.create_acm_certificate != (var.acm_certificate_arn != "")))
+    error_message = "HTTPS requires domain/zone and exactly one certificate source: create_acm_certificate or acm_certificate_arn."
+  }
+}
+check "image_identity" {
+  assert {
+    condition     = var.backend_image_uri == var.worker_image_uri
+    error_message = "Backend and worker must use the same reviewed application image digest."
+  }
+  assert {
+    condition     = startswith(var.backend_image_uri, "${var.aws_account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/") && startswith(var.frontend_image_uri, "${var.aws_account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/")
+    error_message = "Staging images must come from the configured account and region."
   }
 }
 check "provider_boundaries" {

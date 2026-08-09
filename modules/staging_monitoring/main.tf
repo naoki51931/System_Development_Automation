@@ -29,9 +29,35 @@ variable "alarm_notification_email" {
 variable "monthly_budget_amount" {
   type = number
 }
+variable "monthly_budget_currency" {
+  type = string
+}
+variable "aws_account_id" {
+  type = string
+}
 
 resource "aws_sns_topic" "alerts" {
   name = "${var.name_prefix}-alerts"
+}
+data "aws_iam_policy_document" "alerts" {
+  statement {
+    sid       = "AllowBudgetNotifications"
+    actions   = ["sns:Publish"]
+    resources = [aws_sns_topic.alerts.arn]
+    principals {
+      type        = "Service"
+      identifiers = ["budgets.amazonaws.com"]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceAccount"
+      values   = [var.aws_account_id]
+    }
+  }
+}
+resource "aws_sns_topic_policy" "alerts" {
+  arn    = aws_sns_topic.alerts.arn
+  policy = data.aws_iam_policy_document.alerts.json
 }
 resource "aws_sns_topic_subscription" "email" {
   count     = var.alarm_notification_email == "" ? 0 : 1
@@ -186,7 +212,7 @@ resource "aws_budgets_budget" "monthly" {
   name         = "${var.name_prefix}-monthly"
   budget_type  = "COST"
   limit_amount = tostring(var.monthly_budget_amount)
-  limit_unit   = "USD"
+  limit_unit   = var.monthly_budget_currency
   time_unit    = "MONTHLY"
   cost_filter {
     name   = "TagKeyValue"
@@ -194,7 +220,28 @@ resource "aws_budgets_budget" "monthly" {
   }
   notification {
     comparison_operator       = "GREATER_THAN"
+    threshold                 = 50
+    threshold_type            = "PERCENTAGE"
+    notification_type         = "ACTUAL"
+    subscriber_sns_topic_arns = [aws_sns_topic.alerts.arn]
+  }
+  notification {
+    comparison_operator       = "GREATER_THAN"
     threshold                 = 80
+    threshold_type            = "PERCENTAGE"
+    notification_type         = "ACTUAL"
+    subscriber_sns_topic_arns = [aws_sns_topic.alerts.arn]
+  }
+  notification {
+    comparison_operator       = "GREATER_THAN"
+    threshold                 = 100
+    threshold_type            = "PERCENTAGE"
+    notification_type         = "ACTUAL"
+    subscriber_sns_topic_arns = [aws_sns_topic.alerts.arn]
+  }
+  notification {
+    comparison_operator       = "GREATER_THAN"
+    threshold                 = 100
     threshold_type            = "PERCENTAGE"
     notification_type         = "FORECASTED"
     subscriber_sns_topic_arns = [aws_sns_topic.alerts.arn]

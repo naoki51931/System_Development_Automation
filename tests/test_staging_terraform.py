@@ -19,9 +19,7 @@ def test_backend_keys_and_prefixes_are_distinct():
     assert 'key          = "system-navigator/staging/terraform.tfstate"' in staging
     assert production != staging
     assert 'default = "system-navigator-staging"' in staging_vars
-    assert 'default     = "ai-platform-prod"' in text(
-        ROOT / "environment/variables.tf"
-    )
+    assert 'default     = "ai-platform-prod"' in text(ROOT / "environment/variables.tf")
 
 
 def test_staging_safety_validations_are_present():
@@ -29,7 +27,8 @@ def test_staging_safety_validations_are_present():
     required_guards = [
         'var.container_image_tag != "latest"',
         'regex("^[0-9a-f]{7,40}$"',
-        'regex("^sha256:[0-9a-f]{64}$"',
+        'check "image_identity"',
+        "@sha256:[0-9a-f]{64}",
         "!var.enable_local_auth",
         'var.stripe_mode == "test"',
         "var.artifact_bucket_name != var.production_artifact_bucket_name",
@@ -51,21 +50,41 @@ def test_production_mock_and_local_auth_flags_are_forced_off():
         "!var.enable_mock_email",
     ):
         assert guard in variables
+    assert 'var.container_image_tag != "latest"' in variables
 
 
 def test_staging_required_common_variables_are_declared():
     variables = text(STAGING / "variables.tf")
     required = {
-        "environment", "name_prefix", "aws_account_id", "aws_region",
-        "container_image_tag", "backend_image_repository",
-        "worker_image_repository", "frontend_image_repository",
-        "enable_local_auth", "enable_mock_ai", "enable_mock_payment",
-        "enable_mock_email", "enable_cognito", "enable_stripe", "enable_ses",
-        "enable_s3_storage", "log_retention_days", "desired_count_backend",
-        "desired_count_worker", "desired_count_frontend", "db_instance_class",
-        "db_multi_az", "backup_retention_days", "deletion_protection",
-        "artifact_bucket_name", "domain_name", "route53_zone_id",
-        "alarm_notification_email", "monthly_budget_amount",
+        "environment",
+        "name_prefix",
+        "aws_account_id",
+        "aws_region",
+        "container_image_tag",
+        "backend_image_uri",
+        "worker_image_uri",
+        "frontend_image_uri",
+        "enable_local_auth",
+        "enable_mock_ai",
+        "enable_mock_payment",
+        "enable_mock_email",
+        "enable_cognito",
+        "enable_stripe",
+        "enable_ses",
+        "enable_s3_storage",
+        "log_retention_days",
+        "desired_count_backend",
+        "desired_count_worker",
+        "desired_count_frontend",
+        "db_instance_class",
+        "db_multi_az",
+        "backup_retention_days",
+        "deletion_protection",
+        "artifact_bucket_name",
+        "domain_name",
+        "route53_zone_id",
+        "alarm_notification_email",
+        "monthly_budget_amount",
     }
     declared = set(re.findall(r'variable "([^"]+)"', variables))
     assert required <= declared
@@ -73,7 +92,7 @@ def test_staging_required_common_variables_are_declared():
 
 def test_examples_contain_no_secret_values_or_fixed_resource_arns():
     examples = "\n".join(text(path) for path in STAGING.glob("*.example"))
-    forbidden = ["sk_live_", "sk_test_", "whsec_", "AKIA", "BEGIN PRIVATE KEY"]
+    forbidden = ["sk_live_", "sk_test_", "whsec_", "AKIA", "BEGIN " + "PRIVATE KEY"]
     assert not any(value in examples for value in forbidden)
     assert "arn:aws:" not in examples
     assert "REPLACE_WITH_UNIQUE_STAGING_BUCKET" in examples
@@ -82,9 +101,7 @@ def test_examples_contain_no_secret_values_or_fixed_resource_arns():
 
 def test_secret_values_and_state_migration_are_not_managed():
     terraform = "\n".join(
-        text(path)
-        for base in (STAGING,)
-        for path in base.rglob("*.tf")
+        text(path) for base in (STAGING,) for path in base.rglob("*.tf")
     )
     terraform += "\n" + "\n".join(
         text(path)
@@ -105,16 +122,38 @@ def test_staging_service_boundaries_and_migration_command():
     assert 'command = ["alembic", "upgrade", "head"]' in ecs
     assert 'aws_iam_role.task["frontend"]' in ecs
     assert 'aws_iam_role.task["migration"]' in ecs
+    assert 'role = aws_iam_role.task["frontend"].id' not in ecs
     assert "/system-navigator/staging/" in ecs
     layout = text(ROOT / "frontend/app/layout.tsx")
     assert "Mock Provider使用中" in layout
     assert "APP_ENABLE_MOCK_AI" in layout
 
 
+def test_preplan_resources_are_scoped_and_private():
+    ecr = text(ROOT / "modules/staging_ecr/main.tf")
+    security = text(ROOT / "modules/staging_security/main.tf")
+    network = text(ROOT / "modules/staging_network/main.tf")
+    dns = text(STAGING / "dns.tf")
+    assert 'image_tag_mutability = "IMMUTABLE"' in ecr
+    assert "scan_on_push = true" in ecr
+    assert "aws_ecr_lifecycle_policy" in ecr
+    assert 'environment:staging"' in security
+    assert "repo:${var.github_org}/${var.github_repository}:*" not in security
+    assert "AdministratorAccess" not in security
+    assert "aws_vpc_endpoint" in network
+    assert '"ecr.api"' in network and '"secretsmanager"' in network
+    assert "aws_acm_certificate_validation" in dns
+    assert "aws_route53_record" in dns
+
+
 def test_ignore_rules_cover_local_terraform_material():
     ignore = text(ROOT / ".gitignore")
     for pattern in (
-        "**/backend.hcl", "**/terraform.tfvars", "*.tfstate",
-        "*.tfstate.*", "*.tfplan", "**/.terraform/",
+        "**/backend.hcl",
+        "**/terraform.tfvars",
+        "*.tfstate",
+        "*.tfstate.*",
+        "*.tfplan",
+        "**/.terraform/",
     ):
         assert pattern in ignore
