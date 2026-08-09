@@ -27,12 +27,14 @@ Local-only verification resumed at baseline `22d9480e63f2246b40e7e84bea8c1206e22
 | npm Audit | PASS | runtime `--omit=dev`: 0 vulnerabilities; nanoid pinned to 3.3.17 |
 | Local Images | PASS | app and frontend linux/amd64, non-root, healthchecks present |
 | Staging Notifications | PASS | SNS email variable, manual confirmation, alarms complete; Budget 100 GBP |
-| Prerequisite Root Boundary | PASS | ECR/IAM/ACM validation/SNS/Budget only; explicit one-way main inputs |
+| Prerequisite Root Boundary | PASS | ECR/IAM/SNS/Budget retained; custom-domain ACM/DNS disabled; explicit one-way main inputs |
 | Performance | PASS | retained 50-user/60-second: 0% errors, detail p95 490 ms, list p95 540 ms |
 | Documentation | PASS | seven requested documents synchronized |
 
 The Compose-profile E2E attempt first failed because its quality image lacked browser binaries and its API default was container-local `localhost`. It was rerun against the same healthy Compose stack using the existing host Playwright 1.62.1 cache; all 69 tests passed.
 
-## Final decision: **READY_FOR_STAGING_PREREQUISITES_PLAN_APPROVAL**
+## Current domain decision
+
+`true-camera-test.com` is not used. No replacement custom domain is selected. ACM, Route53 staging records and HTTPS remain disabled; temporary staging access is limited to the ALB HTTP DNS name under mock-only, non-sensitive restrictions. Notifications remain `info@nagi-neco.com` and the monthly Budget remains 100 GBP.
 
 Every mandatory pre-plan local gate is PASS. This authorizes only human review of prerequisite resource scope. Terraform plan/apply, AWS changes, ECR/GitHub push, image digest capture, RDS access/migration, and staging deployment remain prohibited pending the documented approvals and human inputs.

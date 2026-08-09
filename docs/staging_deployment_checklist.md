@@ -5,8 +5,8 @@
 - [x] Read-only discovery confirmed account `557604519341`, region `eu-west-2`, state backend/KMS, production inventory, and staging name non-collision
 - [ ] Create/approve staging ECR repositories and publish reviewed backend/worker/frontend image digest; `57109fa` is currently absent
 - [ ] Approve the two-repository design (`staging-app`, `staging-frontend`) and prerequisites state; do not use routine `-target`
-- [ ] Review one prerequisites plan containing only ECR, staging deploy IAM, ACM validation, SNS subscription, and Budget
-- [ ] Copy approved prerequisite ECR URLs/role/certificate/SNS outputs into ignored main staging inputs; never add a reverse state dependency
+- [ ] Review one prerequisites plan containing only ECR, staging deploy IAM, SNS subscription, and Budget; custom-domain ACM/DNS remains disabled
+- [ ] Copy approved prerequisite ECR URLs/role/SNS outputs into ignored main staging inputs; never add a reverse state dependency
 - [ ] Require ECR scan critical/high = 0 and copy registry digests—not local image IDs—into ignored tfvars
 - [ ] Create/approve staging-only GitHub role restricted to the repository `staging` environment
 - [ ] Configure GitHub Environment branch protection for `agent/final-quality-gate` or approved `main`
@@ -28,7 +28,8 @@
 - [ ] Review S3 CORS/public-block/versioning and SES Sandbox recipients
 - [ ] Configure CloudWatch alarms, log retention, budget and anomaly notifications
 - [ ] Record approvals for AWS, RDS, provider connection, plan and migration
-- [ ] Confirm HTTPS has ACM ARN/domain/zone and HTTP redirects; do not create DNS/ACM implicitly
+- [x] Confirm `true-camera-test.com` is not used and custom domain/ACM/Route53/HTTPS are disabled pending a new-domain approval
+- [ ] Restrict temporary ALB HTTP checks to non-production, non-customer, mock-only, non-sensitive use
 - [ ] Confirm mock-provider banner/indicators are visible while mocks remain enabled
 
 ## During apply
@@ -38,7 +39,7 @@
 - [ ] Stop deployment if migration exits non-zero or Alembic head is not confirmed
 - [ ] Run idempotent reference seed and separate synthetic test-data seed
 - [ ] Deploy backend, worker and frontend pinned task definitions
-- [ ] Verify ALB health, HTTPS certificate, DNS and smoke endpoints
+- [ ] Verify ALB health and temporary HTTP smoke endpoints; verify HTTPS/DNS only after a new domain is approved
 - [ ] Stop immediately on unexpected replacement, secret exposure or tenant failure
 
 ## After apply

@@ -6,7 +6,7 @@ Staging validates deployment, identity, provider boundaries, migration, tenant i
 
 ## Proposed services and approval points
 
-A dedicated VPC/ALB/HTTPS service set would contain ECS backend/frontend/worker, ECR images pinned by digest, RDS PostgreSQL, a versioned S3 staging bucket, Cognito Test User Pool, Secrets Manager, CloudWatch logs/metrics/alarms, Route 53 staging DNS, Stripe Test Mode, and SES Sandbox. External AI stays Stub by default; any limited provider connection requires a separate data/security/cost approval. None of these resources are created in this phase.
+A dedicated VPC/ALB service set would contain ECS backend/frontend/worker, ECR images pinned by digest, RDS PostgreSQL, a versioned S3 staging bucket, Secrets Manager, and CloudWatch logs/metrics/alarms. Custom domain, ACM, Route53, HTTPS, Cognito, Stripe, and SES are disabled. External AI stays Stub by default; any provider connection requires separate approval.
 
 Approval is required before: Terraform plan, any destroy/replacement, secret registration, RDS access/migration, ECR push, ECS deployment, DNS/HTTPS change, Cognito/Stripe/S3/SES connection, external AI enabling, or data reset. Set AWS Budgets alerts and service quotas before creation.
 
@@ -22,7 +22,7 @@ All staging resource names contain `system-navigator-staging`. Images use immuta
 4. Register staging-only Secrets Manager values and disable LocalAuth (`APP_ENV=staging`, `APP_LOCAL_AUTH_ENABLED=false`).
 5. Push reviewed images, apply only the approved saved plan, and run one migration-only ECS task.
 6. Run idempotent system/reference seed only; load synthetic test data separately.
-7. deploy backend, worker, then frontend; verify ALB health, HTTPS, DNS and CloudWatch.
+7. deploy backend, worker, then frontend; verify ALB HTTP health and CloudWatch. HTTP is temporary and forbidden for production/customer/sensitive/real-authentication use.
 8. Execute tenant, billing-test, S3, document, email-sandbox, worker and alarm smoke tests.
 
 The migration task runs `alembic upgrade head` independently; backend startup never runs migration. Required order is verified snapshot, migration task, exit code 0, Alembic head verification, backend update, then worker update. Any migration failure stops service updates.
@@ -58,7 +58,7 @@ Chargeable components are NAT Gateway/EIP, ALB, ECS Fargate, RDS, S3 requests/st
 
 Account, region, state backend/KMS, production inventory, non-colliding staging VPC/RDS/S3 candidates, OIDC provider, and base RDS orderability are confirmed. The gate remains **NOT_READY_FOR_TERRAFORM_PLAN_REVIEW** because staging ECR repositories and the `57109fa` image/digest do not exist, the staging-only deploy role and Secret containers are missing, ACM is absent, notification/Budget inputs are absent, and quota verification is incomplete. See `quality-results/aws-read-only-discovery-2026-08-06.md`. No plan or AWS mutation was performed.
 
-Pre-plan remediation uses a distinct prerequisites state for ECR, strict GitHub Environment trust, ACM DNS validation, SNS and Budget. Main staging receives its outputs explicitly and retains VPC/storage/Secrets/RDS/ECS/ALB, the final alias and alarms. No reverse state reference or circular dependency exists. This does not authorize plan/apply or any AWS mutation.
+Pre-plan remediation uses a distinct prerequisites state for ECR, strict GitHub Environment trust, SNS and Budget. `true-camera-test.com` is rejected and no replacement domain is selected; conditional ACM/DNS resources remain disabled. Main staging receives outputs explicitly and retains VPC/storage/Secrets/RDS/ECS/ALB and alarms. No reverse state reference or circular dependency exists.
 
 The resumed local verification produced four Terraform validate passes, 16 Terraform safety tests (one provider-schema skip), 140 backend tests, 83.09% overall/90.86% critical coverage, 34 frontend tests, zero runtime npm vulnerabilities, two non-root local images, and four healthy Compose services. It made no AWS change and did not run Terraform plan/apply, ECR/GitHub push, or RDS migration.
 
