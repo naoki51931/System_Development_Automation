@@ -42,6 +42,30 @@
 - [ ] Phase 3: run the separately approved migration-only task; capture output and schema revision
 - [ ] Stop deployment if migration exits non-zero or Alembic head is not confirmed
 - [ ] Phase 4: review a new `enable_runtime_services=true` plan with backend/worker/frontend desired count 1
+
+## IDLE mode transition gate
+
+- [ ] Confirm the plan is staging state key `system-navigator/staging/terraform.tfstate`; Production plan/state is not opened or changed
+- [ ] Confirm `staging_mode=idle`, `enable_runtime_services=false`, NAT disabled, and outputs show RDS/ALB/Interface Endpoint/runtime counts all zero
+- [ ] Confirm ECS service count and running task count are zero; explicitly confirm no migration task
+- [ ] Confirm DatabaseConnections safety with the service owner without connecting to the DB
+- [ ] Create and record a **manual** RDS snapshot in a separately approved operation; wait for `available`
+- [ ] Record a successful isolated restore test, engine/version, schema/Alembic revision, KMS and owner
+- [ ] Review and separately apply only `deletion_protection=false` before the removal plan
+- [ ] Run `scripts/staging_idle_apply.sh` with approval inputs; it must create a fresh plan and stop before apply
+- [ ] Confirm destroy scope is staging RDS, ALB/listener/target groups, 7 Interface Endpoints, ECS/Cloud Map/task definitions and staging infrastructure alarms only
+- [ ] Confirm artifact S3, ECR, IAM, application Secret, SNS, Budget, VPC/subnets/routes/SGs, S3 Gateway Endpoint and remote state are retained
+- [ ] Obtain final named human approval for the fresh saved plan; review-only `staging-idle.tfplan` is never applyable
+- [ ] Current gate: `RDS_IDLE_REMOVAL = BLOCKED` until a manual snapshot exists; no idle apply is authorized
+
+## ACTIVE restoration gate
+
+- [ ] Supply the recorded snapshot only via ignored tfvars/CLI with `restore_db_from_snapshot=true`; never commit it
+- [ ] Phase 1 plan connectivity, ALB, snapshot restore, ECS/task definitions with runtime services zero
+- [ ] Wait for RDS available; create the application DB user and update `/system-navigator/staging/database` outside Terraform
+- [ ] Confirm PITR/backup and restored schema/Alembic revision
+- [ ] Review/run migration separately and require exit 0/head
+- [ ] Plan then enable runtime services; verify ALB targets, health/login, worker and synthetic smoke tests
 - [ ] Phase 5: apply only that reviewed runtime-service plan and verify backend `/health`, frontend `/login`, and worker health
 - [ ] Run idempotent reference seed and separate synthetic test-data seed
 - [ ] Verify temporary ALB HTTP smoke endpoints; verify HTTPS/DNS only after a new domain is approved

@@ -1,0 +1,55 @@
+{
+  "decision": "READY_FOR_STAGING_IDLE_MODE_REVIEW",
+  "apply_authorized": false,
+  "rds_idle_removal": "BLOCKED",
+  "blockers": [
+    "manual snapshot not created/provided",
+    "restore test not recorded",
+    "RDS deletion protection is true",
+    "final human apply approval absent"
+  ],
+  "state": {
+    "staging_key": "system-navigator/staging/terraform.tfstate",
+    "production_changed": false
+  },
+  "idle_counts": {"rds": 0, "alb": 0, "interface_endpoints": 0, "runtime_services": 0},
+  "active_counts": {"rds": 1, "alb": 1, "interface_endpoints": 7, "runtime_services_initial": 0},
+  "plan": {
+    "file": "environment/staging/staging-idle.tfplan",
+    "text": "environment/staging/staging-idle-plan.txt",
+    "committed": false,
+    "add": 1,
+    "change": 1,
+    "replace": 0,
+    "destroy": 35,
+    "rds_destroy": 1,
+    "alb_group_destroy": 9,
+    "interface_endpoint_destroy": 7,
+    "production_addresses": 0
+  },
+  "cost_usd_month": {
+    "current_staging_approx": 210.0,
+    "idle_low": 2.0,
+    "idle_high": 4.0,
+    "reduction_low": 206.0,
+    "reduction_high": 208.0,
+    "work_ec2_additional_approx": 38.0
+  },
+  "preserved": [
+    "Terraform remote state",
+    "staging VPC/subnets/routes/Internet Gateway/security groups",
+    "S3 Gateway Endpoint",
+    "artifact S3 bucket with prevent_destroy",
+    "ECR repositories and images in prerequisites state",
+    "IAM roles",
+    "application database Secret container",
+    "SNS and Budget",
+    "14-day CloudWatch log groups"
+  ],
+  "validation": {
+    "terraform_roots_passed": ["bootstrap", "environment", "environment/staging", "environment/staging-prerequisites"],
+    "static_tests_passed": 20,
+    "active_plan_changes": 0
+  },
+  "no_changes_performed": true
+}
