@@ -37,4 +37,16 @@ Python remains on 3.12.13. A first remediated build pinned Bookworm, which remov
 
 The intermediate Bookworm image was pushed as `d1f743a82c5c` with registry digest `sha256:ffd5c07ecf442b874ec483e1e4f861015e904f8b6759b87ff5402f48af1b8353`. Its completed ECR scan was CRITICAL 3, HIGH 5, MEDIUM 6, UNDEFINED 1, all CRITICAL/HIGH in inherited `perl-base 5.36.0-7+deb12u3`; `APP_SCAN_ACCEPTABLE = FAIL`, so no staging tfvars were changed. The Alpine candidate then repeated the full 142-test, 82.89% overall, 90.86% critical-service, pip-audit, Bandit, endpoint, worker, migration-CLI, non-root, layer-content, and secret gates before commit.
 
-The final source commit, immutable image tag, registry digest, ECR scan counts, and remaining MEDIUM/LOW findings are recorded after the no-cache release build and registry scan.
+## Final release evidence
+
+- Remediation commit before evidence finalization: `e477c8eef75f0ffe988dbbdba034887dd74aa304`
+- Release image tag: `e477c8eef75f`
+- Registry digest: `sha256:d92639685a9a455361b55cfe344112154cf05787bd28f4d10352bfb861f9e9e8`
+- ECR scan completed: 2026-08-10 11:46:03 UTC
+- Final findings: CRITICAL 0, HIGH 0, MEDIUM 0, LOW 0, UNDEFINED 0
+- Remaining findings: none
+- `APP_SCAN_ACCEPTABLE = PASS`
+- Ignored staging tfvars: backend and worker use the final app digest; migration uses the module's backend image input because this Terraform root has no separate `migration_image_uri`; frontend remains on its previously passing digest `sha256:5c2eeeee402293fa783c9a6dd67b6f03dce00b3651ef73d314f773d3371e82dc`.
+- Production impact: none; no production files, images, services, database, state, or infrastructure were changed.
+- SNS `info@nagi-neco.com`: still `PendingConfirmation`, separate from image remediation.
+- Main staging Terraform plan/apply, RDS, ECS, and migration: not run.
