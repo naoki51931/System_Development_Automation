@@ -26,7 +26,7 @@ Local-only verification resumed at baseline `22d9480e63f2246b40e7e84bea8c1206e22
 | Accessibility | PASS | 12 routes/browser; axe critical 0, serious 0 |
 | npm Audit | PASS | runtime `--omit=dev`: 0 vulnerabilities; nanoid pinned to 3.3.17 |
 | Local Images | PASS | app and frontend linux/amd64, non-root, healthchecks present |
-| Staging App Image Remediation | IN_PROGRESS | Python 3.12 Bookworm digest pinned; local regression/security gates pass; awaiting new immutable ECR scan |
+| Staging App Image Remediation | IN_PROGRESS | Python 3.12.13 Alpine 3.24 digest pinned after Bookworm retained Perl findings; 142 tests, 82.89% overall, 90.86% critical-service, pip-audit/Bandit pass; awaiting final immutable ECR scan |
 | Staging Notifications | PASS | SNS email variable, manual confirmation, alarms complete; Budget 100 GBP |
 | Prerequisite Root Boundary | PASS | ECR/IAM/SNS/Budget retained; custom-domain ACM/DNS disabled; explicit one-way main inputs |
 | Performance | PASS | retained 50-user/60-second: 0% errors, detail p95 490 ms, list p95 540 ms |

@@ -1,10 +1,10 @@
-# Pin Python 3.12 on Debian Bookworm to the reviewed linux/amd64 registry
-# digest. The former floating slim tag moved to Trixie and introduced
-# CRITICAL/HIGH findings in inherited Perl, glibc, and SQLite packages.
-FROM python:3.12.13-slim-bookworm@sha256:4766d8b510c428e595d74b9cc5bbb2fae8e26316fffb4adc89908d79aacd58a2 AS base
+# Pin the existing Python 3.12.13 series to the reviewed linux/amd64 Alpine
+# digest. Debian Bookworm and Trixie both retain vulnerable essential Perl
+# packages; Alpine 3.24 avoids Perl and carries the fixed SQLite 3.53.2.
+FROM python:3.12-alpine@sha256:6d43704baacd1bfbe7c295d7f13079d5d8104ed33568873133f8fc69980419df AS base
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 PYTHONPATH=/app
 WORKDIR /app
-RUN groupadd --system app && useradd --system --gid app --home /app app
+RUN addgroup -S app && adduser -S -G app -h /app app
 RUN chown app:app /app
 COPY requirements-runtime.txt ./
 RUN pip install --no-cache-dir -r requirements-runtime.txt

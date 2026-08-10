@@ -20,7 +20,7 @@ There were no C/D findings in direct or transitive pip dependencies: `pip-audit 
 
 ## Remediation
 
-Python remains on the existing 3.12 series. The base is pinned to the reviewed linux/amd64 registry digest for `python:3.12.13-slim-bookworm`. The inherited package set changes minimally to Bookworm's maintained `perl-base 5.36.0-7+deb12u3`, `libc6 2.36-9+deb12u14`, and `libsqlite3-0 3.40.1-2+deb12u2`. No pip dependency or application API changed.
+Python remains on 3.12.13. A first remediated build pinned Bookworm, which removed the glibc and SQLite findings but ECR still found CRITICAL 3 / HIGH 5 in its essential `perl-base`; Debian Trixie retained the same vulnerable Perl family. The final candidate therefore pins the official `python:3.12-alpine` linux/amd64 digest on Alpine 3.24.1. It contains no Perl and carries `sqlite-libs 3.53.2-r0`. The Alpine compatibility change is accepted only after the full backend, runtime, worker, migration-CLI, and ECR scan gates pass. No pip dependency or application API changed.
 
 `.dockerignore` already excludes Git history, Terraform state/plans/tfvars/backend files, frontend, docs, quality results, caches, coverage, logs, and local artifacts. Docker history contains no credential, ignored configuration, or private-key material. Runtime remains non-root (`app`) with the existing uvicorn command and `/health` healthcheck.
 
@@ -34,5 +34,7 @@ Python remains on the existing 3.12 series. The base is pinned to the reviewed l
 - Bandit and tracked-file secret scan: PASS
 - Local `/health` and `/docs`: HTTP 200
 - Worker runner and Alembic CLI startup: PASS; no migration applied
+
+The intermediate Bookworm image was pushed as `d1f743a82c5c` with registry digest `sha256:ffd5c07ecf442b874ec483e1e4f861015e904f8b6759b87ff5402f48af1b8353`. Its completed ECR scan was CRITICAL 3, HIGH 5, MEDIUM 6, UNDEFINED 1, all CRITICAL/HIGH in inherited `perl-base 5.36.0-7+deb12u3`; `APP_SCAN_ACCEPTABLE = FAIL`, so no staging tfvars were changed. The Alpine candidate then repeated the full 142-test, 82.89% overall, 90.86% critical-service, pip-audit, Bandit, endpoint, worker, migration-CLI, non-root, layer-content, and secret gates before commit.
 
 The final source commit, immutable image tag, registry digest, ECR scan counts, and remaining MEDIUM/LOW findings are recorded after the no-cache release build and registry scan.
