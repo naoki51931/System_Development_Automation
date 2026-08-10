@@ -121,6 +121,35 @@ variable "enable_runtime_services" {
   description = "Create runtime ECS services only after database secret registration and migration."
   default     = false
 }
+variable "staging_mode" {
+  type        = string
+  description = "Staging cost mode. idle retains persistent/free foundations; active creates runtime infrastructure."
+  default     = "active"
+  validation {
+    condition     = contains(["idle", "active"], var.staging_mode)
+    error_message = "staging_mode must be idle or active."
+  }
+}
+variable "idle_database_removal_approved" {
+  type        = bool
+  description = "Human approval gate for an idle apply that removes RDS. Keep false for review-only plans."
+  default     = false
+}
+variable "idle_database_snapshot_identifier" {
+  type        = string
+  description = "Available manual snapshot protecting an approved idle RDS removal. Never commit a real identifier."
+  default     = ""
+}
+variable "restore_db_from_snapshot" {
+  type        = bool
+  description = "Restore ACTIVE mode RDS from db_snapshot_identifier instead of creating an empty database."
+  default     = false
+}
+variable "db_snapshot_identifier" {
+  type        = string
+  description = "Manual snapshot identifier used for ACTIVE restore; supply outside Git."
+  default     = ""
+}
 variable "db_instance_class" {
   type    = string
   default = "db.t4g.small"
@@ -244,9 +273,14 @@ variable "enable_nat_gateway" {
   description = "Use one NAT gateway. Keep false while EIP quota is constrained."
   default     = false
 }
-variable "enable_vpc_endpoints" {
+variable "enable_interface_endpoints" {
   type        = bool
-  description = "Create private endpoints required by ECS tasks when NAT is disabled."
+  description = "Create the seven paid Interface Endpoints in ACTIVE mode."
+  default     = true
+}
+variable "enable_s3_gateway_endpoint" {
+  type        = bool
+  description = "Retain the no-hourly-charge S3 Gateway Endpoint in both modes."
   default     = true
 }
 
@@ -327,6 +361,26 @@ check "image_identity" {
   assert {
     condition     = startswith(var.backend_image_uri, "${var.aws_account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/") && startswith(var.frontend_image_uri, "${var.aws_account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/")
     error_message = "Staging images must come from the configured account and region."
+  }
+}
+check "mode_boundaries" {
+  assert {
+    condition     = var.staging_mode == "active" || !var.enable_runtime_services
+    error_message = "Runtime services cannot be enabled in idle mode."
+  }
+  assert {
+    condition     = var.staging_mode == "active" || !var.enable_nat_gateway
+    error_message = "Idle mode must not create a NAT Gateway."
+  }
+}
+check "snapshot_restore_inputs" {
+  assert {
+    condition     = var.restore_db_from_snapshot == (var.db_snapshot_identifier != "")
+    error_message = "restore_db_from_snapshot and db_snapshot_identifier must be enabled/provided together."
+  }
+  assert {
+    condition     = var.staging_mode == "active" || !var.restore_db_from_snapshot
+    error_message = "Snapshot restore is valid only in active mode."
   }
 }
 check "provider_boundaries" {

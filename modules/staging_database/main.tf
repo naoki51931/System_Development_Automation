@@ -25,6 +25,14 @@ variable "backup_retention_days" {
 variable "deletion_protection" {
   type = bool
 }
+variable "enabled" {
+  type = bool
+}
+variable "snapshot_identifier" {
+  type     = string
+  default  = null
+  nullable = true
+}
 
 resource "aws_db_subnet_group" "main" {
   name       = "${var.name_prefix}-db"
@@ -49,6 +57,7 @@ resource "aws_security_group" "db" {
   }
 }
 resource "aws_db_instance" "main" {
+  count                           = var.enabled ? 1 : 0
   identifier                      = var.identifier
   engine                          = "postgres"
   engine_version                  = "17"
@@ -57,9 +66,10 @@ resource "aws_db_instance" "main" {
   max_allocated_storage           = 100
   storage_type                    = "gp3"
   storage_encrypted               = true
-  db_name                         = "systemnavigator"
-  username                        = "staging_admin"
-  manage_master_user_password     = true
+  db_name                         = var.snapshot_identifier == null ? "systemnavigator" : null
+  username                        = var.snapshot_identifier == null ? "staging_admin" : null
+  manage_master_user_password     = var.snapshot_identifier == null ? true : null
+  snapshot_identifier             = var.snapshot_identifier
   db_subnet_group_name            = aws_db_subnet_group.main.name
   vpc_security_group_ids          = [aws_security_group.db.id]
   publicly_accessible             = false
@@ -71,14 +81,11 @@ resource "aws_db_instance" "main" {
   enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"]
   auto_minor_version_upgrade      = true
   copy_tags_to_snapshot           = true
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 output "identifier" {
-  value = aws_db_instance.main.identifier
+  value = try(aws_db_instance.main[0].identifier, null)
 }
 output "secret_arn" {
-  value     = aws_db_instance.main.master_user_secret[0].secret_arn
+  value     = try(aws_db_instance.main[0].master_user_secret[0].secret_arn, null)
   sensitive = true
 }

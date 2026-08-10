@@ -78,6 +78,11 @@ def test_staging_required_common_variables_are_declared():
         "desired_count_worker",
         "desired_count_frontend",
         "enable_runtime_services",
+        "staging_mode",
+        "idle_database_removal_approved",
+        "idle_database_snapshot_identifier",
+        "restore_db_from_snapshot",
+        "db_snapshot_identifier",
         "db_instance_class",
         "db_multi_az",
         "backup_retention_days",
@@ -151,21 +156,68 @@ def test_staging_runtime_services_and_alarms_are_bootstrap_gated():
     monitoring = text(ROOT / "modules/staging_monitoring/main.tf")
     assert 'variable "enable_runtime_services"' in variables
     assert "enable_runtime_services = false" in example
-    assert ecs.count("count           = var.enable_runtime_services ? 1 : 0") == 3
+    assert 'variable "enable_runtime_infrastructure"' in ecs
+    assert ecs.count("var.enable_runtime_infrastructure && var.enable_runtime_services ? 1 : 0") == 3
     for service in ("backend", "worker", "frontend"):
         block = re.search(
             rf'resource "aws_ecs_service" "{service}" \{{(.*?)\n\}}', ecs, re.S
         )
-        assert block and "var.enable_runtime_services ? 1 : 0" in block.group(1)
+        assert block and "var.enable_runtime_infrastructure && var.enable_runtime_services ? 1 : 0" in block.group(1)
     assert 'resource "aws_ecs_task_definition" "migration"' in ecs
     assert 'command = ["alembic", "upgrade", "head"]' in ecs
     assert "aws_secretsmanager_secret_version" not in ecs
-    assert "service_dimensions = var.enable_runtime_services ?" in monitoring
-    assert "for_each = var.enable_runtime_services ?" in monitoring
-    assert (
-        monitoring.count("count               = var.enable_runtime_services ? 1 : 0")
-        == 2
-    )
+    assert "service_dimensions = var.enabled && var.enable_runtime_services ?" in monitoring
+    assert "for_each = var.enabled && var.enable_runtime_services ?" in monitoring
+    assert monitoring.count("var.enabled && var.enable_runtime_services") >= 3
+
+
+def test_idle_mode_removes_costly_runtime_and_preserves_foundations():
+    root = text(STAGING / "main.tf")
+    variables = text(STAGING / "variables.tf")
+    outputs = text(STAGING / "outputs.tf")
+    network = text(ROOT / "modules/staging_network/main.tf")
+    database = text(ROOT / "modules/staging_database/main.tf")
+    ecs = text(ROOT / "modules/staging_ecs/main.tf")
+    storage = text(ROOT / "modules/staging_storage/main.tf")
+
+    assert 'default     = "active"' in variables
+    assert 'contains(["idle", "active"], var.staging_mode)' in variables
+    assert 'active_mode = var.staging_mode == "active"' in root
+    assert "enable_interface_endpoints = local.active_mode && var.enable_interface_endpoints" in root
+    assert "enable_s3_gateway_endpoint = var.enable_s3_gateway_endpoint" in root
+    assert 'count                           = var.enabled ? 1 : 0' in database
+    assert "enable_runtime_infrastructure   = local.active_mode" in root
+    assert 'count = var.enable_runtime_infrastructure ? 1 : 0' in ecs
+    assert 'for_each          = toset(["backend", "worker", "frontend", "migration"])' in ecs
+    assert 'count             = var.create_vpc && var.enable_s3_gateway_endpoint ? 1 : 0' in network
+    assert 'prevent_destroy = true' in storage
+    assert 'output "idle_cost_resource_counts"' in outputs
+
+
+def test_idle_rds_apply_and_snapshot_restore_fail_closed():
+    root = text(STAGING / "main.tf")
+    variables = text(STAGING / "variables.tf")
+    database = text(ROOT / "modules/staging_database/main.tf")
+
+    assert 'data "aws_db_snapshot" "idle_removal"' in root
+    assert 'resource "terraform_data" "idle_apply_gate"' in root
+    assert "RDS_IDLE_REMOVAL blocked" in root
+    assert "idle_database_removal_approved" in variables
+    assert 'var.restore_db_from_snapshot == (var.db_snapshot_identifier != "")' in variables
+    assert "snapshot_identifier             = var.snapshot_identifier" in database
+    assert 'db_name                         = var.snapshot_identifier == null ? "systemnavigator" : null' in database
+    assert "prevent_destroy" not in database
+
+
+def test_production_root_has_no_idle_mode_references():
+    production = "\n".join(text(path) for path in (ROOT / "environment").glob("*.tf"))
+    for token in (
+        "staging_mode",
+        "idle_database_removal_approved",
+        "enable_interface_endpoints",
+        "restore_db_from_snapshot",
+    ):
+        assert token not in production
 
 
 def test_staging_service_discovery_avoids_unstable_empty_custom_health_check():
@@ -174,7 +226,10 @@ def test_staging_service_discovery_avoids_unstable_empty_custom_health_check():
         r'resource "aws_service_discovery_service" "internal" \{(.*?)\n\}', ecs, re.S
     )
     assert discovery
-    assert 'for_each = toset(["backend", "worker"])' in discovery.group(1)
+    assert (
+        'for_each = var.enable_runtime_infrastructure ? toset(["backend", "worker"]) : toset([])'
+        in discovery.group(1)
+    )
     assert 'routing_policy = "MULTIVALUE"' in discovery.group(1)
     assert 'type = "A"' in discovery.group(1)
     assert "health_check_custom_config" not in discovery.group(1)

@@ -13,7 +13,10 @@ variable "aws_region" {
 variable "enable_nat_gateway" {
   type = bool
 }
-variable "enable_vpc_endpoints" {
+variable "enable_interface_endpoints" {
+  type = bool
+}
+variable "enable_s3_gateway_endpoint" {
   type = bool
 }
 
@@ -128,7 +131,7 @@ resource "aws_route_table_association" "private" {
 }
 
 resource "aws_security_group" "endpoints" {
-  count       = var.create_vpc && var.enable_vpc_endpoints ? 1 : 0
+  count       = var.create_vpc && var.enable_interface_endpoints ? 1 : 0
   name        = "${var.name_prefix}-endpoints"
   description = "HTTPS from staging VPC to private AWS service endpoints"
   vpc_id      = aws_vpc.main[0].id
@@ -151,7 +154,7 @@ locals {
 }
 
 resource "aws_vpc_endpoint" "interface" {
-  for_each            = var.create_vpc && var.enable_vpc_endpoints ? local.interface_endpoints : toset([])
+  for_each            = var.create_vpc && var.enable_interface_endpoints ? local.interface_endpoints : toset([])
   vpc_id              = aws_vpc.main[0].id
   service_name        = "com.amazonaws.${var.aws_region}.${each.value}"
   vpc_endpoint_type   = "Interface"
@@ -164,7 +167,7 @@ resource "aws_vpc_endpoint" "interface" {
 }
 
 resource "aws_vpc_endpoint" "s3" {
-  count             = var.create_vpc && var.enable_vpc_endpoints ? 1 : 0
+  count             = var.create_vpc && var.enable_s3_gateway_endpoint ? 1 : 0
   vpc_id            = aws_vpc.main[0].id
   service_name      = "com.amazonaws.${var.aws_region}.s3"
   vpc_endpoint_type = "Gateway"

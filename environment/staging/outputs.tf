@@ -8,7 +8,7 @@ output "alb_dns_name" {
   value = module.ecs.alb_dns_name
 }
 output "staging_url" {
-  value = var.enable_custom_domain && var.enable_https ? "https://${var.domain_name}" : "http://${module.ecs.alb_dns_name}"
+  value = module.ecs.alb_dns_name == null ? null : (var.enable_custom_domain && var.enable_https ? "https://${var.domain_name}" : "http://${module.ecs.alb_dns_name}")
 }
 output "acm_certificate_arn" {
   value = local.effective_acm_certificate_arn
@@ -41,6 +41,17 @@ output "application_database_secret_arn" {
 output "rds_master_secret_arn" {
   value     = module.database.secret_arn
   sensitive = true
+}
+output "staging_mode" {
+  value = var.staging_mode
+}
+output "idle_cost_resource_counts" {
+  value = {
+    rds                 = local.active_mode ? 1 : 0
+    alb                 = local.active_mode ? 1 : 0
+    interface_endpoints = local.active_mode && var.enable_interface_endpoints ? 7 : 0
+    runtime_services    = local.active_mode && var.enable_runtime_services ? 3 : 0
+  }
 }
 output "github_staging_deploy_role_arn" {
   value = var.prerequisite_github_deploy_role_arn

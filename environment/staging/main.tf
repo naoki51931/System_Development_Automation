@@ -11,14 +11,42 @@ provider "aws" {
   }
 }
 
+locals {
+  active_mode = var.staging_mode == "active"
+}
+
+# A review-only idle plan is intentionally plannable, but cannot be applied.
+# After the manual pre-checks, set idle_database_removal_approved=true and
+# provide an available manual snapshot identifier; the data lookup then also
+# fails closed unless AWS confirms that snapshot exists and is available.
+data "aws_db_snapshot" "idle_removal" {
+  count                  = !local.active_mode && var.idle_database_removal_approved ? 1 : 0
+  db_snapshot_identifier = var.idle_database_snapshot_identifier
+  most_recent            = false
+}
+
+resource "terraform_data" "idle_apply_gate" {
+  count = local.active_mode ? 0 : 1
+  input = {
+    approved           = var.idle_database_removal_approved
+    snapshot_id        = var.idle_database_snapshot_identifier
+    snapshot_available = try(data.aws_db_snapshot.idle_removal[0].status == "available", false)
+  }
+
+  provisioner "local-exec" {
+    command = self.input.approved && self.input.snapshot_available ? "true" : "echo 'RDS_IDLE_REMOVAL blocked: approval and an available manual snapshot are required' >&2; exit 1"
+  }
+}
+
 module "network" {
-  source               = "../../modules/staging_network"
-  create_vpc           = var.create_vpc
-  name_prefix          = var.name_prefix
-  vpc_cidr             = var.vpc_cidr
-  aws_region           = var.aws_region
-  enable_nat_gateway   = var.enable_nat_gateway
-  enable_vpc_endpoints = var.enable_vpc_endpoints
+  source                     = "../../modules/staging_network"
+  create_vpc                 = var.create_vpc
+  name_prefix                = var.name_prefix
+  vpc_cidr                   = var.vpc_cidr
+  aws_region                 = var.aws_region
+  enable_nat_gateway         = var.enable_nat_gateway
+  enable_interface_endpoints = local.active_mode && var.enable_interface_endpoints
+  enable_s3_gateway_endpoint = var.enable_s3_gateway_endpoint
 }
 
 locals {
@@ -69,6 +97,8 @@ module "database" {
   multi_az              = var.db_multi_az
   backup_retention_days = var.backup_retention_days
   deletion_protection   = var.deletion_protection
+  enabled               = local.active_mode
+  snapshot_identifier   = var.restore_db_from_snapshot ? var.db_snapshot_identifier : null
 }
 
 module "ecs" {
@@ -85,7 +115,8 @@ module "ecs" {
   desired_count_backend           = var.desired_count_backend
   desired_count_worker            = var.desired_count_worker
   desired_count_frontend          = var.desired_count_frontend
-  enable_runtime_services         = var.enable_runtime_services
+  enable_runtime_infrastructure   = local.active_mode
+  enable_runtime_services         = local.active_mode && var.enable_runtime_services
   log_retention_days              = var.log_retention_days
   artifact_bucket_arn             = module.storage.bucket_arn
   application_database_secret_arn = module.security.database_secret_arn
@@ -115,6 +146,7 @@ module "ecs" {
 
 module "monitoring" {
   source                        = "../../modules/staging_monitoring"
+  enabled                       = local.active_mode
   name_prefix                   = var.name_prefix
   cluster_name                  = module.ecs.cluster_name
   backend_service_name          = module.ecs.backend_service_name
@@ -129,5 +161,5 @@ module "monitoring" {
   rds_connections_threshold     = var.rds_connections_threshold
   rds_free_storage_threshold    = var.rds_free_storage_threshold
   rds_freeable_memory_threshold = var.rds_freeable_memory_threshold
-  enable_runtime_services       = var.enable_runtime_services
+  enable_runtime_services       = local.active_mode && var.enable_runtime_services
 }

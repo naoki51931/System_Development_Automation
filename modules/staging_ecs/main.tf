@@ -39,6 +39,10 @@ variable "enable_runtime_services" {
   description = "Create runtime services only after database secret registration and migration."
   default     = false
 }
+variable "enable_runtime_infrastructure" {
+  type        = bool
+  description = "Create ECS/ALB/Cloud Map/task definitions. IAM roles and log groups remain in idle mode."
+}
 variable "log_retention_days" {
   type = number
 }
@@ -205,7 +209,8 @@ locals {
 }
 
 resource "aws_ecs_cluster" "main" {
-  name = "${var.name_prefix}-cluster"
+  count = var.enable_runtime_infrastructure ? 1 : 0
+  name  = "${var.name_prefix}-cluster"
 
   setting {
     name  = "containerInsights"
@@ -219,6 +224,7 @@ resource "aws_cloudwatch_log_group" "service" {
 }
 
 resource "aws_security_group" "alb" {
+  count       = var.enable_runtime_infrastructure ? 1 : 0
   name        = "${var.name_prefix}-alb"
   description = "Staging ALB ingress"
   vpc_id      = var.vpc_id
@@ -246,13 +252,15 @@ resource "aws_security_group" "alb" {
   }
 }
 resource "aws_vpc_security_group_ingress_rule" "backend_alb" {
+  count                        = var.enable_runtime_infrastructure ? 1 : 0
   security_group_id            = var.application_sg_id
-  referenced_security_group_id = aws_security_group.alb.id
+  referenced_security_group_id = aws_security_group.alb[0].id
   from_port                    = 8000
   to_port                      = 8000
   ip_protocol                  = "tcp"
 }
 resource "aws_vpc_security_group_ingress_rule" "backend_internal" {
+  count                        = var.enable_runtime_infrastructure ? 1 : 0
   security_group_id            = var.application_sg_id
   referenced_security_group_id = var.application_sg_id
   from_port                    = 8000
@@ -260,22 +268,25 @@ resource "aws_vpc_security_group_ingress_rule" "backend_internal" {
   ip_protocol                  = "tcp"
 }
 resource "aws_vpc_security_group_ingress_rule" "frontend_alb" {
+  count                        = var.enable_runtime_infrastructure ? 1 : 0
   security_group_id            = var.application_sg_id
-  referenced_security_group_id = aws_security_group.alb.id
+  referenced_security_group_id = aws_security_group.alb[0].id
   from_port                    = 3000
   to_port                      = 3000
   ip_protocol                  = "tcp"
 }
 
 resource "aws_lb" "main" {
+  count                      = var.enable_runtime_infrastructure ? 1 : 0
   name                       = substr("${var.name_prefix}-alb", 0, 32)
   internal                   = false
   load_balancer_type         = "application"
-  security_groups            = [aws_security_group.alb.id]
+  security_groups            = [aws_security_group.alb[0].id]
   subnets                    = var.public_subnet_ids
   drop_invalid_header_fields = true
 }
 resource "aws_lb_target_group" "backend" {
+  count       = var.enable_runtime_infrastructure ? 1 : 0
   name        = substr("${var.name_prefix}-be", 0, 32)
   port        = 8000
   protocol    = "HTTP"
@@ -287,6 +298,7 @@ resource "aws_lb_target_group" "backend" {
   }
 }
 resource "aws_lb_target_group" "frontend" {
+  count       = var.enable_runtime_infrastructure ? 1 : 0
   name        = substr("${var.name_prefix}-fe", 0, 32)
   port        = 3000
   protocol    = "HTTP"
@@ -298,7 +310,8 @@ resource "aws_lb_target_group" "frontend" {
   }
 }
 resource "aws_lb_listener" "http" {
-  load_balancer_arn = aws_lb.main.arn
+  count             = var.enable_runtime_infrastructure ? 1 : 0
+  load_balancer_arn = aws_lb.main[0].arn
   port              = 80
   protocol          = "HTTP"
   dynamic "default_action" {
@@ -317,7 +330,7 @@ resource "aws_lb_listener" "http" {
     for_each = var.enable_https ? [] : [1]
     content {
       type             = "forward"
-      target_group_arn = aws_lb_target_group.frontend.arn
+      target_group_arn = aws_lb_target_group.frontend[0].arn
     }
 
   }
@@ -330,24 +343,24 @@ resource "aws_lb_listener" "http" {
   }
 }
 resource "aws_lb_listener" "https" {
-  count             = var.enable_https ? 1 : 0
-  load_balancer_arn = aws_lb.main.arn
+  count             = var.enable_runtime_infrastructure && var.enable_https ? 1 : 0
+  load_balancer_arn = aws_lb.main[0].arn
   port              = 443
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
   certificate_arn   = var.acm_certificate_arn
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.frontend.arn
+    target_group_arn = aws_lb_target_group.frontend[0].arn
   }
 }
 resource "aws_lb_listener_rule" "backend_http" {
-  count        = var.enable_https ? 0 : 1
-  listener_arn = aws_lb_listener.http.arn
+  count        = var.enable_runtime_infrastructure && !var.enable_https ? 1 : 0
+  listener_arn = aws_lb_listener.http[0].arn
   priority     = 10
   action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.backend.arn
+    target_group_arn = aws_lb_target_group.backend[0].arn
   }
   condition {
     path_pattern {
@@ -356,12 +369,12 @@ resource "aws_lb_listener_rule" "backend_http" {
   }
 }
 resource "aws_lb_listener_rule" "backend_https" {
-  count        = var.enable_https ? 1 : 0
+  count        = var.enable_runtime_infrastructure && var.enable_https ? 1 : 0
   listener_arn = aws_lb_listener.https[0].arn
   priority     = 10
   action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.backend.arn
+    target_group_arn = aws_lb_target_group.backend[0].arn
   }
   condition {
     path_pattern {
@@ -371,14 +384,15 @@ resource "aws_lb_listener_rule" "backend_https" {
 }
 
 resource "aws_service_discovery_private_dns_namespace" "main" {
-  name = "staging.system-navigator.internal"
-  vpc  = var.vpc_id
+  count = var.enable_runtime_infrastructure ? 1 : 0
+  name  = "staging.system-navigator.internal"
+  vpc   = var.vpc_id
 }
 resource "aws_service_discovery_service" "internal" {
-  for_each = toset(["backend", "worker"])
+  for_each = var.enable_runtime_infrastructure ? toset(["backend", "worker"]) : toset([])
   name     = each.key
   dns_config {
-    namespace_id = aws_service_discovery_private_dns_namespace.main.id
+    namespace_id = aws_service_discovery_private_dns_namespace.main[0].id
     dns_records {
       ttl  = 10
       type = "A"
@@ -399,7 +413,7 @@ resource "aws_iam_role_policy_attachment" "execution" {
 data "aws_iam_policy_document" "execution_secrets" {
   statement {
     actions   = ["secretsmanager:GetSecretValue"]
-    resources = concat([var.application_database_secret_arn, var.migration_database_secret_arn], var.application_secret_arns)
+    resources = compact(concat([var.application_database_secret_arn, var.migration_database_secret_arn], var.application_secret_arns))
 
   }
 }
@@ -444,18 +458,21 @@ resource "aws_iam_role_policy" "worker" {
   policy = data.aws_iam_policy_document.worker.json
 }
 data "aws_iam_policy_document" "migration" {
+  count = var.enable_runtime_infrastructure ? 1 : 0
   statement {
     actions   = ["secretsmanager:GetSecretValue"]
-    resources = [var.migration_database_secret_arn]
+    resources = compact([var.migration_database_secret_arn])
   }
 }
 resource "aws_iam_role_policy" "migration" {
+  count  = var.enable_runtime_infrastructure ? 1 : 0
   name   = "database-secret-only"
   role   = aws_iam_role.task["migration"].id
-  policy = data.aws_iam_policy_document.migration.json
+  policy = data.aws_iam_policy_document.migration[0].json
 }
 
 resource "aws_ecs_task_definition" "backend" {
+  count                    = var.enable_runtime_infrastructure ? 1 : 0
   family                   = "${var.name_prefix}-backend"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
@@ -478,6 +495,7 @@ resource "aws_ecs_task_definition" "backend" {
   }])
 }
 resource "aws_ecs_task_definition" "worker" {
+  count                    = var.enable_runtime_infrastructure ? 1 : 0
   family                   = "${var.name_prefix}-worker"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
@@ -498,6 +516,7 @@ resource "aws_ecs_task_definition" "worker" {
   }])
 }
 resource "aws_ecs_task_definition" "frontend" {
+  count                    = var.enable_runtime_infrastructure ? 1 : 0
   family                   = "${var.name_prefix}-frontend"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
@@ -523,6 +542,7 @@ resource "aws_ecs_task_definition" "frontend" {
   }])
 }
 resource "aws_ecs_task_definition" "migration" {
+  count                    = var.enable_runtime_infrastructure ? 1 : 0
   family                   = "${var.name_prefix}-migration"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
@@ -546,10 +566,10 @@ resource "aws_ecs_task_definition" "migration" {
 }
 
 resource "aws_ecs_service" "backend" {
-  count           = var.enable_runtime_services ? 1 : 0
+  count           = var.enable_runtime_infrastructure && var.enable_runtime_services ? 1 : 0
   name            = "${var.name_prefix}-backend"
-  cluster         = aws_ecs_cluster.main.id
-  task_definition = aws_ecs_task_definition.backend.arn
+  cluster         = aws_ecs_cluster.main[0].id
+  task_definition = aws_ecs_task_definition.backend[0].arn
   desired_count   = var.desired_count_backend
   launch_type     = "FARGATE"
   network_configuration {
@@ -558,7 +578,7 @@ resource "aws_ecs_service" "backend" {
     assign_public_ip = false
   }
   load_balancer {
-    target_group_arn = aws_lb_target_group.backend.arn
+    target_group_arn = aws_lb_target_group.backend[0].arn
     container_name   = "backend"
     container_port   = 8000
   }
@@ -569,10 +589,10 @@ resource "aws_ecs_service" "backend" {
   depends_on                        = [aws_lb_listener.http, aws_lb_listener.https]
 }
 resource "aws_ecs_service" "worker" {
-  count           = var.enable_runtime_services ? 1 : 0
+  count           = var.enable_runtime_infrastructure && var.enable_runtime_services ? 1 : 0
   name            = "${var.name_prefix}-worker"
-  cluster         = aws_ecs_cluster.main.id
-  task_definition = aws_ecs_task_definition.worker.arn
+  cluster         = aws_ecs_cluster.main[0].id
+  task_definition = aws_ecs_task_definition.worker[0].arn
   desired_count   = var.desired_count_worker
   launch_type     = "FARGATE"
   network_configuration {
@@ -585,10 +605,10 @@ resource "aws_ecs_service" "worker" {
   }
 }
 resource "aws_ecs_service" "frontend" {
-  count           = var.enable_runtime_services ? 1 : 0
+  count           = var.enable_runtime_infrastructure && var.enable_runtime_services ? 1 : 0
   name            = "${var.name_prefix}-frontend"
-  cluster         = aws_ecs_cluster.main.id
-  task_definition = aws_ecs_task_definition.frontend.arn
+  cluster         = aws_ecs_cluster.main[0].id
+  task_definition = aws_ecs_task_definition.frontend[0].arn
   desired_count   = var.desired_count_frontend
   launch_type     = "FARGATE"
   network_configuration {
@@ -597,7 +617,7 @@ resource "aws_ecs_service" "frontend" {
     assign_public_ip = false
   }
   load_balancer {
-    target_group_arn = aws_lb_target_group.frontend.arn
+    target_group_arn = aws_lb_target_group.frontend[0].arn
     container_name   = "frontend"
     container_port   = 3000
   }
@@ -606,19 +626,19 @@ resource "aws_ecs_service" "frontend" {
 }
 
 output "alb_dns_name" {
-  value = aws_lb.main.dns_name
+  value = try(aws_lb.main[0].dns_name, null)
 }
 output "alb_zone_id" {
-  value = aws_lb.main.zone_id
+  value = try(aws_lb.main[0].zone_id, null)
 }
 output "alb_arn_suffix" {
-  value = aws_lb.main.arn_suffix
+  value = try(aws_lb.main[0].arn_suffix, null)
 }
 output "target_group_arn_suffixes" {
-  value = [aws_lb_target_group.backend.arn_suffix, aws_lb_target_group.frontend.arn_suffix]
+  value = var.enable_runtime_infrastructure ? [aws_lb_target_group.backend[0].arn_suffix, aws_lb_target_group.frontend[0].arn_suffix] : []
 }
 output "cluster_name" {
-  value = aws_ecs_cluster.main.name
+  value = try(aws_ecs_cluster.main[0].name, null)
 }
 output "backend_service_name" {
   value = try(aws_ecs_service.backend[0].name, null)
@@ -630,5 +650,5 @@ output "frontend_service_name" {
   value = try(aws_ecs_service.frontend[0].name, null)
 }
 output "migration_task_definition_arn" {
-  value = aws_ecs_task_definition.migration.arn
+  value = try(aws_ecs_task_definition.migration[0].arn, null)
 }

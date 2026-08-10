@@ -43,9 +43,13 @@ variable "enable_runtime_services" {
   description = "Create service and worker-runtime alarms only with runtime services."
   default     = false
 }
+variable "enabled" {
+  type        = bool
+  description = "Create infrastructure alarms only in ACTIVE mode."
+}
 
 locals {
-  service_dimensions = var.enable_runtime_services ? {
+  service_dimensions = var.enabled && var.enable_runtime_services ? {
     backend  = var.backend_service_name
     worker   = var.worker_service_name
     frontend = var.frontend_service_name
@@ -85,6 +89,7 @@ resource "aws_cloudwatch_metric_alarm" "ecs_memory" {
   alarm_actions = local.alarm_actions
 }
 resource "aws_cloudwatch_metric_alarm" "alb_5xx" {
+  count               = var.enabled ? 1 : 0
   alarm_name          = "${var.name_prefix}-alb-5xx"
   namespace           = "AWS/ApplicationELB"
   metric_name         = "HTTPCode_ELB_5XX_Count"
@@ -99,7 +104,7 @@ resource "aws_cloudwatch_metric_alarm" "alb_5xx" {
   alarm_actions = local.alarm_actions
 }
 resource "aws_cloudwatch_metric_alarm" "unhealthy_targets" {
-  count               = length(var.target_group_arn_suffixes)
+  count               = var.enabled ? length(var.target_group_arn_suffixes) : 0
   alarm_name          = "${var.name_prefix}-target-${count.index + 1}-unhealthy"
   namespace           = "AWS/ApplicationELB"
   metric_name         = "UnHealthyHostCount"
@@ -114,6 +119,7 @@ resource "aws_cloudwatch_metric_alarm" "unhealthy_targets" {
   alarm_actions = local.alarm_actions
 }
 resource "aws_cloudwatch_metric_alarm" "alb_response_time" {
+  count               = var.enabled ? 1 : 0
   alarm_name          = "${var.name_prefix}-alb-response-time-p95"
   namespace           = "AWS/ApplicationELB"
   metric_name         = "TargetResponseTime"
@@ -128,7 +134,7 @@ resource "aws_cloudwatch_metric_alarm" "alb_response_time" {
   alarm_actions = local.alarm_actions
 }
 resource "aws_cloudwatch_metric_alarm" "running_tasks" {
-  for_each = var.enable_runtime_services ? {
+  for_each = var.enabled && var.enable_runtime_services ? {
     backend = { service = var.backend_service_name, desired = var.desired_count_backend }
     worker  = { service = var.worker_service_name, desired = var.desired_count_worker }
   } : {}
@@ -147,6 +153,7 @@ resource "aws_cloudwatch_metric_alarm" "running_tasks" {
   alarm_actions = local.alarm_actions
 }
 resource "aws_cloudwatch_metric_alarm" "rds_cpu" {
+  count               = var.enabled ? 1 : 0
   alarm_name          = "${var.name_prefix}-rds-cpu"
   namespace           = "AWS/RDS"
   metric_name         = "CPUUtilization"
@@ -161,6 +168,7 @@ resource "aws_cloudwatch_metric_alarm" "rds_cpu" {
   alarm_actions = local.alarm_actions
 }
 resource "aws_cloudwatch_metric_alarm" "rds_connections" {
+  count               = var.enabled ? 1 : 0
   alarm_name          = "${var.name_prefix}-rds-connections"
   namespace           = "AWS/RDS"
   metric_name         = "DatabaseConnections"
@@ -175,6 +183,7 @@ resource "aws_cloudwatch_metric_alarm" "rds_connections" {
   alarm_actions = local.alarm_actions
 }
 resource "aws_cloudwatch_metric_alarm" "rds_storage" {
+  count               = var.enabled ? 1 : 0
   alarm_name          = "${var.name_prefix}-rds-free-storage"
   namespace           = "AWS/RDS"
   metric_name         = "FreeStorageSpace"
@@ -189,6 +198,7 @@ resource "aws_cloudwatch_metric_alarm" "rds_storage" {
   alarm_actions = local.alarm_actions
 }
 resource "aws_cloudwatch_metric_alarm" "rds_freeable_memory" {
+  count               = var.enabled ? 1 : 0
   alarm_name          = "${var.name_prefix}-rds-freeable-memory"
   namespace           = "AWS/RDS"
   metric_name         = "FreeableMemory"
@@ -203,7 +213,7 @@ resource "aws_cloudwatch_metric_alarm" "rds_freeable_memory" {
   alarm_actions = local.alarm_actions
 }
 resource "aws_cloudwatch_metric_alarm" "worker_heartbeat" {
-  count               = var.enable_runtime_services ? 1 : 0
+  count               = var.enabled && var.enable_runtime_services ? 1 : 0
   alarm_name          = "${var.name_prefix}-worker-heartbeat"
   namespace           = "SystemNavigator/Staging"
   metric_name         = "WorkerHeartbeatAgeSeconds"
@@ -219,7 +229,7 @@ resource "aws_cloudwatch_metric_alarm" "worker_heartbeat" {
   alarm_actions = local.alarm_actions
 }
 resource "aws_cloudwatch_metric_alarm" "dead_letter" {
-  count               = var.enable_runtime_services ? 1 : 0
+  count               = var.enabled && var.enable_runtime_services ? 1 : 0
   alarm_name          = "${var.name_prefix}-dead-letter-growth"
   namespace           = "SystemNavigator/Staging"
   metric_name         = "DeadLetterCount"
