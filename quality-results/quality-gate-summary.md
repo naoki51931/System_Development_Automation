@@ -39,3 +39,9 @@ The Compose-profile E2E attempt first failed because its quality image lacked br
 `true-camera-test.com` is not used. No replacement custom domain is selected. ACM, Route53 staging records and HTTPS remain disabled; temporary staging access is limited to the ALB HTTP DNS name under mock-only, non-sensitive restrictions. Notifications remain `info@nagi-neco.com` and the monthly Budget remains 100 GBP.
 
 Every mandatory pre-plan local gate is PASS. This authorizes only human review of prerequisite resource scope. Terraform plan/apply, AWS changes, ECR/GitHub push, image digest capture, RDS access/migration, and staging deployment remain prohibited pending the documented approvals and human inputs.
+
+## 2026-08-10 staging bootstrap reconciliation
+
+The empty Cloud Map `health_check_custom_config {}` block was the sole cause of backend/worker ForceNew drift after bootstrap. It was removed without `ignore_changes`; four Terraform roots validate, 17 staging Terraform safety tests pass, and the saved reconcile plan is `No changes` with both discovery resources no-op and add/change/replace/destroy all zero. Production resources remain active/available, the application DB Secret has zero versions, and runtime ECS services remain zero.
+
+RDS is available with the reviewed low-cost and protection settings. Its latest restorable timestamp is `2026-08-10T14:16:14Z`, but the earliest timestamp and automated-backup restore window are still null. Final status is `WAITING_FOR_RDS_PITR_PROTECTION`; Secret registration, snapshot, migration, and runtime services remain separately approval-gated.

@@ -37,6 +37,8 @@
 - [ ] Phase 1: apply only a reviewed bootstrap plan with `enable_runtime_services=false`; create infrastructure and task definitions but no runtime ECS services
 - [ ] Phase 2: under separate human approval, populate the application DB Secret outside Terraform; never manage its value in state
 - [ ] Confirm RDS readiness plus backup/PITR before migration
+- [x] Remove the non-persistent empty Cloud Map custom-health block; reconcile plan confirms backend and worker discovery are no-op
+- [ ] Require concrete RDS earliest and latest restorable timestamps (latest exists; earliest remains null as of 2026-08-10)
 - [ ] Phase 3: run the separately approved migration-only task; capture output and schema revision
 - [ ] Stop deployment if migration exits non-zero or Alembic head is not confirmed
 - [ ] Phase 4: review a new `enable_runtime_services=true` plan with backend/worker/frontend desired count 1

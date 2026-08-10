@@ -47,3 +47,9 @@ No Secret value was read or registered, no RDS connection or migration was attem
 
 Decision: `NOT_READY_FOR_STAGING_DATABASE_SECRET_APPROVAL`  
 Protection status: `BOOTSTRAP_CREATED_WAITING_FOR_RDS_PROTECTION`
+
+## 2026-08-10 reconciliation follow-up
+
+Root cause was confirmed: AWS/provider refresh does not retain the empty Cloud Map `health_check_custom_config {}` block. The block was removed from configuration without `ignore_changes`, state manipulation, import, taint, replacement, or apply. The saved reconcile plan reports `No changes`; backend and worker discovery actions are both `no-op`, with add/change/replace/destroy all zero.
+
+RDS remains available with backup retention 3 and deletion protection enabled. `LatestRestorableTime` advanced to `2026-08-10T14:16:14Z`, but `EarliestRestorableTime` remains null and the automated-backup restore-window timestamps remain null. PITR protection is therefore still blocked. The application Secret has zero versions, runtime ECS services remain zero, and migration was not run.
