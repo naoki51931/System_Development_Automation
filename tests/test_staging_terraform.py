@@ -168,6 +168,19 @@ def test_staging_runtime_services_and_alarms_are_bootstrap_gated():
     )
 
 
+def test_staging_service_discovery_avoids_unstable_empty_custom_health_check():
+    ecs = text(ROOT / "modules/staging_ecs/main.tf")
+    discovery = re.search(
+        r'resource "aws_service_discovery_service" "internal" \{(.*?)\n\}', ecs, re.S
+    )
+    assert discovery
+    assert 'for_each = toset(["backend", "worker"])' in discovery.group(1)
+    assert 'routing_policy = "MULTIVALUE"' in discovery.group(1)
+    assert 'type = "A"' in discovery.group(1)
+    assert "health_check_custom_config" not in discovery.group(1)
+    assert "ignore_changes" not in discovery.group(1)
+
+
 def test_preplan_resources_are_scoped_and_private():
     ecr = text(ROOT / "modules/staging_ecr/main.tf")
     deploy = text(ROOT / "modules/staging_deploy_role/main.tf")

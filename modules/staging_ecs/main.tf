@@ -386,7 +386,6 @@ resource "aws_service_discovery_service" "internal" {
     routing_policy = "MULTIVALUE"
 
   }
-  health_check_custom_config {}
 }
 
 resource "aws_iam_role" "execution" {
