@@ -38,14 +38,19 @@ variable "rds_free_storage_threshold" {
 variable "rds_freeable_memory_threshold" {
   type = number
 }
+variable "enable_runtime_services" {
+  type        = bool
+  description = "Create service and worker-runtime alarms only with runtime services."
+  default     = false
+}
 
 locals {
-  service_dimensions = {
+  service_dimensions = var.enable_runtime_services ? {
     backend  = var.backend_service_name
     worker   = var.worker_service_name
     frontend = var.frontend_service_name
 
-  }
+  } : {}
   alarm_actions = [var.sns_topic_arn]
 }
 
@@ -123,10 +128,10 @@ resource "aws_cloudwatch_metric_alarm" "alb_response_time" {
   alarm_actions = local.alarm_actions
 }
 resource "aws_cloudwatch_metric_alarm" "running_tasks" {
-  for_each = {
+  for_each = var.enable_runtime_services ? {
     backend = { service = var.backend_service_name, desired = var.desired_count_backend }
     worker  = { service = var.worker_service_name, desired = var.desired_count_worker }
-  }
+  } : {}
   alarm_name          = "${var.name_prefix}-${each.key}-running-tasks"
   namespace           = "ECS/ContainerInsights"
   metric_name         = "RunningTaskCount"
@@ -198,6 +203,7 @@ resource "aws_cloudwatch_metric_alarm" "rds_freeable_memory" {
   alarm_actions = local.alarm_actions
 }
 resource "aws_cloudwatch_metric_alarm" "worker_heartbeat" {
+  count               = var.enable_runtime_services ? 1 : 0
   alarm_name          = "${var.name_prefix}-worker-heartbeat"
   namespace           = "SystemNavigator/Staging"
   metric_name         = "WorkerHeartbeatAgeSeconds"
@@ -213,6 +219,7 @@ resource "aws_cloudwatch_metric_alarm" "worker_heartbeat" {
   alarm_actions = local.alarm_actions
 }
 resource "aws_cloudwatch_metric_alarm" "dead_letter" {
+  count               = var.enable_runtime_services ? 1 : 0
   alarm_name          = "${var.name_prefix}-dead-letter-growth"
   namespace           = "SystemNavigator/Staging"
   metric_name         = "DeadLetterCount"

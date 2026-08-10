@@ -23,6 +23,7 @@ stripe_mode          = "test"
 desired_count_backend  = 1
 desired_count_worker   = 1
 desired_count_frontend = 1
+enable_runtime_services = false
 db_instance_class      = "db.t4g.small"
 db_multi_az            = false
 backup_retention_days  = 3

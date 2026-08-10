@@ -77,6 +77,7 @@ def test_staging_required_common_variables_are_declared():
         "desired_count_backend",
         "desired_count_worker",
         "desired_count_frontend",
+        "enable_runtime_services",
         "db_instance_class",
         "db_multi_az",
         "backup_retention_days",
@@ -132,6 +133,39 @@ def test_staging_service_boundaries_and_migration_command():
     layout = text(ROOT / "frontend/app/layout.tsx")
     assert "Mock Provider使用中" in layout
     assert "APP_ENABLE_MOCK_AI" in layout
+
+
+def test_staging_health_paths_are_service_specific():
+    ecs = text(ROOT / "modules/staging_ecs/main.tf")
+    assert 'path    = "/health"' in ecs
+    assert 'path    = "/login"' in ecs
+    assert "http://localhost:8000/health" in ecs
+    assert "http://localhost:3000/login" in ecs
+    assert "http://localhost:3000/ || exit 1" not in ecs
+
+
+def test_staging_runtime_services_and_alarms_are_bootstrap_gated():
+    variables = text(STAGING / "variables.tf")
+    example = text(STAGING / "terraform.tfvars.example")
+    ecs = text(ROOT / "modules/staging_ecs/main.tf")
+    monitoring = text(ROOT / "modules/staging_monitoring/main.tf")
+    assert 'variable "enable_runtime_services"' in variables
+    assert "enable_runtime_services = false" in example
+    assert ecs.count("count           = var.enable_runtime_services ? 1 : 0") == 3
+    for service in ("backend", "worker", "frontend"):
+        block = re.search(
+            rf'resource "aws_ecs_service" "{service}" \{{(.*?)\n\}}', ecs, re.S
+        )
+        assert block and "var.enable_runtime_services ? 1 : 0" in block.group(1)
+    assert 'resource "aws_ecs_task_definition" "migration"' in ecs
+    assert 'command = ["alembic", "upgrade", "head"]' in ecs
+    assert "aws_secretsmanager_secret_version" not in ecs
+    assert "service_dimensions = var.enable_runtime_services ?" in monitoring
+    assert "for_each = var.enable_runtime_services ?" in monitoring
+    assert (
+        monitoring.count("count               = var.enable_runtime_services ? 1 : 0")
+        == 2
+    )
 
 
 def test_preplan_resources_are_scoped_and_private():

@@ -116,6 +116,11 @@ variable "desired_count_frontend" {
   type    = number
   default = 1
 }
+variable "enable_runtime_services" {
+  type        = bool
+  description = "Create runtime ECS services only after database secret registration and migration."
+  default     = false
+}
 variable "db_instance_class" {
   type    = string
   default = "db.t4g.small"

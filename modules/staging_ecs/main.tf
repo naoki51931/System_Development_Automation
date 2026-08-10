@@ -34,6 +34,11 @@ variable "desired_count_worker" {
 variable "desired_count_frontend" {
   type = number
 }
+variable "enable_runtime_services" {
+  type        = bool
+  description = "Create runtime services only after database secret registration and migration."
+  default     = false
+}
 variable "log_retention_days" {
   type = number
 }
@@ -288,7 +293,7 @@ resource "aws_lb_target_group" "frontend" {
   target_type = "ip"
   vpc_id      = var.vpc_id
   health_check {
-    path    = "/"
+    path    = "/login"
     matcher = "200-399"
   }
 }
@@ -510,7 +515,7 @@ resource "aws_ecs_task_definition" "frontend" {
       { name = "APP_ENABLE_MOCK_PAYMENT", value = tostring(var.enable_mock_payment) },
       { name = "APP_ENABLE_MOCK_EMAIL", value = tostring(var.enable_mock_email) }
       ], healthCheck = {
-      command = ["CMD-SHELL", "wget -q -O /dev/null http://localhost:3000/ || exit 1"], interval = 30, timeout = 5, retries = 3
+      command = ["CMD-SHELL", "wget -q -O /dev/null http://localhost:3000/login || exit 1"], interval = 30, timeout = 5, retries = 3
       }, logConfiguration = {
       logDriver = "awslogs", options = {
         awslogs-group = aws_cloudwatch_log_group.service["frontend"].name, awslogs-region = var.aws_region, awslogs-stream-prefix = "frontend"
@@ -542,6 +547,7 @@ resource "aws_ecs_task_definition" "migration" {
 }
 
 resource "aws_ecs_service" "backend" {
+  count           = var.enable_runtime_services ? 1 : 0
   name            = "${var.name_prefix}-backend"
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.backend.arn
@@ -564,6 +570,7 @@ resource "aws_ecs_service" "backend" {
   depends_on                        = [aws_lb_listener.http, aws_lb_listener.https]
 }
 resource "aws_ecs_service" "worker" {
+  count           = var.enable_runtime_services ? 1 : 0
   name            = "${var.name_prefix}-worker"
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.worker.arn
@@ -579,6 +586,7 @@ resource "aws_ecs_service" "worker" {
   }
 }
 resource "aws_ecs_service" "frontend" {
+  count           = var.enable_runtime_services ? 1 : 0
   name            = "${var.name_prefix}-frontend"
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.frontend.arn
@@ -614,13 +622,13 @@ output "cluster_name" {
   value = aws_ecs_cluster.main.name
 }
 output "backend_service_name" {
-  value = aws_ecs_service.backend.name
+  value = try(aws_ecs_service.backend[0].name, null)
 }
 output "worker_service_name" {
-  value = aws_ecs_service.worker.name
+  value = try(aws_ecs_service.worker[0].name, null)
 }
 output "frontend_service_name" {
-  value = aws_ecs_service.frontend.name
+  value = try(aws_ecs_service.frontend[0].name, null)
 }
 output "migration_task_definition_arn" {
   value = aws_ecs_task_definition.migration.arn

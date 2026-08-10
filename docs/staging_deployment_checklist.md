@@ -34,12 +34,15 @@
 
 ## During apply
 
-- [ ] Apply only the reviewed saved plan
-- [ ] Run migration-only task; capture output and schema revision
+- [ ] Phase 1: apply only a reviewed bootstrap plan with `enable_runtime_services=false`; create infrastructure and task definitions but no runtime ECS services
+- [ ] Phase 2: under separate human approval, populate the application DB Secret outside Terraform; never manage its value in state
+- [ ] Confirm RDS readiness plus backup/PITR before migration
+- [ ] Phase 3: run the separately approved migration-only task; capture output and schema revision
 - [ ] Stop deployment if migration exits non-zero or Alembic head is not confirmed
+- [ ] Phase 4: review a new `enable_runtime_services=true` plan with backend/worker/frontend desired count 1
+- [ ] Phase 5: apply only that reviewed runtime-service plan and verify backend `/health`, frontend `/login`, and worker health
 - [ ] Run idempotent reference seed and separate synthetic test-data seed
-- [ ] Deploy backend, worker and frontend pinned task definitions
-- [ ] Verify ALB health and temporary HTTP smoke endpoints; verify HTTPS/DNS only after a new domain is approved
+- [ ] Verify temporary ALB HTTP smoke endpoints; verify HTTPS/DNS only after a new domain is approved
 - [ ] Stop immediately on unexpected replacement, secret exposure or tenant failure
 
 ## After apply

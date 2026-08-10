@@ -85,6 +85,7 @@ module "ecs" {
   desired_count_backend           = var.desired_count_backend
   desired_count_worker            = var.desired_count_worker
   desired_count_frontend          = var.desired_count_frontend
+  enable_runtime_services         = var.enable_runtime_services
   log_retention_days              = var.log_retention_days
   artifact_bucket_arn             = module.storage.bucket_arn
   application_database_secret_arn = module.security.database_secret_arn
@@ -128,4 +129,5 @@ module "monitoring" {
   rds_connections_threshold     = var.rds_connections_threshold
   rds_free_storage_threshold    = var.rds_free_storage_threshold
   rds_freeable_memory_threshold = var.rds_freeable_memory_threshold
+  enable_runtime_services       = var.enable_runtime_services
 }

@@ -14,9 +14,13 @@ The default is a staging-only VPC. Setting `create_vpc=false` requires an existi
 
 ## Workloads and least privilege
 
-Backend, worker, frontend, and migration have separate task roles and task definitions; execution has a separate execution role. Frontend gets no S3 or secret task permission. Backend reads runtime secrets. Worker reads runtime secrets and, when enabled, the staging artifact bucket. Migration reads only the database secret. The GitHub staging role trusts only the repository's `staging` environment and has scoped ECS/pass-role permissions; no AdministratorAccess policy exists.
+Backend, worker, frontend, and migration have separate task roles and task definitions; execution has a separate execution role. Frontend gets no S3 or secret task permission. Backend reads runtime secrets. Worker reads runtime secrets and, when enabled, the staging artifact bucket. Migration reads only the RDS-managed master database secret. The GitHub staging role trusts only the repository's `staging` environment and has scoped ECS/pass-role permissions; no AdministratorAccess policy exists.
 
-Backend runs `uvicorn app.main:app --host 0.0.0.0 --port 8000`, worker runs `python -m app.workers.runner`, frontend runs `node server.js`, and migration runs `alembic upgrade head`. Health checks cover `/health`, `/`, and `python -m app.workers.health`. Backend and frontend have separate target groups; backend/worker also register in a private service-discovery namespace.
+Backend runs `uvicorn app.main:app --host 0.0.0.0 --port 8000`, worker runs `python -m app.workers.runner`, frontend runs `node server.js`, and migration runs `alembic upgrade head`. Health checks cover backend `/health`, frontend `/login`, and `python -m app.workers.health`. Backend and frontend have separate target groups; backend/worker also register in a private service-discovery namespace.
+
+`enable_runtime_services` defaults to `false`. Phase 1 creates network, endpoints, S3, RDS, the empty application database Secret container, IAM, ECS cluster, ALB, all task definitions, and infrastructure alarms, but creates no backend, worker, or frontend service and no runtime-service alarms. Phase 2 is a separately approved, non-Terraform registration of the application database Secret value. The RDS-managed master Secret is reserved for administration and the one-off migration task; the application database Secret is the runtime backend/worker credential. Frontend has no database dependency but shares the gate so no public runtime starts early. Before either Secret is available, backend, worker, and migration cannot run; frontend is intentionally held for deployment-order consistency.
+
+After RDS is ready and backup/PITR protection is confirmed, Phase 3 runs the separately approved one-off migration task, checks exit code 0 and Alembic head, and performs no automatic backend migration. Phase 4 plans `enable_runtime_services=true` with desired counts of one; Phase 5 applies that reviewed service-only addition and verifies health and smoke tests. The same main staging state is used throughout; routine `terraform -target` is prohibited.
 
 ## Providers, secrets, and HTTPS
 
