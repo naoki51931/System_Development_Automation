@@ -8,6 +8,8 @@ terraform.tfvars
 backend.hcl
 __pycache__
 *.pyc
+**/__pycache__
+**/*.pyc
 .pytest_cache
 .ruff_cache
 .mypy_cache

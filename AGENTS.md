@@ -141,6 +141,7 @@ Before apply, allow replacement of only the ECS task definition when it creates 
 ## Quality-gate remediation baseline
 
 - Docker images use multi-stage slim/alpine builds, explicit COPY allowlists, cache-free dependency installation, non-root runtime users, standalone Next output, and health checks. Compose quality targets retain test tools; runtime targets do not.
+- Docker build contexts exclude Python bytecode recursively (`**/__pycache__`, `**/*.pyc`) so host-version artifacts cannot enter runtime layers, including with the legacy Docker builder.
 - Revision `7c2f9a1e4d30` adds tenant/cursor and worker-claim indexes only. Its review SQL is `migrations/offline/7c2f9a1e4d30_quality_gate_indexes.sql`; do not apply it outside local PostgreSQL in this phase.
 - `DOCUMENT_RENDER_FAILURE` is injected before rendering or storage. Tests require rollback, bounded retry/dead letter, sanitized errors and idempotent regeneration. PostgreSQL lock-timeout/deadlock SQLSTATEs are retryable without exposing SQL.
 - Browser binaries are cached at `/home/ubuntu/.cache/ms-playwright`. All three browser projects execute role, tenant, error-contract, workflow and 12-route axe checks without rule exclusions.
