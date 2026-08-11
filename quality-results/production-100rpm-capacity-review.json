@@ -1,0 +1,71 @@
+{
+  "collected": "2026-08-11",
+  "account": "557604519341",
+  "region": "eu-west-2",
+  "production_state": "cloud-a/prod/terraform.tfstate",
+  "observed_14d": {
+    "alb_requests": 4824,
+    "average_rpm": 0.3507,
+    "median_active_bucket_rpm": 0.1333,
+    "peak_15m_smoothed_rpm": 19,
+    "peak_1m_last_24h_rpm": 283,
+    "target_response_seconds_average": 0.00224,
+    "target_response_seconds_p95_max": 0.0597,
+    "target_response_seconds_p99_max": 0.0601,
+    "target_5xx": 0,
+    "elb_5xx": 2,
+    "ecs_cpu_percent_average": 1.23,
+    "ecs_cpu_percent_max": 26.53,
+    "ecs_memory_percent_average": 5.17,
+    "ecs_memory_percent_max": 5.37,
+    "rds_cpu_percent_average": 3.96,
+    "rds_cpu_percent_max": 44.90,
+    "rds_freeable_memory_bytes_min": 3068465152,
+    "rds_connections_max": 0,
+    "rds_read_iops_max": 12.20,
+    "rds_write_iops_max": 57.69,
+    "rds_read_latency_seconds_max": 0.01,
+    "rds_write_latency_seconds_max": 0.211,
+    "rds_free_storage_bytes_min": 49697927168,
+    "nat_bytes_14d_each_direction": 194976839
+  },
+  "isolated_load_test": {
+    "environment": "local Docker, synthetic PostgreSQL data, no Production traffic or DB",
+    "candidate": {"cpu": 256, "memory_mib": 512},
+    "100_rpm": {"effective_rps": 1.61, "requests": 38, "errors": 0, "p50_ms": 12, "p95_ms": 480, "p99_ms": 540, "memory_peak_mib": 85.67, "cpu_average_of_allocation_percent": 42.4},
+    "300_rpm": {"effective_rps": 5.05, "requests": 122, "errors": 0, "p50_ms": 12, "p95_ms": 100, "p99_ms": 170, "memory_peak_mib": 85.86, "cpu_average_of_allocation_percent": 49.8},
+    "600_rpm_burst": {"effective_rps": 10.32, "requests": 149, "errors": 0, "p50_ms": 11, "p95_ms": 110, "p99_ms": 140, "memory_peak_mib": 89.10, "cpu_average_of_allocation_percent": 71.4, "local_db_cpu_max_percent": 7.08, "local_db_connections": 8}
+  },
+  "recommendation": {
+    "backend_cpu": 256,
+    "backend_memory_mib": 512,
+    "desired": 1,
+    "min": 1,
+    "max": 2,
+    "cpu_target": 60,
+    "memory_target": 70,
+    "worker": "none currently; separate sizing required if introduced",
+    "rds_class": "db.t4g.small",
+    "multi_az": true,
+    "storage_gib": 50,
+    "alb": "unchanged",
+    "nat": "unchanged"
+  },
+  "cost_usd_month_estimate": {
+    "current": 192,
+    "safe_profile": 134,
+    "safe_saving": 58,
+    "cost_profile_micro_not_recommended": 109,
+    "note": "Resource tags are not available as a CE allocation boundary; estimate uses eu-west-2 usage-line run rates and excludes unrelated EC2."
+  },
+  "validation": {
+    "terraform_roots": 4,
+    "backend_overall_coverage_percent": 82.89,
+    "critical_service_coverage_percent": 90.86,
+    "frontend_tests": 34,
+    "ruff": "pass",
+    "bandit": "pass",
+    "pip_audit_requirements": "pass",
+    "secret_scan": "pass"
+  }
+}
