@@ -26,6 +26,7 @@ desired_count_frontend = 1
 enable_runtime_services = false
 staging_mode             = "active"
 idle_database_removal_approved    = false
+allow_database_deletion           = false
 idle_database_snapshot_identifier = ""
 restore_db_from_snapshot           = false
 db_snapshot_identifier             = ""

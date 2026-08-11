@@ -135,6 +135,11 @@ variable "idle_database_removal_approved" {
   description = "Human approval gate for an idle apply that removes RDS. Keep false for review-only plans."
   default     = false
 }
+variable "allow_database_deletion" {
+  type        = bool
+  description = "Separate human approval gate for an active-mode plan that disables RDS deletion protection. Never enable for a routine active or idle plan."
+  default     = false
+}
 variable "idle_database_snapshot_identifier" {
   type        = string
   description = "Available manual snapshot protecting an approved idle RDS removal. Never commit a real identifier."
@@ -371,6 +376,18 @@ check "mode_boundaries" {
   assert {
     condition     = var.staging_mode == "active" || !var.enable_nat_gateway
     error_message = "Idle mode must not create a NAT Gateway."
+  }
+}
+check "database_deletion_approval" {
+  assert {
+    condition = !var.allow_database_deletion || (
+      var.staging_mode == "active" &&
+      var.deletion_protection &&
+      var.idle_database_removal_approved &&
+      var.idle_database_snapshot_identifier != "" &&
+      try(data.aws_db_snapshot.idle_removal[0].status == "available", false)
+    )
+    error_message = "Disabling RDS deletion protection requires active mode, the separate removal approval, and an available manual snapshot."
   }
 }
 check "snapshot_restore_inputs" {

@@ -80,6 +80,7 @@ def test_staging_required_common_variables_are_declared():
         "enable_runtime_services",
         "staging_mode",
         "idle_database_removal_approved",
+        "allow_database_deletion",
         "idle_database_snapshot_identifier",
         "restore_db_from_snapshot",
         "db_snapshot_identifier",
@@ -203,6 +204,14 @@ def test_idle_rds_apply_and_snapshot_restore_fail_closed():
     assert 'resource "terraform_data" "idle_apply_gate"' in root
     assert "RDS_IDLE_REMOVAL blocked" in root
     assert "idle_database_removal_approved" in variables
+    assert 'variable "allow_database_deletion"' in variables
+    assert 'default     = false' in variables
+    assert 'check "database_deletion_approval"' in variables
+    assert 'var.staging_mode == "active"' in variables
+    assert 'var.idle_database_removal_approved' in variables
+    assert 'var.idle_database_snapshot_identifier != ""' in variables
+    assert 'try(data.aws_db_snapshot.idle_removal[0].status == "available", false)' in variables
+    assert 'deletion_protection   = var.deletion_protection && !var.allow_database_deletion' in root
     assert 'var.restore_db_from_snapshot == (var.db_snapshot_identifier != "")' in variables
     assert "snapshot_identifier             = var.snapshot_identifier" in database
     assert 'db_name                         = var.snapshot_identifier == null ? "systemnavigator" : null' in database
@@ -214,6 +223,7 @@ def test_production_root_has_no_idle_mode_references():
     for token in (
         "staging_mode",
         "idle_database_removal_approved",
+        "allow_database_deletion",
         "enable_interface_endpoints",
         "restore_db_from_snapshot",
     ):

@@ -20,7 +20,7 @@ locals {
 # provide an available manual snapshot identifier; the data lookup then also
 # fails closed unless AWS confirms that snapshot exists and is available.
 data "aws_db_snapshot" "idle_removal" {
-  count                  = !local.active_mode && var.idle_database_removal_approved ? 1 : 0
+  count                  = var.idle_database_removal_approved && var.idle_database_snapshot_identifier != "" ? 1 : 0
   db_snapshot_identifier = var.idle_database_snapshot_identifier
   most_recent            = false
 }
@@ -96,7 +96,7 @@ module "database" {
   instance_class        = var.db_instance_class
   multi_az              = var.db_multi_az
   backup_retention_days = var.backup_retention_days
-  deletion_protection   = var.deletion_protection
+  deletion_protection   = var.deletion_protection && !var.allow_database_deletion
   enabled               = local.active_mode
   snapshot_identifier   = var.restore_db_from_snapshot ? var.db_snapshot_identifier : null
 }
