@@ -12,7 +12,7 @@ The explicit flags remain visible because they express materially different choi
 
 ```hcl
 staging_mode                 = "idle" # or active
-allow_database_deletion      = false  # separate reviewed active-mode phase only
+allow_database_deletion      = false  # true only for separately reviewed protection/removal phases
 enable_interface_endpoints  = true   # effective only in active
 enable_s3_gateway_endpoint  = true   # retained in both modes
 enable_nat_gateway          = false
@@ -44,7 +44,7 @@ Before an approved IDLE removal:
 2. Confirm application owners have ended writes and review CloudWatch `DatabaseConnections`; DB login is not part of the Terraform gate.
 3. Create a manual snapshot in a separately approved operation, record its ARN/identifier, source DB, engine/version, KMS key, timestamp and owner, and wait for `available`.
 4. Test restore into a disposable staging-only identifier in a separately approved exercise; verify PostgreSQL engine, schema/Alembic revision, synthetic data and application login, then remove that test only after approval.
-5. Use a separate ACTIVE-mode plan with `allow_database_deletion=true`, `idle_database_removal_approved=true`, and the available manual snapshot input to set only RDS `deletion_protection=false`. Review and apply only that saved plan after separate approval. Routine ACTIVE and IDLE inputs leave the new gate false.
+5. Use a separate ACTIVE-mode plan with `allow_database_deletion=true`, `idle_database_removal_approved=true`, and the available manual snapshot input to set only RDS `deletion_protection=false`. Review and apply only that saved plan after separate approval. A later fresh IDLE plan must again set both approval flags and the snapshot input. Routine ACTIVE and IDLE inputs leave the gate false.
 6. Set the two approval environment values required by `scripts/staging_idle_apply.sh`. The script checks the manual snapshot, deletion protection, ECS services and tasks, creates a new approved plan, then deliberately stops before apply.
 7. A human reviews that fresh plan and separately authorizes apply. Never apply `staging-idle.tfplan`; it has `idle_database_removal_approved=false`.
 

@@ -137,7 +137,7 @@ variable "idle_database_removal_approved" {
 }
 variable "allow_database_deletion" {
   type        = bool
-  description = "Separate human approval gate for an active-mode plan that disables RDS deletion protection. Never enable for a routine active or idle plan."
+  description = "Separate human approval gate for disabling RDS deletion protection or planning the approved idle RDS removal. Never enable for a routine plan."
   default     = false
 }
 variable "idle_database_snapshot_identifier" {
@@ -381,13 +381,12 @@ check "mode_boundaries" {
 check "database_deletion_approval" {
   assert {
     condition = !var.allow_database_deletion || (
-      var.staging_mode == "active" &&
       var.deletion_protection &&
       var.idle_database_removal_approved &&
       var.idle_database_snapshot_identifier != "" &&
       try(data.aws_db_snapshot.idle_removal[0].status == "available", false)
     )
-    error_message = "Disabling RDS deletion protection requires active mode, the separate removal approval, and an available manual snapshot."
+    error_message = "Allowing RDS deletion requires the separate removal approval and an available manual snapshot."
   }
 }
 check "snapshot_restore_inputs" {

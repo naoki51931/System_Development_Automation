@@ -207,11 +207,11 @@ def test_idle_rds_apply_and_snapshot_restore_fail_closed():
     assert 'variable "allow_database_deletion"' in variables
     assert 'default     = false' in variables
     assert 'check "database_deletion_approval"' in variables
-    assert 'var.staging_mode == "active"' in variables
     assert 'var.idle_database_removal_approved' in variables
     assert 'var.idle_database_snapshot_identifier != ""' in variables
     assert 'try(data.aws_db_snapshot.idle_removal[0].status == "available", false)' in variables
     assert 'deletion_protection   = var.deletion_protection && !var.allow_database_deletion' in root
+    assert "!var.allow_database_deletion || (" in variables
     assert 'var.restore_db_from_snapshot == (var.db_snapshot_identifier != "")' in variables
     assert "snapshot_identifier             = var.snapshot_identifier" in database
     assert 'db_name                         = var.snapshot_identifier == null ? "systemnavigator" : null' in database
