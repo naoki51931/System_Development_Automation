@@ -42,6 +42,71 @@ variable "db_instance_class" {
   default     = "db.t4g.medium"
 }
 
+variable "production_capacity_profile" {
+  type        = string
+  description = "Reviewed Production capacity profile. low-traffic targets 100 RPM steady and 600 RPM short burst."
+  default     = "baseline"
+  validation {
+    condition     = contains(["baseline", "low-traffic"], var.production_capacity_profile)
+    error_message = "production_capacity_profile must be baseline or low-traffic."
+  }
+}
+
+variable "backend_cpu" {
+  type        = number
+  description = "Production backend Fargate CPU units."
+  default     = 512
+}
+
+variable "backend_memory" {
+  type        = number
+  description = "Production backend Fargate memory in MiB."
+  default     = 1024
+}
+
+variable "backend_desired_count" {
+  type    = number
+  default = 1
+}
+
+variable "backend_min_count" {
+  type    = number
+  default = 1
+}
+
+variable "backend_max_count" {
+  type    = number
+  default = 2
+}
+
+variable "backend_cpu_target" {
+  type    = number
+  default = 60
+}
+
+variable "backend_memory_target" {
+  type    = number
+  default = 70
+}
+
+check "production_capacity" {
+  assert {
+    condition = var.production_capacity_profile != "low-traffic" || (
+      var.backend_cpu == 256 &&
+      var.backend_memory == 512 &&
+      var.backend_desired_count == 1 &&
+      var.backend_min_count == 1 &&
+      var.backend_max_count == 2 &&
+      var.db_instance_class == "db.t4g.small"
+    )
+    error_message = "The reviewed low-traffic profile is 256 CPU, 512 MiB, desired/min 1, max 2, and db.t4g.small."
+  }
+  assert {
+    condition     = var.backend_min_count <= var.backend_desired_count && var.backend_desired_count <= var.backend_max_count
+    error_message = "Backend desired count must be between autoscaling min and max."
+  }
+}
+
 variable "github_org" {
   type        = string
   description = "GitHub Organizationまたはユーザー名"

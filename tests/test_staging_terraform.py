@@ -230,6 +230,33 @@ def test_production_root_has_no_idle_mode_references():
         assert token not in production
 
 
+def test_production_low_traffic_capacity_is_explicit_and_safe():
+    root = text(ROOT / "environment/main.tf")
+    variables = text(ROOT / "environment/variables.tf")
+    ecs = text(ROOT / "modules/ecs/main.tf")
+    database = text(ROOT / "modules/database/main.tf")
+
+    assert 'variable "production_capacity_profile"' in variables
+    assert 'var.production_capacity_profile != "low-traffic"' in variables
+    assert "var.backend_cpu == 256" in variables
+    assert "var.backend_memory == 512" in variables
+    assert 'var.db_instance_class == "db.t4g.small"' in variables
+    assert "backend_cpu        = var.backend_cpu" in root
+    assert "backend_memory     = var.backend_memory" in root
+    assert 'resource "aws_ecs_task_definition" "app_low_traffic"' in ecs
+    assert 'family                   = "${var.name}-low-traffic"' in ecs
+    assert "cpu                      = tostring(var.backend_cpu)" in ecs
+    assert "memory                   = tostring(var.backend_memory)" in ecs
+    assert "aws_ecs_task_definition.app_low_traffic[0].arn" in ecs
+    assert 'resource "aws_appautoscaling_target" "app"' in ecs
+    assert 'predefined_metric_type = "ECSServiceAverageCPUUtilization"' in ecs
+    assert 'predefined_metric_type = "ECSServiceAverageMemoryUtilization"' in ecs
+    assert "deployment_circuit_breaker" in ecs
+    assert "rollback = true" in ecs
+    assert "multi_az                  = true" in database
+    assert "prevent_destroy = true" in database
+
+
 def test_staging_service_discovery_avoids_unstable_empty_custom_health_check():
     ecs = text(ROOT / "modules/staging_ecs/main.tf")
     discovery = re.search(

@@ -31,6 +31,14 @@ module "ecs" {
   private_subnet_ids = module.network.private_subnet_ids
   bucket_arn         = module.storage.bucket_arn
   image_tag          = var.container_image_tag
+  capacity_profile   = var.production_capacity_profile
+  backend_cpu        = var.backend_cpu
+  backend_memory     = var.backend_memory
+  desired_count      = var.backend_desired_count
+  min_count          = var.backend_min_count
+  max_count          = var.backend_max_count
+  cpu_target         = var.backend_cpu_target
+  memory_target      = var.backend_memory_target
 }
 
 module "database" {
