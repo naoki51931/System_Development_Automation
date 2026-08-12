@@ -10,6 +10,8 @@ Scope: `i-0add395a2d89805b5` in `eu-west-2`. This instance is an operator workst
 - The current public IPv4 is auto-assigned; there is no Elastic IP. Stop/start normally releases it and assigns a different address. Private IPv4 normally remains attached to the primary network interface.
 - AWS credentials come from IMDSv2 and `instanceRoleTerraform`. Do not copy temporary credentials to disk.
 
+The recovery manifest is `quality-results/work-ec2-recovery-manifest.json`. It stores only path, size, modification time, SHA-256, and classification; it does not store file contents.
+
 ## Stop gate
 
 All items must pass immediately before an approved stop:
@@ -30,12 +32,19 @@ All items must pass immediately before an approved stop:
    git rev-parse HEAD
    ```
 
-3. Inventory without printing contents: `environment/{backend.hcl,terraform.tfvars}`, equivalent Staging and staging-prerequisites files, saved plans/reviews, and local evidence. Treat tfvars/backend files as secret-bearing and must-preserve. Treat convergence plans as regenerable; treat already applied/partially applied plans as stale and never reapply them.
-4. Verify an approved secure backup/recovery path for must-preserve local-only files. The current root EBS has no snapshot; do not stop on the assumption that Git contains ignored configuration.
-5. Confirm no Terraform apply/plan, Docker build, migration, database test/server, pytest, Playwright/browser test, deployment, Production operational process, or SSH-dependent long job is running. `docker ps` must show no workload that must remain available.
-6. Confirm the filesystem is EBS-backed, mounts are healthy, disk space is acceptable, and no required data exists only under `/tmp`.
-7. Record the current public/private IPs and update the access plan. Document any SSH allowlist, DNS record, or external integration tied to the public IPv4.
-8. End the active Codex/SSH session cleanly. Stop protection being disabled is not authorization to stop.
+3. Validate the recovery manifest without printing file contents:
+
+   ```bash
+   python3 scripts/check_work_ec2_stop_readiness.py
+   ```
+
+   It must report matching hashes for all six critical files. A changed hash requires intentional manifest review and commit; never update a hash merely to silence a mismatch.
+4. Inventory without printing contents: `environment/{backend.hcl,terraform.tfvars}`, equivalent Staging and staging-prerequisites files, saved plans/reviews, and local evidence. Treat tfvars/backend files as secret-bearing and must-preserve. Treat convergence plans as regenerable; treat already applied/partially applied plans as stale and never reapply them.
+5. Verify an approved secure backup/recovery path for must-preserve local-only files. The current root EBS has no snapshot; do not stop on the assumption that Git contains ignored configuration. Set `external_backup_verified` only after a human has verified the approved backup and restore procedure.
+6. Confirm no Terraform apply/plan, Docker build/compose, migration, database test/server, pytest, Playwright/browser test, npm build, deployment, Production operational process, or SSH-dependent long job is running. `docker ps` must show no workload that must remain available.
+7. Confirm the filesystem is EBS-backed, mounts are healthy, disk use is below the 95% fail-closed threshold, and no required data exists only under `/tmp`.
+8. Record the current public/private IPs and update the access plan. Document any SSH allowlist, DNS record, or external integration tied to the public IPv4.
+9. End the active Codex/SSH session cleanly. Stop protection being disabled is not authorization to stop.
 
 If any item fails, classify the attempt as `WORK_EC2_STOP_REQUIRES_LOCAL_DATA_REMEDIATION` and do not stop.
 
@@ -63,8 +72,20 @@ Wait for `running` and both EC2 status checks to pass. Then verify:
 
 - new public IPv4/public DNS and expected private IPv4;
 - SSH/SSM reachability and any allowlist or DNS update required;
-- `aws sts get-caller-identity`, account `557604519341`, role `instanceRoleTerraform`, and region `eu-west-2`;
+- restore the instance-role environment and verify identity:
+
+  ```bash
+  unset AWS_EC2_METADATA_DISABLED
+  unset AWS_PROFILE AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
+  export AWS_REGION=eu-west-2
+  export AWS_DEFAULT_REGION=eu-west-2
+  aws sts get-caller-identity
+  aws configure get region
+  ```
+
+  The result must be account `557604519341` and assumed role `instanceRoleTerraform`.
 - root EBS mount, repository existence/status, disk free space, and local ignored configuration paths (without printing values);
+- recovery-manifest size and SHA-256 matches for every critical local file;
 - Docker daemon, expected images/volumes, and no unexpected containers;
 - no stale Terraform plan is treated as current; always create/review a fresh plan for future work.
 
@@ -75,3 +96,11 @@ Wait for `running` and both EC2 status checks to pass. Then verify:
 - Option C — scheduled stop: potentially similar or larger savings, but requires separately approved EventBridge/SSM/automation design, ownership, exceptions, and recovery testing.
 
 An Elastic IP is not currently required if operators can discover the new address after start. Adding one solely to avoid the address change reduces the savings and creates an allocation that must be governed; it requires separate approval.
+
+## Backup decision
+
+- A — EBS only: sufficient for normal stop/start, zero migration effort, but no protection from volume loss or accidental termination (`DeleteOnTermination=true`).
+- B — encrypted snapshot recovery: recommended near-term DR control. Because the source volume is unencrypted, implementation must use a separately approved procedure that produces and verifies an encrypted copy and controls/deletes any transient unencrypted snapshot. A full 30 GiB snapshot is roughly `$1.50/month` at a representative `$0.05/GB-month`; incremental billed size may be lower.
+- C — move local-only configuration to Secrets Manager/SSM/S3: strongest centralized lifecycle and audit option, but requires secret reads/writes, IAM design, restore tooling, and separate approval. It is the long-term option, not a prerequisite implementation in this read-only task.
+
+Choose B before manual stop approval, then evaluate C as a separate credential/configuration lifecycle project. Option A alone preserves data across stop/start but does not close the documented DR gap.
