@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+
 # All subprocess calls use fixed read-only commands without a shell.
 import subprocess  # nosec B404
 from typing import Any
@@ -34,6 +35,18 @@ def sha256_file(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def classify_process(command: str) -> str | None:
+    """Return a blocking category without exposing command arguments."""
+    lowered = command.lower().strip()
+    # Linux per-CPU scheduler threads are named [migration/N]; they are not jobs.
+    if lowered.startswith("[migration/"):
+        return None
+    for category, markers in PROCESS_MARKERS.items():
+        if any(marker in lowered for marker in markers):
+            return category
+    return None
 
 
 def validate_manifest(manifest: dict[str, Any], root: Path) -> list[str]:
@@ -132,11 +145,9 @@ def collect_evidence(root: Path, manifest: dict[str, Any]) -> dict[str, Any]:
             or "check_work_ec2_stop_readiness.py" in command
         ):
             continue
-        lowered = command.lower()
-        for category, markers in PROCESS_MARKERS.items():
-            if any(marker in lowered for marker in markers):
-                active.append({"category": category, "command": command.split()[0]})
-                break
+        category = classify_process(command)
+        if category:
+            active.append({"category": category, "command": command.split()[0]})
     disk = shutil.disk_usage(root)
     identity = _run_json([aws, "sts", "get-caller-identity", "--output", "json"])
     region = subprocess.run(  # nosec B603

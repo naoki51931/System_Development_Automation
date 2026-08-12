@@ -1,6 +1,7 @@
 import hashlib
 
 from scripts.check_work_ec2_stop_readiness import (
+    classify_process,
     evaluate_readiness,
     validate_manifest,
 )
@@ -105,3 +106,8 @@ def test_manifest_blocks_missing_or_changed_files(tmp_path):
         "CRITICAL_FILE_MISSING:environment/backend.hcl",
         "EXTERNAL_BACKUP_NOT_VERIFIED",
     ]
+
+
+def test_kernel_migration_thread_is_not_a_user_migration():
+    assert classify_process("[migration/0]") is None
+    assert classify_process("alembic upgrade head") == "migration"
