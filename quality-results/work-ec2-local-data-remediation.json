@@ -48,6 +48,23 @@
     "recommended": "option_b near-term, option_c long-term",
     "approval_required": true
   },
+  "stop_readiness": {
+    "status": "WORK_EC2_STOP_BLOCKED",
+    "git_clean": true,
+    "manifest_hashes_valid": true,
+    "failures": ["EXTERNAL_BACKUP_NOT_VERIFIED", "ACTIVE_CRITICAL_PROCESS"],
+    "active_process_category": "codex"
+  },
+  "quality": {
+    "tests": "34 passed",
+    "ruff": "PASS",
+    "format": "PASS",
+    "bandit": "PASS",
+    "compileall": "PASS",
+    "pip_audit_vulnerabilities": 0,
+    "secret_scan_findings": 0,
+    "quality_image_pip": "26.1.2"
+  },
   "production": {
     "rds_status": "available",
     "current_class": "db.t4g.medium",

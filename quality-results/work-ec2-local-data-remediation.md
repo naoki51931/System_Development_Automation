@@ -24,7 +24,9 @@ IMDSv2 is enabled and the attached profile is `instanceRoleTerraform`. The runbo
 - B, encrypted snapshot recovery: recommended before stop approval. For the unencrypted source volume, use a separately approved encrypted-copy workflow, verify restore/hash recovery, and tightly control any transient unencrypted snapshot. Approximate full-size storage is `$1.50/month`; incremental usage may be lower.
 - C, Secrets Manager/SSM/encrypted S3: strongest long-term configuration lifecycle, but requires secret operations, IAM/restore design, and recurring service/API cost. It was not performed.
 
-The manifest deliberately sets `external_backup_verified=false`. The checker therefore reports `WORK_EC2_STOP_BLOCKED`; the active Codex session is also a current process blocker. Decision: **WORK_EC2_BACKUP_APPROVAL_REQUIRED_BEFORE_STOP**.
+The manifest deliberately sets `external_backup_verified=false`. On a clean worktree the checker therefore reports `WORK_EC2_STOP_BLOCKED` for exactly `EXTERNAL_BACKUP_NOT_VERIFIED` and `ACTIVE_CRITICAL_PROCESS` (the current Codex session). A Linux `[migration/N]` kernel-thread false positive found during the first live run was fixed and covered by regression test. Decision: **WORK_EC2_BACKUP_APPROVAL_REQUIRED_BEFORE_STOP**.
+
+The final related suite passed 34 tests. Ruff check/format, Bandit, compileall, pip-audit (0 known vulnerabilities), JSON validation and the repository secret scan passed; the quality image retains pip `26.1.2`. No secret value was emitted by the checker or tests.
 
 ## Cost scenarios
 
