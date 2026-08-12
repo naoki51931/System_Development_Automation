@@ -1,0 +1,74 @@
+{
+  "timestamp_utc": "2026-08-12T13:18:26Z",
+  "git_head": "4429e3bf5d454fc616af89ee2c8e6af0f5e035b3",
+  "aws": {
+    "account": "557604519341",
+    "region": "eu-west-2",
+    "role": "instanceRoleTerraform",
+    "changes": 0
+  },
+  "rds": {
+    "identifier": "ai-platform-prod-postgres",
+    "status": "available",
+    "current_class": "db.t4g.medium",
+    "pending_class": "db.t4g.small",
+    "multi_az": true,
+    "allocated_storage_gib": 50,
+    "storage_type": "gp2",
+    "backup_retention_days": 14,
+    "deletion_protection": true,
+    "encrypted": true,
+    "publicly_accessible": false,
+    "maintenance_window": "sat:02:43-sat:03:13"
+  },
+  "verifier": {
+    "pass": false,
+    "failures": ["RDS_DBINSTANCECLASS_INVALID", "RDS_CLASS_STILL_PENDING"],
+    "warnings": ["PITR_API_FIELD_WARNING: DBInstance.EarliestRestorableTime is null"]
+  },
+  "pitr": "PASS",
+  "manual_snapshot": {"status": "available", "encrypted": true},
+  "ecs": {
+    "task": "ai-platform-prod-low-traffic:1",
+    "cpu": 256,
+    "memory_mib": 512,
+    "desired": 1,
+    "running": 1,
+    "pending": 0,
+    "deployment": "COMPLETED",
+    "target": "healthy",
+    "autoscaling_min": 1,
+    "autoscaling_max": 2,
+    "cpu_target_percent": 60,
+    "memory_target_percent": 70,
+    "http_status": {"/": 200, "/health": 200, "/docs": 200}
+  },
+  "alarms": {"total": 13, "alb": 4, "ecs": 3, "rds": 6, "states": {"OK": 13, "INSUFFICIENT_DATA": 0, "ALARM": 0}},
+  "sns": {"topic": "ai-platform-prod-alerts", "endpoint": "info@nagi-neco.com", "status": "Confirmed"},
+  "alb": "active",
+  "nat": "available",
+  "staging": {"rds": 0, "alb": 0, "interface_endpoints": 0, "runtime_ecs": 0, "status": "STAGING_IDLE_MODE_CONVERGED"},
+  "terraform_convergence": {
+    "state_key": "cloud-a/prod/terraform.tfstate",
+    "plan": "environment/production-post-maintenance-final-convergence.tfplan",
+    "sha256": "9d19de52c105ce9da98b9ce4ba43f62c967bbc66ab4eea8869867ef8e59b9e5f",
+    "add": 0,
+    "change": 1,
+    "replace": 0,
+    "destroy": 0,
+    "only_change": "RDS db.t4g.medium -> db.t4g.small",
+    "applied": false
+  },
+  "quality": {
+    "unit_tests": "28 passed",
+    "ruff": "PASS",
+    "ruff_format": "PASS",
+    "bandit": "PASS",
+    "compileall": "PASS",
+    "pip_audit_vulnerabilities": 0,
+    "secret_scan_findings": 0,
+    "quality_image_pip": "26.1.2"
+  },
+  "cost_usd_month": {"current_pending": "183-184", "post_rds": "135-136", "production_saving": "56-57", "combined_saving": "262-265"},
+  "decision": "RDS_DOWNSIZING_STILL_PENDING_MAINTENANCE"
+}
