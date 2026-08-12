@@ -58,3 +58,7 @@ The new review-only plan `production-100rpm-pitr-remediated-final.tfplan` has SH
 ## 2026-08-12 Production apply result
 
 The approved saved plan was applied once and partially succeeded. ECS is healthy on 256 CPU/512 MiB with autoscaling 1–2; GET smoke tests and PITR pass, ALB/NAT and Staging idle are preserved, SNS is PendingConfirmation, and seven ALB/ECS alarms are OK. AWS rejected the Multi-AZ RDS `db.t4g.small` change with `InsufficientDBInstanceCapacity`; RDS remains medium with no pending change and six RDS alarms are absent. The post-apply plan is 6 add / 1 change / 0 destroy. No retry, rollback, or push occurred. Final decision: **PRODUCTION_100RPM_DOWNSIZING_REQUIRES_REMEDIATION**.
+
+## 2026-08-12 residual remediation review
+
+AWS orderable options confirm PostgreSQL 18.3 `db.t4g.small` is Multi-AZ/gp2 orderable in eu-west-2a/b/c, distinguishing the prior error as temporary capacity unavailability rather than an unsupported class. The fresh residual plan SHA `992ec5ff...5578` is exactly 6 RDS alarms plus one in-place medium-to-small RDS update, with 0 replace/destroy/ECS/ALB/NAT/Staging action. PITR, snapshot, Production health, four Terraform validates and focused security/tests pass. No apply occurred. Decision: **READY_FOR_PRODUCTION_RDS_SMALL_RETRY_APPLY_APPROVAL**.
