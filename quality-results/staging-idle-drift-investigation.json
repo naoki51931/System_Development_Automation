@@ -1,0 +1,109 @@
+{
+  "investigation_time_utc": "2026-08-12",
+  "git_head": "572751fec5f8c7f3151e8737805c91f65476da2f",
+  "aws_account": "557604519341",
+  "region": "eu-west-2",
+  "state": {
+    "key": "system-navigator/staging/terraform.tfstate",
+    "lineage": "47717f58-dbeb-a083-7715-e3bc91e652c6",
+    "serial": 12,
+    "last_modified": "2026-08-11T07:25:48Z",
+    "idle_outputs": {"rds": 0, "alb": 0, "interface_endpoints": 0, "runtime_services": 0}
+  },
+  "rds": {
+    "address": "module.database.aws_db_instance.main[0]",
+    "terraform_state": "missing",
+    "current_state_attributes": null,
+    "old_plan_prior_state": {
+      "identifier": "system-navigator-staging-db",
+      "deletion_protection": false,
+      "instance_class": "db.t4g.small"
+    },
+    "aws": "DBInstanceNotFound",
+    "classification": "both missing",
+    "shutdown_event": "2026-08-11T07:18:56.952Z",
+    "deleted_event": "2026-08-11T07:25:20.609Z",
+    "cloudtrail": {
+      "event_time": "2026-08-11T07:18:52Z",
+      "event_name": "DeleteDBInstance",
+      "role": "arn:aws:iam::557604519341:role/instanceRoleTerraform",
+      "session": "i-0add395a2d89805b5",
+      "source_ip": "3.10.174.9",
+      "skip_final_snapshot": false,
+      "final_snapshot_identifier": "system-navigator-staging-db-final"
+    }
+  },
+  "manual_snapshot": {
+    "id": "system-navigator-staging-pre-idle-20260811-013548",
+    "status": "available",
+    "encrypted": true,
+    "source_db": "system-navigator-staging-db"
+  },
+  "resource_status": {
+    "alb": "removed",
+    "interface_endpoints_remaining": 0,
+    "s3_gateway_endpoint": "available",
+    "ecs_cluster": "removed",
+    "ecs_services": 0,
+    "ecs_running_tasks": 0,
+    "task_definitions": "removed",
+    "cloud_map": "removed",
+    "idle_target_alarms": "removed",
+    "log_groups": ["backend", "frontend", "migration", "worker"]
+  },
+  "preserved": {
+    "vpc": true,
+    "subnets": 6,
+    "route_tables": true,
+    "internet_gateway": true,
+    "db_subnet_group": true,
+    "db_security_group": true,
+    "s3_gateway_endpoint": true,
+    "artifact_s3": true,
+    "ecr_app": true,
+    "ecr_frontend": true,
+    "iam_deploy_role": true,
+    "sns": true,
+    "budget": true,
+    "db_secret_container": true,
+    "terraform_state": true,
+    "manual_snapshot": true
+  },
+  "old_plan": {
+    "path": "environment/staging/staging-final-idle.tfplan",
+    "sha256": "b2c8ab750e3f939a6023d89df921bcb7fd78c5bd4891de1d1a260520f4f3ee1a",
+    "actions": {"add": 1, "change": 1, "replace": 0, "destroy": 35},
+    "validity": "INVALID",
+    "reason": "All destroy targets are absent and the idle gate create target is present in current state."
+  },
+  "drift_review_plan": {
+    "path": "environment/staging/staging-current-drift-review.tfplan",
+    "resolved_staging_mode": "active",
+    "enable_runtime_services": false,
+    "actions": {"add": 35, "change": 1, "replace": 0, "destroy": 1},
+    "applied": false
+  },
+  "cost": {
+    "rds_charge_target_present": false,
+    "alb_charge_target_present": false,
+    "alb_public_ipv4_charge_target_present": false,
+    "interface_endpoint_count": 0,
+    "estimated_monthly_savings_usd": "206-208",
+    "estimated_idle_monthly_usd": "2-4"
+  },
+  "production": {
+    "rds": "available",
+    "ecs": {"status": "ACTIVE", "services": 1, "running_tasks": 1},
+    "alb": "active",
+    "nat": "available",
+    "vpc": "available",
+    "ecr": "exists",
+    "changes": 0
+  },
+  "final_decision": "STAGING_IDLE_MODE_ALREADY_EFFECTIVE",
+  "warnings": [
+    "Current local configuration resolves staging_mode to active and would recreate 35 resources.",
+    "Do not apply either the old saved plan or the new drift-review plan.",
+    "Human approval is required before reconciling the declared configuration to Idle Mode."
+  ]
+}
