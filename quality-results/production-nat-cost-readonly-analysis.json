@@ -1,0 +1,45 @@
+{
+  "timestamp_utc": "2026-08-12",
+  "aws": {"account": "557604519341", "region": "eu-west-2"},
+  "nat": {
+    "id": "nat-041c10f70dc672ab4",
+    "vpc": "vpc-0da4eaf0768153c5c",
+    "subnet": "subnet-039582b5311a27894",
+    "state": "available",
+    "connectivity": "public",
+    "eip_allocation": "eipalloc-091bbb181085cb162",
+    "hourly_usd": 0.05,
+    "data_processing_usd_gb": 0.05,
+    "public_ipv4_hourly_usd": 0.005,
+    "fixed_monthly_usd": 36.5,
+    "fixed_with_ipv4_monthly_usd": 40.15,
+    "fourteen_day_processed_gib_approx": 0.079
+  },
+  "dependent_subnets": [
+    {"id": "subnet-0b224e86387598728", "name": "ai-platform-prod-private-1", "az": "eu-west-2a"},
+    {"id": "subnet-0b0528c6af4fecff9", "name": "ai-platform-prod-private-2", "az": "eu-west-2b"}
+  ],
+  "database_subnets_depend_on_nat": false,
+  "existing_vpc_endpoints": 0,
+  "vpc_flow_logs": 0,
+  "confirmed_dependencies": ["ECR API", "ECR DKR", "S3 ECR layers", "CloudWatch Logs"],
+  "external_internet_dependency": "NOT_CONFIRMED_DESTINATION_EVIDENCE_INSUFFICIENT",
+  "endpoint_pricing": {"interface_az_hour_usd": 0.011, "s3_gateway_hour_usd": 0},
+  "options": {
+    "A": {"description": "retain NAT", "monthly_usd": 40.16, "saving_usd": 0},
+    "B": {"description": "retain NAT plus S3 Gateway", "monthly_usd": "40.15-40.16", "maximum_saving_usd": "<0.01"},
+    "C": {"description": "S3 Gateway plus ECR API/DKR/Logs endpoints in two AZs", "monthly_usd": 48.18, "saving_usd": -8.02}
+  },
+  "production_monthly_usd": {"pending_rds": "183-184", "post_rds": "135-136", "post_option_b": "135-136", "post_option_c": "143-144"},
+  "work_instance": {
+    "id": "i-0add395a2d89805b5",
+    "type": "t3.medium",
+    "state": "running",
+    "ebs": "30 GiB gp3",
+    "public_ipv4": true,
+    "estimated_monthly_usd": 40.89,
+    "production_scope": false
+  },
+  "decision": "PRODUCTION_NAT_REMOVAL_NOT_COST_EFFECTIVE",
+  "aws_changes": 0
+}
