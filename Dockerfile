@@ -7,7 +7,10 @@ WORKDIR /app
 RUN addgroup -S app && adduser -S -G app -h /app app
 RUN chown app:app /app
 COPY requirements-runtime.txt ./
-RUN pip install --no-cache-dir -r requirements-runtime.txt
+# Pin the installer used by build/quality stages to the first release fixing
+# all reviewed pip advisories. It is removed from the runtime stage below.
+RUN python -m pip install --no-cache-dir --upgrade "pip==26.1.2" \
+    && python -m pip install --no-cache-dir -r requirements-runtime.txt
 COPY --chown=app:app alembic.ini ./
 COPY --chown=app:app app ./app
 COPY --chown=app:app migrations ./migrations
@@ -26,3 +29,6 @@ COPY --chown=app:app tests ./tests
 USER app
 
 FROM base AS runtime
+USER root
+RUN python -m pip uninstall -y pip
+USER app
