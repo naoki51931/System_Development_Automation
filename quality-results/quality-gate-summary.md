@@ -62,3 +62,5 @@ The approved saved plan was applied once and partially succeeded. ECS is healthy
 ## 2026-08-12 residual remediation review
 
 AWS orderable options confirm PostgreSQL 18.3 `db.t4g.small` is Multi-AZ/gp2 orderable in eu-west-2a/b/c, distinguishing the prior error as temporary capacity unavailability rather than an unsupported class. The fresh residual plan SHA `992ec5ff...5578` is exactly 6 RDS alarms plus one in-place medium-to-small RDS update, with 0 replace/destroy/ECS/ALB/NAT/Staging action. PITR, snapshot, Production health, four Terraform validates and focused security/tests pass. No apply occurred. Decision: **READY_FOR_PRODUCTION_RDS_SMALL_RETRY_APPLY_APPROVAL**.
+
+The checksum-approved residual plan was subsequently applied exactly once: 6 add / 1 change / 0 destroy. RDS accepted the small class as pending maintenance, all 13 alarms exist with no ALARM state, and PITR/ECS/ALB/NAT/Staging remain healthy. The post-apply residual is only the pending RDS class transition. Decision: **PRODUCTION_100RPM_DOWNSIZING_APPLIED / RDS_DOWNSIZING_PENDING_MAINTENANCE / MANUAL_SNS_CONFIRMATION_REQUIRED**.
