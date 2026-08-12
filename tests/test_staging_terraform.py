@@ -184,6 +184,10 @@ def test_idle_mode_removes_costly_runtime_and_preserves_foundations():
     assert 'default     = "active"' in variables
     assert 'contains(["idle", "active"], var.staging_mode)' in variables
     assert 'active_mode = var.staging_mode == "active"' in root
+    assert 'variable "allow_staging_reactivation"' in variables
+    assert 'var.staging_mode == "idle" || var.allow_staging_reactivation' in variables
+    assert "ACTIVE_REACTIVATION blocked" in variables
+    assert "allow_staging_reactivation       = true" in text(STAGING / "terraform.tfvars.example")
     assert "enable_interface_endpoints = local.active_mode && var.enable_interface_endpoints" in root
     assert "enable_s3_gateway_endpoint = var.enable_s3_gateway_endpoint" in root
     assert 'count                           = var.enabled ? 1 : 0' in database
@@ -222,6 +226,7 @@ def test_production_root_has_no_idle_mode_references():
     production = "\n".join(text(path) for path in (ROOT / "environment").glob("*.tf"))
     for token in (
         "staging_mode",
+        "allow_staging_reactivation",
         "idle_database_removal_approved",
         "allow_database_deletion",
         "enable_interface_endpoints",

@@ -130,6 +130,15 @@ variable "staging_mode" {
     error_message = "staging_mode must be idle or active."
   }
 }
+variable "allow_staging_reactivation" {
+  type        = bool
+  description = "Explicit human approval gate for changing staging from its low-cost idle declaration to active infrastructure."
+  default     = false
+  validation {
+    condition     = var.staging_mode == "idle" || var.allow_staging_reactivation
+    error_message = "ACTIVE_REACTIVATION blocked: staging_mode=active requires allow_staging_reactivation=true and explicit human approval."
+  }
+}
 variable "idle_database_removal_approved" {
   type        = bool
   description = "Human approval gate for an idle apply that removes RDS. Keep false for review-only plans."

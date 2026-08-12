@@ -12,6 +12,7 @@ The explicit flags remain visible because they express materially different choi
 
 ```hcl
 staging_mode                 = "idle" # or active
+allow_staging_reactivation   = false  # true only for a separately reviewed IDLE-to-ACTIVE plan
 allow_database_deletion      = false  # true only for separately reviewed protection/removal phases
 enable_interface_endpoints  = true   # effective only in active
 enable_s3_gateway_endpoint  = true   # retained in both modes
@@ -22,6 +23,8 @@ db_snapshot_identifier      = ""     # ignored file/CLI only
 ```
 
 Do not commit real snapshot IDs, tfvars, backend files, plans or state.
+
+Changing an ignored local tfvars file from `staging_mode="idle"` to `"active"` recreates the costly RDS, ALB/Public IPv4, seven Interface Endpoints, ECS/task definitions, Cloud Map and alarms. Terraform therefore rejects ACTIVE unless `allow_staging_reactivation=true` is also supplied. The approval flag authorizes planning only; a reviewed saved plan and a separate apply approval are still mandatory.
 
 ## Network choice for ACTIVE
 
@@ -52,7 +55,7 @@ Before an approved IDLE removal:
 
 ## IDLE to ACTIVE restore
 
-1. Select the recorded manual snapshot. Set `staging_mode="active"`, `restore_db_from_snapshot=true`, `db_snapshot_identifier=<ignored input>`, `enable_runtime_services=false`, and choose connectivity. `restore_db_from_snapshot` and the identifier are mutually required by Terraform validation.
+1. Select the recorded manual snapshot. Set `staging_mode="active"`, `allow_staging_reactivation=true`, `restore_db_from_snapshot=true`, `db_snapshot_identifier=<ignored input>`, `enable_runtime_services=false`, and choose connectivity. `restore_db_from_snapshot` and the identifier are mutually required by Terraform validation. The reactivation approval must return to false in IDLE.
 2. Plan Phase 1. It creates Interface connectivity/NAT as approved, ALB, RDS restored with the same identifier/subnet group/security group, ECS cluster/task definitions and Cloud Map. Review zero Production addresses and apply only after approval.
 3. Wait for RDS `available`. Create/verify the application DB user through the separately approved administrative procedure. Update `/system-navigator/staging/database` outside Terraform with the new endpoint/database/user/password. Terraform never manages Secret values.
 4. Confirm automated backup/PITR and perform the documented backup preflight. Confirm the restored schema/Alembic revision before selecting migration SQL.
