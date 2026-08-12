@@ -49,6 +49,18 @@ module "database" {
   application_sg_id   = module.ecs.application_sg_id
 }
 
+module "monitoring" {
+  source                  = "../modules/production_monitoring"
+  name                    = var.name
+  notification_email      = var.production_notification_email
+  alb_arn_suffix          = module.ecs.alb_arn_suffix
+  target_group_arn_suffix = module.ecs.target_group_arn_suffix
+  ecs_cluster_name        = module.ecs.ecs_cluster_name
+  ecs_service_name        = module.ecs.ecs_service_name
+  desired_task_count      = var.backend_desired_count
+  db_instance_identifier  = module.database.db_instance_identifier
+}
+
 resource "aws_iam_openid_connect_provider" "github" {
   url            = "https://token.actions.githubusercontent.com"
   client_id_list = ["sts.amazonaws.com"]

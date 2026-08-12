@@ -10,6 +10,10 @@ ALB and the single NAT Gateway remain unchanged. NAT carried only about 0.36 GiB
 
 Before any apply: capture a Production manual snapshot, require available status, verify automated backup/PITR including a non-null earliest restore point, review maintenance/failover impact, and confirm the saved plan checksum. After apply, watch ALB 5xx/latency, ECS CPU/memory, RDS CPU/connections/free memory/read-write latency and scaling events. The account currently has no `ai-platform-prod*` alarms, so alarm creation is a separate required monitoring change.
 
+The safety design adds a dedicated `ai-platform-prod-alerts` SNS topic and 13 alarms: ALB target/ELB 5xx, unhealthy hosts and p95 response time; ECS CPU, memory and running task count; RDS CPU, connections, free memory/storage and read/write latency. The thresholds are based on the observed low utilization and the reviewed SLO: p95 500 ms, any unhealthy host, ELB 5xx >=1/5 min, target 5xx >=5/5 min, ECS CPU/memory 80%, RDS CPU 70%, connections 80, free memory 512 MiB, free storage 5 GiB, and read/write latency 50 ms sustained for ten minutes. The email input is deliberately empty until a human selects the Production recipient; Terraform never confirms email subscriptions. Staging SNS is never reused.
+
+The RDS class update uses the provider default `apply_immediately=false`, so it waits for the existing `sat:02:43-sat:03:13` maintenance window. Expect a restart or Multi-AZ failover and transient connection interruption. Roll back by a separately reviewed class update to `db.t4g.medium`; data recovery uses PITR or the retained pre-change snapshot only if required. ECS retains `ai-platform-prod:4` (512/1024) as the known-good rollback revision, enables circuit-breaker rollback, keeps 100/200 deployment percentages and a 60-second health grace period. CPU/memory target tracking is sufficient at 100 RPM; request-count scaling would add noise and complexity at the observed ~0.35 RPM average and is not proposed.
+
 Rollback:
 
 1. ECS: update the service to `ai-platform-prod:4`, wait for healthy target/rollout completion, and keep desired count at least one.

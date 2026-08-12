@@ -262,6 +262,35 @@ def test_production_low_traffic_capacity_is_explicit_and_safe():
     assert "prevent_destroy = true" in database
 
 
+def test_production_monitoring_is_complete_and_notification_isolated():
+    root = text(ROOT / "environment/main.tf")
+    variables = text(ROOT / "environment/variables.tf")
+    monitoring = text(ROOT / "modules/production_monitoring/main.tf")
+
+    assert 'module "monitoring"' in root
+    assert 'variable "production_notification_email"' in variables
+    assert 'name = "${var.name}-alerts"' in monitoring
+    assert "system-navigator-staging-alerts" not in monitoring
+    assert 'protocol  = "email"' in monitoring
+    assert 'count     = var.notification_email == "" ? 0 : 1' in monitoring
+    for metric in (
+        "HTTPCode_Target_5XX_Count",
+        "HTTPCode_ELB_5XX_Count",
+        "UnHealthyHostCount",
+        "TargetResponseTime",
+        "CPUUtilization",
+        "MemoryUtilization",
+        "RunningTaskCount",
+        "DatabaseConnections",
+        "FreeableMemory",
+        "FreeStorageSpace",
+        "ReadLatency",
+        "WriteLatency",
+    ):
+        assert metric in monitoring
+    assert "containerInsights" in text(ROOT / "modules/ecs/main.tf")
+
+
 def test_staging_service_discovery_avoids_unstable_empty_custom_health_check():
     ecs = text(ROOT / "modules/staging_ecs/main.tf")
     discovery = re.search(

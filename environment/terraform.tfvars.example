@@ -4,6 +4,7 @@ name                = "ai-platform-prod"
 container_image_tag = "v4"
 vpc_cidr            = "10.20.0.0/16"
 artifact_bucket_name = "REPLACE-WITH-UNIQUE-ARTIFACT-BUCKET"
+production_notification_email = "" # REQUIRED before downsizing apply; human confirmation is mandatory
 db_instance_class   = "db.t4g.medium"
 production_capacity_profile = "baseline"
 backend_cpu                 = 512

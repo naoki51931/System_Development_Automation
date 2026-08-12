@@ -30,6 +30,7 @@ Local-only verification resumed at baseline `22d9480e63f2246b40e7e84bea8c1206e22
 | Staging Notifications | PASS | SNS email variable, manual confirmation, alarms complete; Budget 100 GBP |
 | Prerequisite Root Boundary | PASS | ECR/IAM/SNS/Budget retained; custom-domain ACM/DNS disabled; explicit one-way main inputs |
 | Performance | PASS | retained 50-user/60-second: 0% errors, detail p95 490 ms, list p95 540 ms |
+| Production 100 RPM pre-apply | BLOCKED | Snapshot/PITR and safe 18-add/3-change/0-destroy plan pass; Production notification recipient is unset and pip-audit reports test-image pip findings. No apply authorized. |
 | Documentation | PASS | seven requested documents synchronized |
 
 The Compose-profile E2E attempt first failed because its quality image lacked browser binaries and its API default was container-local `localhost`. It was rerun against the same healthy Compose stack using the existing host Playwright 1.62.1 cache; all 69 tests passed.

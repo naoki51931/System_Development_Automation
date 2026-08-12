@@ -48,6 +48,11 @@ resource "aws_ecr_repository" "app" {
 resource "aws_ecs_cluster" "main" {
   name = var.name
 
+  setting {
+    name  = "containerInsights"
+    value = "enabled"
+  }
+
   tags = {
     Name = "${var.name}-cluster"
   }
@@ -360,6 +365,14 @@ output "ecs_cluster_name" {
 
 output "ecs_service_name" {
   value = aws_ecs_service.app.name
+}
+
+output "alb_arn_suffix" {
+  value = aws_lb.main.arn_suffix
+}
+
+output "target_group_arn_suffix" {
+  value = aws_lb_target_group.app.arn_suffix
 }
 
 output "task_definition_arn" {

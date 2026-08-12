@@ -36,6 +36,16 @@ variable "artifact_bucket_name" {
   description = "成果物保存用S3バケット名"
 }
 
+variable "production_notification_email" {
+  type        = string
+  description = "Human-approved Production alarm email. Empty creates the isolated SNS topic and alarms without a subscription."
+  default     = ""
+  validation {
+    condition     = var.production_notification_email == "" || can(regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", var.production_notification_email))
+    error_message = "production_notification_email must be empty or a valid human-approved email address."
+  }
+}
+
 variable "db_instance_class" {
   type        = string
   description = "RDSインスタンスクラス"
