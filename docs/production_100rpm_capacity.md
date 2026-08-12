@@ -21,3 +21,7 @@ Rollback:
 1. ECS: update the service to `ai-platform-prod:4`, wait for healthy target/rollout completion, and keep desired count at least one.
 2. RDS: modify class back to `db.t4g.medium`; expect a Multi-AZ failover/restart window. This is capacity rollback, not data rollback.
 3. Stop if RDS CPU is sustained above 70%, ECS CPU/memory above 80%, error rate reaches 1%, normal p95 exceeds 500 ms, list p95 exceeds 1000 ms, or DB connection/free-memory margin deteriorates.
+
+## 2026-08-12 partial apply result
+
+The checksum-approved PITR-remediated plan was applied once. ECS completed on `ai-platform-prod-low-traffic:1` at 256 CPU/512 MiB with desired/running 1/1 and autoscaling 1–2. ALB smoke tests and post-apply PITR passed, SNS was created pending human email confirmation, and seven ALB/ECS alarms are OK. AWS rejected the Multi-AZ RDS class modification with `InsufficientDBInstanceCapacity`; RDS remains `db.t4g.medium` with no pending modification, and the six RDS alarms remain unapplied. The residual read-only plan is 6 add / 1 change / 0 destroy. Do not reapply the partially consumed saved plan; wait for capacity, generate/review a fresh remediation plan, and obtain separate approval.
