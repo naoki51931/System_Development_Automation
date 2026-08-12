@@ -6,7 +6,10 @@ from __future__ import annotations
 import argparse
 from datetime import datetime
 import json
-import subprocess
+import shutil
+
+# The gate invokes only fixed, read-only AWS CLI operations without a shell.
+import subprocess  # nosec B404
 from typing import Any
 
 
@@ -84,8 +87,12 @@ def evaluate_pitr_gate(evidence: dict[str, Any]) -> dict[str, Any]:
 
 
 def _aws(*args: str) -> Any:
-    result = subprocess.run(
-        ["aws", *args, "--output", "json"],
+    aws_cli = shutil.which("aws")
+    if aws_cli is None:
+        raise RuntimeError("AWS CLI is required for PITR evidence collection")
+    # The argv list is passed directly and is never evaluated by a shell.
+    result = subprocess.run(  # nosec B603
+        [aws_cli, *args, "--output", "json"],
         check=True,
         capture_output=True,
         text=True,

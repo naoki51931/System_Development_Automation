@@ -46,3 +46,11 @@ Every mandatory pre-plan local gate is PASS. This authorizes only human review o
 The empty Cloud Map `health_check_custom_config {}` block was the sole cause of backend/worker ForceNew drift after bootstrap. It was removed without `ignore_changes`; four Terraform roots validate, 17 staging Terraform safety tests pass, and the saved reconcile plan is `No changes` with both discovery resources no-op and add/change/replace/destroy all zero. Production resources remain active/available, the application DB Secret has zero versions, and runtime ECS services remain zero.
 
 RDS is available with the reviewed low-cost and protection settings. Its latest restorable timestamp is `2026-08-10T14:16:14Z`, but the earliest timestamp and automated-backup restore window are still null. Final status is `WAITING_FOR_RDS_PITR_PROTECTION`; Secret registration, snapshot, migration, and runtime services remain separately approval-gated.
+
+## 2026-08-12 Production PITR and final-plan remediation
+
+Production PITR Gate is PASS. `DBInstance.EarliestRestorableTime` is null and retained as `PITR_API_FIELD_WARNING`; the matching active automated-backup record has 14-day retention and a complete ordered restore window, the latest automated snapshot and named manual snapshot are available/encrypted, and recent backup failures are zero.
+
+Backend is 167 passed with 82.89% overall and 90.86% critical-service coverage. Frontend is 34 passed with build and OpenAPI drift checks PASS. Ruff, formatting, compileall, Bandit, pip-audit, and secret scan PASS; the quality image retains pip 26.1.2. All four Terraform roots pass recursive fmt, backend-disabled init, and validate; Terraform safety tests pass and `STAGING_IDLE_MODE_CONVERGED` remains unchanged.
+
+The new review-only plan `production-100rpm-pitr-remediated-final.tfplan` has SHA-256 `6c4a977c54942c734526abc7f233124014a74eef861fc298f91f90b28b27efc3` and 19 add / 3 change / 0 replace / 0 destroy. RDS replacement and Production infrastructure destruction are zero. The former `production-100rpm-remediated-final.tfplan` (`d6f094d...5df0`) is **STALE / INVALID**. No apply or push occurred. Final decision: **READY_WITH_MANUAL_SNS_CONFIRMATION_REQUIRED**.

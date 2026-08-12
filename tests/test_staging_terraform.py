@@ -158,16 +158,28 @@ def test_staging_runtime_services_and_alarms_are_bootstrap_gated():
     assert 'variable "enable_runtime_services"' in variables
     assert "enable_runtime_services = false" in example
     assert 'variable "enable_runtime_infrastructure"' in ecs
-    assert ecs.count("var.enable_runtime_infrastructure && var.enable_runtime_services ? 1 : 0") == 3
+    assert (
+        ecs.count(
+            "var.enable_runtime_infrastructure && var.enable_runtime_services ? 1 : 0"
+        )
+        == 3
+    )
     for service in ("backend", "worker", "frontend"):
         block = re.search(
             rf'resource "aws_ecs_service" "{service}" \{{(.*?)\n\}}', ecs, re.S
         )
-        assert block and "var.enable_runtime_infrastructure && var.enable_runtime_services ? 1 : 0" in block.group(1)
+        assert (
+            block
+            and "var.enable_runtime_infrastructure && var.enable_runtime_services ? 1 : 0"
+            in block.group(1)
+        )
     assert 'resource "aws_ecs_task_definition" "migration"' in ecs
     assert 'command = ["alembic", "upgrade", "head"]' in ecs
     assert "aws_secretsmanager_secret_version" not in ecs
-    assert "service_dimensions = var.enabled && var.enable_runtime_services ?" in monitoring
+    assert (
+        "service_dimensions = var.enabled && var.enable_runtime_services ?"
+        in monitoring
+    )
     assert "for_each = var.enabled && var.enable_runtime_services ?" in monitoring
     assert monitoring.count("var.enabled && var.enable_runtime_services") >= 3
 
@@ -187,15 +199,26 @@ def test_idle_mode_removes_costly_runtime_and_preserves_foundations():
     assert 'variable "allow_staging_reactivation"' in variables
     assert 'var.staging_mode == "idle" || var.allow_staging_reactivation' in variables
     assert "ACTIVE_REACTIVATION blocked" in variables
-    assert "allow_staging_reactivation       = true" in text(STAGING / "terraform.tfvars.example")
-    assert "enable_interface_endpoints = local.active_mode && var.enable_interface_endpoints" in root
+    assert "allow_staging_reactivation       = true" in text(
+        STAGING / "terraform.tfvars.example"
+    )
+    assert (
+        "enable_interface_endpoints = local.active_mode && var.enable_interface_endpoints"
+        in root
+    )
     assert "enable_s3_gateway_endpoint = var.enable_s3_gateway_endpoint" in root
-    assert 'count                           = var.enabled ? 1 : 0' in database
+    assert "count                           = var.enabled ? 1 : 0" in database
     assert "enable_runtime_infrastructure   = local.active_mode" in root
-    assert 'count = var.enable_runtime_infrastructure ? 1 : 0' in ecs
-    assert 'for_each          = toset(["backend", "worker", "frontend", "migration"])' in ecs
-    assert 'count             = var.create_vpc && var.enable_s3_gateway_endpoint ? 1 : 0' in network
-    assert 'prevent_destroy = true' in storage
+    assert "count = var.enable_runtime_infrastructure ? 1 : 0" in ecs
+    assert (
+        'for_each          = toset(["backend", "worker", "frontend", "migration"])'
+        in ecs
+    )
+    assert (
+        "count             = var.create_vpc && var.enable_s3_gateway_endpoint ? 1 : 0"
+        in network
+    )
+    assert "prevent_destroy = true" in storage
     assert 'output "idle_cost_resource_counts"' in outputs
 
 
@@ -209,16 +232,28 @@ def test_idle_rds_apply_and_snapshot_restore_fail_closed():
     assert "RDS_IDLE_REMOVAL blocked" in root
     assert "idle_database_removal_approved" in variables
     assert 'variable "allow_database_deletion"' in variables
-    assert 'default     = false' in variables
+    assert "default     = false" in variables
     assert 'check "database_deletion_approval"' in variables
-    assert 'var.idle_database_removal_approved' in variables
+    assert "var.idle_database_removal_approved" in variables
     assert 'var.idle_database_snapshot_identifier != ""' in variables
-    assert 'try(data.aws_db_snapshot.idle_removal[0].status == "available", false)' in variables
-    assert 'deletion_protection   = var.deletion_protection && !var.allow_database_deletion' in root
+    assert (
+        'try(data.aws_db_snapshot.idle_removal[0].status == "available", false)'
+        in variables
+    )
+    assert (
+        "deletion_protection   = var.deletion_protection && !var.allow_database_deletion"
+        in root
+    )
     assert "!var.allow_database_deletion || (" in variables
-    assert 'var.restore_db_from_snapshot == (var.db_snapshot_identifier != "")' in variables
+    assert (
+        'var.restore_db_from_snapshot == (var.db_snapshot_identifier != "")'
+        in variables
+    )
     assert "snapshot_identifier             = var.snapshot_identifier" in database
-    assert 'db_name                         = var.snapshot_identifier == null ? "systemnavigator" : null' in database
+    assert (
+        'db_name                         = var.snapshot_identifier == null ? "systemnavigator" : null'
+        in database
+    )
     assert "prevent_destroy" not in database
 
 
@@ -289,6 +324,20 @@ def test_production_monitoring_is_complete_and_notification_isolated():
     ):
         assert metric in monitoring
     assert "containerInsights" in text(ROOT / "modules/ecs/main.tf")
+
+
+def test_quality_workflow_enforces_production_pitr_and_all_terraform_roots():
+    workflow = text(ROOT / ".github/workflows/quality-gate.yml")
+
+    assert "pytest -q tests/test_production_pitr_gate.py" in workflow
+    for root in (
+        "bootstrap",
+        "environment",
+        "environment/staging",
+        "environment/staging-prerequisites",
+    ):
+        assert f"working-directory: {root}" in workflow
+    assert workflow.count("terraform init -backend=false && terraform validate") == 4
 
 
 def test_staging_service_discovery_avoids_unstable_empty_custom_health_check():
