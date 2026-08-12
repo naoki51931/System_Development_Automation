@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-08-12T13:45:00Z",
+  "instance_id": "i-0add395a2d89805b5",
+  "volume_id": "vol-09baf3dfa613ea20d",
+  "external_backup_verified": false,
+  "files": [
+    {
+      "path": "environment/backend.hcl",
+      "exists": true,
+      "size": 266,
+      "mtime": "2026-08-01T13:24:23.427820957Z",
+      "sha256": "faa93d0b082ce149f39c3700cdab0e5a95959f14e2ea9e5a2267ea61de20b81b",
+      "classification": ["CRITICAL_RECOVERY_REQUIRED", "SECRET_BEARING"],
+      "secret_bearing": true,
+      "recovery_requirement": "restore exact file to the same path with restricted permissions"
+    },
+    {
+      "path": "environment/terraform.tfvars",
+      "exists": true,
+      "size": 794,
+      "mtime": "2026-08-12T01:33:51.519660219Z",
+      "sha256": "c693115a4ac4ab76d830f67ff12539b804d95e70c1fb66f7df2adeb853ec7e22",
+      "classification": ["CRITICAL_RECOVERY_REQUIRED", "SECRET_BEARING"],
+      "secret_bearing": true,
+      "recovery_requirement": "restore exact file to the same path with restricted permissions"
+    },
+    {
+      "path": "environment/staging/backend.hcl",
+      "exists": true,
+      "size": 278,
+      "mtime": "2026-08-10T12:21:49.816500181Z",
+      "sha256": "8b36455531dfa78bc0e194d99a98f0157374e8d04c1ab8dd1329cff8e8c52240",
+      "classification": ["CRITICAL_RECOVERY_REQUIRED", "SECRET_BEARING"],
+      "secret_bearing": true,
+      "recovery_requirement": "restore exact file to the same path with restricted permissions"
+    },
+    {
+      "path": "environment/staging/terraform.tfvars",
+      "exists": true,
+      "size": 3102,
+      "mtime": "2026-08-12T00:56:44.197119266Z",
+      "sha256": "6e28dae547b409beaf69d4ad17e926e3a2509659850390bc1b1a75f9566a6535",
+      "classification": ["CRITICAL_RECOVERY_REQUIRED", "SECRET_BEARING"],
+      "secret_bearing": true,
+      "recovery_requirement": "restore exact file to the same path with restricted permissions"
+    },
+    {
+      "path": "environment/staging-prerequisites/backend.hcl",
+      "exists": true,
+      "size": 282,
+      "mtime": "2026-08-09T08:05:43.309613057Z",
+      "sha256": "7ac2c14b4bf18f559364de697fdfe2fc06c65fdfbd99051c1d36c6fc03154685",
+      "classification": ["CRITICAL_RECOVERY_REQUIRED", "SECRET_BEARING"],
+      "secret_bearing": true,
+      "recovery_requirement": "restore exact file to the same path with restricted permissions"
+    },
+    {
+      "path": "environment/staging-prerequisites/terraform.tfvars",
+      "exists": true,
+      "size": 913,
+      "mtime": "2026-08-09T11:01:00.491554250Z",
+      "sha256": "c962fa6892d4fb0943a888d5f4cb2a6daa270065ae03f16383e1ae37f68972da",
+      "classification": ["CRITICAL_RECOVERY_REQUIRED", "SECRET_BEARING"],
+      "secret_bearing": true,
+      "recovery_requirement": "restore exact file to the same path with restricted permissions"
+    }
+  ]
+}
