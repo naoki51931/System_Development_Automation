@@ -1,0 +1,69 @@
+{
+  "timestamp_utc": "2026-08-12T13:18:26Z",
+  "aws_changes": 0,
+  "instance": {
+    "id": "i-0add395a2d89805b5",
+    "state": "running",
+    "status_checks": "2/2 OK",
+    "type": "t3.medium",
+    "availability_zone": "eu-west-2c",
+    "vpc": "vpc-09fe8054e761e54ca",
+    "subnet": "subnet-09636511a5d33c952",
+    "private_ipv4": "172.31.0.175",
+    "public_ipv4": "18.170.41.191",
+    "elastic_ip": false,
+    "public_ipv4_behavior": "auto-assigned; expected to change after stop/start",
+    "instance_profile": "instanceRoleTerraform",
+    "termination_protection": false,
+    "stop_protection": false,
+    "instance_store": false
+  },
+  "ebs": {
+    "volume_id": "vol-09baf3dfa613ea20d",
+    "size_gib": 30,
+    "type": "gp3",
+    "encrypted": false,
+    "iops": 3000,
+    "throughput_mib_s": 125,
+    "delete_on_termination": true,
+    "owner_snapshots": 0,
+    "persistent_across_stop_start": true
+  },
+  "local_state": {
+    "worktree_clean_at_inspection": true,
+    "docker_running_containers": 0,
+    "docker_volumes": 4,
+    "docker_root_ebs_backed": true,
+    "tmpfs_is_ephemeral": true,
+    "root_disk_used_percent": 91,
+    "important_ignored_files": [
+      "environment/backend.hcl",
+      "environment/terraform.tfvars",
+      "environment/staging/backend.hcl",
+      "environment/staging/terraform.tfvars",
+      "environment/staging-prerequisites/backend.hcl",
+      "environment/staging-prerequisites/terraform.tfvars"
+    ],
+    "secure_recovery_copy_verified": false,
+    "active_stop_blocker": "current Codex/SSH-dependent session"
+  },
+  "cost_usd_month": {
+    "always_on_compute": 34.46,
+    "always_on_ebs": 2.78,
+    "always_on_public_ipv4": 3.65,
+    "always_on_total": 40.89,
+    "stopped_total": 2.78,
+    "maximum_saving": 38.11,
+    "manual_160h_total": 11.14,
+    "manual_160h_saving": 29.75
+  },
+  "recommended_strategy": "manual start/stop after secure local-data recovery and process gates pass",
+  "runbook": "docs/work_ec2_stop_start_runbook.md",
+  "quality": {
+    "json_validation": "PASS",
+    "secret_scan_findings": 0,
+    "related_unit_tests": "28 passed",
+    "security": "PASS"
+  },
+  "decision": "WORK_EC2_STOP_REQUIRES_LOCAL_DATA_REMEDIATION"
+}
