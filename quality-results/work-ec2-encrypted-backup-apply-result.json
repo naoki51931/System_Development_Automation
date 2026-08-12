@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "recorded_at_utc": "2026-08-12T22:25:07Z",
+  "git_head_before_evidence": "16016469d83129f32616656e1ab00fabb308e80a",
+  "aws": {
+    "account": "557604519341",
+    "region": "eu-west-2",
+    "role": "instanceRoleTerraform"
+  },
+  "source_ec2": {
+    "instance_id": "i-0add395a2d89805b5",
+    "state": "running",
+    "system_status": "ok",
+    "instance_status": "ok",
+    "availability_zone": "eu-west-2c",
+    "root_volume_id": "vol-09baf3dfa613ea20d",
+    "root_volume_unchanged": true
+  },
+  "snapshots": {
+    "source": {
+      "snapshot_id": "snap-09251b0d48de70d17",
+      "state": "completed",
+      "progress": "100%",
+      "volume_size_gib": 30,
+      "encrypted": false,
+      "retained": true,
+      "cleanup_required": true
+    },
+    "failed_copy_artifact": {
+      "snapshot_id": "snap-000caea04ca81bfef",
+      "state": "error",
+      "reason": "Source snapshot is not complete",
+      "used_for_restore": false,
+      "retained": true
+    },
+    "encrypted_recovery": {
+      "snapshot_id": "snap-0da911dd9bd13c867",
+      "state": "completed",
+      "progress": "100%",
+      "volume_size_gib": 30,
+      "encrypted": true,
+      "kms_alias": "alias/aws/ebs",
+      "kms_key_arn": "arn:aws:kms:eu-west-2:557604519341:key/b444b2bf-73a7-41fa-90cd-e2c53098e3ed",
+      "retained": true
+    }
+  },
+  "restore_test": {
+    "temporary_volume_id": "vol-045b7e4095e33d4af",
+    "encrypted": true,
+    "volume_type": "gp3",
+    "volume_size_gib": 30,
+    "requested_device": "/dev/sdf",
+    "host_device": "/dev/nvme1n1",
+    "restored_partition": "/dev/nvme1n1p1",
+    "mount_point": "/mnt/work-ec2-restore-test",
+    "mount_options": "ro,relatime,norecovery",
+    "git_readable": true,
+    "critical_files_present": 6,
+    "critical_sizes_match": 6,
+    "critical_hashes_match": 6,
+    "verifier_status": "RESTORE_FILE_HASHES_PASS",
+    "result": "WORK_EC2_RESTORE_TEST_PASS",
+    "unmounted": true,
+    "detached_without_force": true,
+    "deleted": true
+  },
+  "current_root_verification": {
+    "critical_files_present": 6,
+    "critical_sizes_match": 6,
+    "critical_hashes_match": 6,
+    "status": "RESTORE_FILE_HASHES_PASS"
+  },
+  "production_rds_read_only": {
+    "identifier": "ai-platform-prod-postgres",
+    "status": "available",
+    "current_class": "db.t4g.medium",
+    "pending_class": "db.t4g.small",
+    "post_maintenance_verifier_run": false,
+    "decision": "RDS_DOWNSIZING_STILL_PENDING_MAINTENANCE"
+  },
+  "security": {
+    "secret_values_exposed": false,
+    "secret_values_read_or_changed": false
+  },
+  "decisions": [
+    "WORK_EC2_ENCRYPTED_BACKUP_VALIDATED",
+    "WORK_EC2_READY_FOR_SOURCE_SNAPSHOT_CLEANUP_APPROVAL",
+    "WORK_EC2_READY_FOR_MANUAL_STOP_APPROVAL",
+    "UNENCRYPTED_SOURCE_SNAPSHOT_CLEANUP_REQUIRED"
+  ]
+}

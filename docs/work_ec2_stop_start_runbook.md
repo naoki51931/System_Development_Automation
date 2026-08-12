@@ -6,7 +6,7 @@ Scope: `i-0add395a2d89805b5` in `eu-west-2`. This instance is an operator workst
 
 - The instance is `t3.medium` and has no instance store. `/home/ubuntu`, the repository, Docker root (`/var/lib/docker`), and Docker volumes are on the 30 GiB gp3 root EBS volume `vol-09baf3dfa613ea20d`.
 - EBS persists across stop/start. `/tmp` is tmpfs and does not persist.
-- The volume is unencrypted, has no owner snapshot, and has `DeleteOnTermination=true`. Stop does not delete it, but termination would.
+- The volume is unencrypted and has `DeleteOnTermination=true`. Stop does not delete it, but termination would. Validated recovery snapshot `snap-0da911dd9bd13c867` is encrypted with the AWS-managed EBS key; source snapshot `snap-09251b0d48de70d17` remains pending separately approved cleanup.
 - The current public IPv4 is auto-assigned; there is no Elastic IP. Stop/start normally releases it and assigns a different address. Private IPv4 normally remains attached to the primary network interface.
 - AWS credentials come from IMDSv2 and `instanceRoleTerraform`. Do not copy temporary credentials to disk.
 
@@ -104,6 +104,8 @@ An Elastic IP is not currently required if operators can discover the new addres
 - C — move local-only configuration to Secrets Manager/SSM/S3: strongest centralized lifecycle and audit option, but requires secret reads/writes, IAM design, restore tooling, and separate approval. It is the long-term option, not a prerequisite implementation in this read-only task.
 
 Choose B before manual stop approval, then evaluate C as a separate credential/configuration lifecycle project. Option A alone preserves data across stop/start but does not close the documented DR gap.
+
+Option B was validated on 2026-08-12: the encrypted snapshot completed and an actual read-only restore matched all six manifest files by size and SHA-256. The temporary restore volume was deleted. Retain `snap-0da911dd9bd13c867`; do not use the failed copy artifact `snap-000caea04ca81bfef`. Source cleanup and EC2 stop remain separate approval gates.
 
 ## Approved-backup procedure template
 
