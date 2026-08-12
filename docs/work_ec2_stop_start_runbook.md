@@ -104,3 +104,92 @@ An Elastic IP is not currently required if operators can discover the new addres
 - C — move local-only configuration to Secrets Manager/SSM/S3: strongest centralized lifecycle and audit option, but requires secret reads/writes, IAM design, restore tooling, and separate approval. It is the long-term option, not a prerequisite implementation in this read-only task.
 
 Choose B before manual stop approval, then evaluate C as a separate credential/configuration lifecycle project. Option A alone preserves data across stop/start but does not close the documented DR gap.
+
+## Approved-backup procedure template
+
+This is a command review, not standing authorization. Snapshot creation, copying, attaching, and deletion each require the next human approval. Run the mutating commands only from a control session that will not be interrupted, after local Docker/PostgreSQL/build/test/Codex work is quiesced and `sync` has completed.
+
+```bash
+export AWS_REGION=eu-west-2 AWS_DEFAULT_REGION=eu-west-2
+BACKUP_STAMP=$(date -u +%Y%m%d-%H%M%S)
+SOURCE_NAME="system-navigator-work-ec2-pre-stop-${BACKUP_STAMP}"
+ENCRYPTED_NAME="system-navigator-work-ec2-pre-stop-encrypted-${BACKUP_STAMP}"
+
+SOURCE_SNAPSHOT_ID=$(aws ec2 create-snapshot \
+  --volume-id vol-09baf3dfa613ea20d \
+  --description "$SOURCE_NAME" \
+  --tag-specifications "ResourceType=snapshot,Tags=[{Key=Name,Value=${SOURCE_NAME}},{Key=Purpose,Value=work-ec2-pre-stop-source}]" \
+  --region eu-west-2 \
+  --query SnapshotId --output text)
+
+aws ec2 wait snapshot-completed \
+  --snapshot-ids "$SOURCE_SNAPSHOT_ID" \
+  --region eu-west-2
+
+ENCRYPTED_SNAPSHOT_ID=$(aws ec2 copy-snapshot \
+  --source-region eu-west-2 \
+  --source-snapshot-id "$SOURCE_SNAPSHOT_ID" \
+  --encrypted \
+  --kms-key-id alias/aws/ebs \
+  --description "$ENCRYPTED_NAME" \
+  --tag-specifications "ResourceType=snapshot,Tags=[{Key=Name,Value=${ENCRYPTED_NAME}},{Key=Purpose,Value=work-ec2-pre-stop-encrypted}]" \
+  --region eu-west-2 \
+  --query SnapshotId --output text)
+
+aws ec2 wait snapshot-completed \
+  --snapshot-ids "$ENCRYPTED_SNAPSHOT_ID" \
+  --region eu-west-2
+
+aws ec2 describe-snapshots \
+  --snapshot-ids "$SOURCE_SNAPSHOT_ID" "$ENCRYPTED_SNAPSHOT_ID" \
+  --region eu-west-2 \
+  --query 'Snapshots[].{Id:SnapshotId,State:State,Encrypted:Encrypted,KmsKeyId:KmsKeyId,Size:VolumeSize,Description:Description}'
+```
+
+Required result: the copy is `completed`, encrypted, 30 GiB, and uses `alias/aws/ebs`'s resolved AWS-managed key. Do not delete the unencrypted source yet.
+
+### Restore verification template
+
+With separate approval, create a 30 GiB encrypted gp3 volume in the work instance's AZ, attach it as a secondary device, discover its actual NVMe device with `lsblk`, and mount it read-only. Do not assume `/dev/sdf` is the Linux device name.
+
+```bash
+RESTORE_VOLUME_ID=$(aws ec2 create-volume \
+  --snapshot-id "$ENCRYPTED_SNAPSHOT_ID" \
+  --availability-zone eu-west-2c \
+  --volume-type gp3 --size 30 --iops 3000 --throughput 125 \
+  --encrypted --kms-key-id alias/aws/ebs \
+  --tag-specifications "ResourceType=volume,Tags=[{Key=Name,Value=work-ec2-restore-test},{Key=Purpose,Value=temporary-restore-test}]" \
+  --region eu-west-2 \
+  --query VolumeId --output text)
+aws ec2 wait volume-available --volume-ids "$RESTORE_VOLUME_ID" --region eu-west-2
+aws ec2 attach-volume --volume-id "$RESTORE_VOLUME_ID" \
+  --instance-id i-0add395a2d89805b5 --device /dev/sdf --region eu-west-2
+```
+
+After `lsblk -f` identifies the restored partition, mount it using filesystem-appropriate read-only/no-journal-replay options (for the observed ext4 root, `ro,noload`) at a new empty mount point. Then run:
+
+```bash
+python3 scripts/verify_work_ec2_recovery.py \
+  --manifest quality-results/work-ec2-recovery-manifest.json \
+  --restored-repository /mnt/work-ec2-restore/home/ubuntu/ai-platform
+```
+
+Also confirm the repository is readable and the expected Docker/local configuration paths exist, without printing secret contents. Passing output must be `RESTORE_FILE_HASHES_PASS` for all six files.
+
+Cleanup requires another explicit approval: unmount, detach, wait for `available`, delete the temporary restore volume, verify deletion, and check for any temporary test instance/security group. Only after encrypted-copy metadata and restore tests pass should deletion of the unencrypted source snapshot be separately approved. Retain the encrypted recovery snapshot.
+
+```bash
+sudo umount /mnt/work-ec2-restore
+aws ec2 detach-volume --volume-id "$RESTORE_VOLUME_ID" --region eu-west-2
+aws ec2 wait volume-available --volume-ids "$RESTORE_VOLUME_ID" --region eu-west-2
+aws ec2 delete-volume --volume-id "$RESTORE_VOLUME_ID" --region eu-west-2
+aws ec2 describe-volumes --volume-ids "$RESTORE_VOLUME_ID" --region eu-west-2
+```
+
+The final describe should return `InvalidVolume.NotFound`. In a later, separately approved cleanup after restore success:
+
+```bash
+aws ec2 delete-snapshot --snapshot-id "$SOURCE_SNAPSHOT_ID" --region eu-west-2
+```
+
+Never delete `ENCRYPTED_SNAPSHOT_ID` as part of temporary-resource cleanup.

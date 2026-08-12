@@ -1,0 +1,76 @@
+{
+  "timestamp_utc": "2026-08-12T14:11:57Z",
+  "start_git_head": "d8a5246ef081787044857c9c03e464bd86f70ef3",
+  "aws": {"account": "557604519341", "region": "eu-west-2", "role": "instanceRoleTerraform", "changes": 0},
+  "instance": {
+    "id": "i-0add395a2d89805b5",
+    "state": "running",
+    "type": "t3.medium",
+    "root_device": "/dev/sda1",
+    "root_device_type": "ebs",
+    "instance_store": false,
+    "termination_protection": false,
+    "stop_protection": false
+  },
+  "volume": {
+    "id": "vol-09baf3dfa613ea20d",
+    "state": "in-use",
+    "size_gib": 30,
+    "type": "gp3",
+    "encrypted": false,
+    "kms_key_id": null,
+    "availability_zone": "eu-west-2c",
+    "delete_on_termination": true,
+    "iops": 3000,
+    "throughput_mib_s": 125,
+    "owner_backup_snapshots": 0
+  },
+  "recovery": {
+    "critical_files": 6,
+    "secret_bearing_files": 6,
+    "manifest": "quality-results/work-ec2-recovery-manifest.json",
+    "verification_script": "scripts/verify_work_ec2_recovery.py",
+    "secret_values_exposed": false
+  },
+  "encryption": {
+    "ebs_encryption_by_default": false,
+    "selected_key": "alias/aws/ebs",
+    "selected_key_manager": "AWS",
+    "customer_key_rejected": "existing customer key is dedicated to Terraform state",
+    "method": "unencrypted source snapshot then same-region encrypted copy"
+  },
+  "restore_test": {
+    "level_1": "encrypted snapshot metadata",
+    "level_2": "temporary encrypted gp3 volume attached to current instance and mounted read-only",
+    "success": "filesystem readable, repository present, six size/hash checks pass",
+    "cleanup_requires_separate_approval": true
+  },
+  "disk": {
+    "used_percent": 91,
+    "free_gib": 2.7,
+    "cleanup_performed": false,
+    "largest_regenerable": {"docker_build_cache_gib": 2.807, "playwright_cache_gib": 1.2, "terraform_caches_gib_approx": 3.4, "node_modules_mib": 626}
+  },
+  "cost_usd": {
+    "encrypted_snapshot_month_conservative": 1.5,
+    "source_plus_copy_month_maximum": 3.0,
+    "restore_volume_month": 2.784,
+    "restore_volume_hour": 0.0038,
+    "work_ec2_maximum_saving_month": 38.11,
+    "net_saving_month": 36.61,
+    "combined_net_saving_month": "298.61-301.61"
+  },
+  "production": {"rds_status": "available", "current_class": "db.t4g.medium", "pending_class": "db.t4g.small", "decision": "RDS_DOWNSIZING_STILL_PENDING_MAINTENANCE"},
+  "quality": {
+    "tests": "36 passed",
+    "ruff": "PASS",
+    "format": "PASS",
+    "bandit": "PASS",
+    "compileall": "PASS",
+    "pip_audit_vulnerabilities": 0,
+    "secret_scan_findings": 0,
+    "quality_image_pip": "26.1.2"
+  },
+  "decision": "READY_FOR_WORK_EC2_ENCRYPTED_BACKUP_APPLY_APPROVAL",
+  "ec2_stop_approved": false
+}
