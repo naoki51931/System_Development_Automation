@@ -1,0 +1,21 @@
+{
+  "collected_at": "2026-08-13",
+  "release_sha": "17af4910f3901684269339e6abf3b5ef5d9aa750",
+  "merge": {"pr": 2, "head": "76d48e305b57b6b51511fd25c8bf3e660c3b018c", "merge_commit": "17af4910f3901684269339e6abf3b5ef5d9aa750", "confirmed": true},
+  "aws": {"account": "557604519341", "region": "eu-west-2", "region_source": "imds", "role": "instanceRoleTerraform", "resource_changes": 0},
+  "rds": {"status": "available", "class": "db.t4g.medium", "pending_class": "db.t4g.small", "classification": "RDS_DOWNSIZING_STILL_PENDING_MAINTENANCE", "ready": false},
+  "pitr": {"status": "PASS", "warning": "PITR_API_FIELD_WARNING", "manual_snapshot": "ai-platform-prod-pre-100rpm-downsize-20260812-010957", "snapshot_available": true, "snapshot_encrypted": true},
+  "monitoring": {"alarms": 13, "alb": 4, "ecs": 3, "rds": 6, "alarm_state_count": 0, "sns_confirmed": true},
+  "ecs": {"task": "ai-platform-prod-low-traffic:1", "cpu": 256, "memory_mib": 512, "desired": 1, "running": 1, "pending": 0, "deployment": "COMPLETED", "target": "healthy", "http": {"/": 200, "/health": 200, "/docs": 200}},
+  "staging": {"status": "STAGING_IDLE_MODE_CONVERGED", "rds": 0, "alb": 0, "interface_endpoints": 0, "runtime_ecs": 0, "actions": 0},
+  "backend_quality": {"tests_passed": 187, "overall_coverage": 82.89, "critical_coverage": 90.86, "ruff": "PASS", "bandit": "PASS", "pip_audit": 0, "secret_scan": "PASS", "compileall": "PASS"},
+  "frontend_quality": {"tests_passed": 34, "build": "PASS", "typecheck": "PASS", "openapi": "NO_DRIFT", "npm_audit": 0, "secret_scan": "PASS"},
+  "migration": {"head": "8d4f2a7c9b11", "required": true, "performed": false, "sequence": "PRODUCTION_RELEASE_SEQUENCE_UNSAFE"},
+  "worker": {"required": true, "status": "WORKER_REQUIRED_BEFORE_PRODUCTION_RELEASE"},
+  "images": {"app": {"tag": "17af4910f3901684269339e6abf3b5ef5d9aa750", "pushed": false, "digest": null, "scan": null}, "frontend": {"tag": "17af4910f3901684269339e6abf3b5ef5d9aa750", "repository": null, "pushed": false, "digest": null, "scan": null}},
+  "terraform": {"state_key": "cloud-a/prod/terraform.tfstate", "backend_hcl_present": false, "tfvars_present": false, "digest_input_supported": false, "plan_created": false, "plan_path": null, "add": null, "change": null, "replace": null, "destroy": null, "apply_performed": false},
+  "launch_blockers": {"internal": ["RDS_PENDING_MAINTENANCE", "DIGEST_INPUT_UNSUPPORTED", "FRONTEND_REPOSITORY_MISSING", "MIGRATION_SEQUENCE_UNSAFE", "WORKER_REQUIRED"], "external": ["COGNITO_NOT_WIRED", "HTTPS_DNS_NOT_WIRED", "AI_PROVIDER_NOT_WIRED", "PAYMENT_PROVIDER_NOT_WIRED", "EMAIL_PROVIDER_NOT_WIRED"]},
+  "deployment_performed": false,
+  "decision": "PRODUCTION_RELEASE_REQUIRES_REMEDIATION",
+  "next_approval": "Approve a separate remediation branch/PR for digest-based backend/frontend topology, Production frontend ECR, migration-before-runtime sequencing, and Production worker sizing; rerun Phase 1 after RDS maintenance."
+}
