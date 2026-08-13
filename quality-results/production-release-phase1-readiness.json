@@ -1,0 +1,103 @@
+{
+  "release_sha": "17af4910f3901684269339e6abf3b5ef5d9aa750",
+  "aws": {
+    "account": "557604519341",
+    "region": "eu-west-2",
+    "role": "instanceRoleTerraform"
+  },
+  "rds": {
+    "status": "available",
+    "current_class": "db.t4g.medium",
+    "pending_class": "db.t4g.small",
+    "multi_az": true,
+    "storage": {
+      "size_gib": 50,
+      "type": "gp2"
+    },
+    "backup_retention_days": 14,
+    "encrypted": true,
+    "deletion_protection": true,
+    "private": true,
+    "manual_snapshot": {
+      "identifier": "ai-platform-prod-pre-100rpm-downsize-20260812-010957",
+      "state": "available",
+      "encrypted": true
+    }
+  },
+  "pitr": {
+    "automated_backup_active": true,
+    "automated_restore_window_valid": true,
+    "db_instance_earliest_restorable_time": null,
+    "null_earliest_restorable_time_classification": "warning_only"
+  },
+  "ecs": {
+    "desired_count": 1,
+    "running_count": 1,
+    "pending_count": 0,
+    "rollout": "COMPLETED",
+    "target_health": "healthy",
+    "task_definition": "ai-platform-prod-low-traffic:1",
+    "cpu_units": 256,
+    "memory_mib": 512,
+    "current_image_reference": "ai-platform-prod:v4",
+    "image_reference_mutable": true,
+    "mutable_image_tag_blocker": "DIGEST_INPUT_UNSUPPORTED"
+  },
+  "monitoring": {
+    "cloudwatch_alarms": {
+      "total": 13,
+      "state": "OK",
+      "by_service": {
+        "alb": 4,
+        "ecs": 3,
+        "rds": 6
+      }
+    },
+    "sns": {
+      "topic": "ai-platform-prod-alerts",
+      "subscription": {
+        "endpoint": "info@nagi-neco.com",
+        "status": "Confirmed"
+      }
+    }
+  },
+  "staging": {
+    "state": "STAGING_IDLE_MODE_CONVERGED"
+  },
+  "quality": {
+    "backend": {
+      "tests_passed": 187,
+      "overall_coverage_percent": 82.89,
+      "critical_coverage_percent": 90.86
+    },
+    "frontend": {
+      "tests_passed": 34,
+      "build": "PASS"
+    },
+    "openapi_drift": "none",
+    "ruff": "PASS",
+    "ruff_format": "PASS",
+    "bandit": "PASS",
+    "pip_audit_known_vulnerabilities": 0,
+    "npm_audit_omit_dev_vulnerabilities": 0,
+    "secret_scan_actionable_findings": 0
+  },
+  "migration": {
+    "alembic_head": "8d4f2a7c9b11"
+  },
+  "internal_blockers": [
+    "RDS_PENDING_MAINTENANCE",
+    "DIGEST_INPUT_UNSUPPORTED",
+    "FRONTEND_REPOSITORY_MISSING",
+    "MIGRATION_SEQUENCE_UNSAFE",
+    "WORKER_REQUIRED"
+  ],
+  "external_launch_blockers": [
+    "COGNITO_NOT_WIRED",
+    "HTTPS_DNS_NOT_WIRED",
+    "AI_PROVIDER_NOT_WIRED",
+    "PAYMENT_PROVIDER_NOT_WIRED",
+    "EMAIL_PROVIDER_NOT_WIRED"
+  ],
+  "final_decision": "PRODUCTION_RELEASE_REQUIRES_REMEDIATION"
+}
