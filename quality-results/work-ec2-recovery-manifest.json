@@ -3,7 +3,7 @@
   "generated_at_utc": "2026-08-12T13:45:00Z",
   "instance_id": "i-0add395a2d89805b5",
   "volume_id": "vol-09baf3dfa613ea20d",
-  "external_backup_verified": false,
+  "external_backup_verified": true,
   "files": [
     {
       "path": "environment/backend.hcl",

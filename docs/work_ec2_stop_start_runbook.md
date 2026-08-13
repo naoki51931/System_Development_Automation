@@ -195,3 +195,9 @@ aws ec2 delete-snapshot --snapshot-id "$SOURCE_SNAPSHOT_ID" --region eu-west-2
 ```
 
 Never delete `ENCRYPTED_SNAPSHOT_ID` as part of temporary-resource cleanup.
+
+## 2026-08-13 manual-stop execution record
+
+The final approved recovery snapshot is `snap-06689648ebb6033aa`: completed, 100%, encrypted, 30 GiB, and protected by the enabled AWS-managed EBS key. Its read-only same-AZ restore passed all six manifest size and SHA-256 checks, and the temporary volume was deleted. Retain it together with source `snap-09251b0d48de70d17` and failed artifact `snap-000caea04ca81bfef`; none is authorized for deletion.
+
+Immediately before the authorized manual stop, account, region, role, clean worktree, manifest, processes, Docker, PostgreSQL, root EBS, IP behavior, instance profile, and stop protection were checked. Pre-stop addresses were public `18.170.41.191` and private `172.31.0.175` in `subnet-09636511a5d33c952` / `eu-west-2c`, with no Elastic IP. The public address is expected to be released on stop and may change after a separately approved start. Evidence is in `quality-results/work-ec2-stop-result.{md,json}`. The stop command may be issued once only; timeout is followed by describe, never by a second stop call.

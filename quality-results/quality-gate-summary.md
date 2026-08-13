@@ -70,3 +70,9 @@ The checksum-approved residual plan was subsequently applied exactly once: 6 add
 Source snapshot `snap-09251b0d48de70d17` completed unencrypted at 30 GiB. Replacement snapshot `snap-0da911dd9bd13c867` completed encrypted with the AWS-managed EBS key. An actual same-AZ secondary-volume restore was mounted ext4 `ro,noload`; Git was readable and all six critical local files matched the recovery manifest by existence, size, and SHA-256. Temporary volume `vol-045b7e4095e33d4af` was unmounted, detached without force, and deleted. The work EC2 remains running with 2/2 checks and unchanged root EBS. The earlier failed copy remains an unused retained artifact. Decision: **WORK_EC2_ENCRYPTED_BACKUP_VALIDATED / WORK_EC2_READY_FOR_SOURCE_SNAPSHOT_CLEANUP_APPROVAL / WORK_EC2_READY_FOR_MANUAL_STOP_APPROVAL**.
 
 Production RDS remains `db.t4g.medium` with `db.t4g.small` pending maintenance; no Production change or post-maintenance verifier run occurred. Decision: **RDS_DOWNSIZING_STILL_PENDING_MAINTENANCE**.
+
+## 2026-08-13 work EC2 manual-stop pre-execution gate
+
+AWS account/region/role, clean worktree, completed source and encrypted recovery snapshots, enabled AWS-managed EBS key, prior actual restore PASS, and current 6/6 critical-file size/SHA-256 matches are confirmed. Docker has zero running containers, local PostgreSQL is inactive, and no critical writer exists besides the explicitly authorized Codex/SSH control session. Root EBS `vol-09baf3dfa613ea20d` remains the attached 30 GiB gp3 root and stop protection is clear. Public IPv4 `18.170.41.191` is not an EIP and is expected to be released. Decision: **STOP_COMMAND_AUTHORIZED / STOP_EXECUTION_PENDING / WORK_EC2_READY_FOR_MANUAL_STOP**.
+
+Production RDS remains `db.t4g.medium` with `db.t4g.small` pending maintenance. Decision: **RDS_DOWNSIZING_STILL_PENDING_MAINTENANCE**.
