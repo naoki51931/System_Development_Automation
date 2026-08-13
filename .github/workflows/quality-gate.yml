@@ -16,6 +16,7 @@ jobs:
         options: --health-cmd "pg_isready -U quality" --health-interval 3s --health-timeout 3s --health-retries 20
     env:
       TEST_DATABASE_URL: postgresql+psycopg://quality:local-ci-only@localhost:5432/quality
+      APP_DATABASE_URL: postgresql+psycopg://quality:local-ci-only@localhost:5432/quality
       APP_ENV: test
       PYTHONPATH: .
     steps:
