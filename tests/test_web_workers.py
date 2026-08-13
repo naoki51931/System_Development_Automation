@@ -124,6 +124,35 @@ def test_local_auth_is_disabled_in_production(monkeypatch):
     get_settings.cache_clear()
 
 
+def test_local_auth_is_disabled_in_staging(monkeypatch):
+    from fastapi import HTTPException
+    from app.api.local_auth import enabled
+    from app.core.config import get_settings
+
+    monkeypatch.setenv("APP_ENV", "staging")
+    monkeypatch.setenv("APP_LOCAL_AUTH_ENABLED", "true")
+    get_settings.cache_clear()
+    with pytest.raises(HTTPException) as exc:
+        enabled()
+    assert exc.value.status_code == 404
+    get_settings.cache_clear()
+
+
+@pytest.mark.parametrize("environment", ["staging", "production"])
+def test_application_refuses_local_auth_outside_local_environments(
+    monkeypatch, environment
+):
+    from app.core.config import get_settings
+    from app.main import create_app
+
+    monkeypatch.setenv("APP_ENV", environment)
+    monkeypatch.setenv("APP_LOCAL_AUTH_ENABLED", "true")
+    get_settings.cache_clear()
+    with pytest.raises(RuntimeError, match="LocalAuth must be disabled"):
+        create_app()
+    get_settings.cache_clear()
+
+
 def _parallel_claim(database_url: str) -> list[str]:
     import time
     import psycopg

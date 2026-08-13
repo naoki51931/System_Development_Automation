@@ -1,0 +1,82 @@
+aws_account_id = "123456789012"
+aws_region     = "eu-west-2"
+state_bucket_name = "ai-platform-terraform-state-557604519341"
+state_kms_key_arn = "REPLACE_WITH_STAGING_STATE_KMS_KEY_ARN"
+environment    = "staging"
+name_prefix    = "system-navigator-staging"
+
+container_image_tag = "57109fa"
+backend_image_uri   = "123456789012.dkr.ecr.eu-west-2.amazonaws.com/system-navigator-staging-app@sha256:REPLACE_WITH_64_HEX_DIGEST"
+worker_image_uri    = "123456789012.dkr.ecr.eu-west-2.amazonaws.com/system-navigator-staging-app@sha256:REPLACE_WITH_64_HEX_DIGEST"
+frontend_image_uri  = "123456789012.dkr.ecr.eu-west-2.amazonaws.com/system-navigator-staging-frontend@sha256:REPLACE_WITH_64_HEX_DIGEST"
+
+enable_local_auth   = false
+enable_mock_ai       = true
+enable_mock_payment  = true
+enable_mock_email    = true
+enable_cognito       = false
+enable_stripe        = false
+enable_ses           = false
+enable_s3_storage    = true
+stripe_mode          = "test"
+
+desired_count_backend  = 1
+desired_count_worker   = 1
+desired_count_frontend = 1
+enable_runtime_services = false
+# ACTIVE recreates RDS, ALB, Interface Endpoints, ECS, Cloud Map and alarms.
+# Set this approval true only for a separately reviewed IDLE-to-ACTIVE plan.
+staging_mode             = "active"
+allow_staging_reactivation       = true
+idle_database_removal_approved    = false
+allow_database_deletion           = false
+idle_database_snapshot_identifier = ""
+restore_db_from_snapshot           = false
+db_snapshot_identifier             = ""
+db_instance_class      = "db.t4g.small"
+db_multi_az            = false
+backup_retention_days  = 3
+deletion_protection    = true
+log_retention_days     = 14
+
+artifact_bucket_name            = "REPLACE_WITH_UNIQUE_STAGING_BUCKET"
+production_artifact_bucket_name = "REPLACE_WITH_PRODUCTION_BUCKET_NAME"
+rds_identifier                  = "system-navigator-staging-db"
+production_rds_identifier       = "REPLACE_WITH_PRODUCTION_RDS_IDENTIFIER"
+
+create_vpc                  = true
+vpc_cidr                    = "10.30.0.0/16"
+existing_vpc_id             = ""
+existing_private_subnet_ids = []
+existing_public_subnet_ids  = []
+enable_nat_gateway          = false
+enable_interface_endpoints = true
+enable_s3_gateway_endpoint = true
+
+enable_custom_domain  = false
+domain_name           = ""
+route53_zone_id       = ""
+acm_certificate_arn   = ""
+enable_https          = false
+create_route53_record = false
+
+prerequisite_sns_topic_arn          = "REPLACE_WITH_PREREQUISITE_SNS_TOPIC_ARN"
+prerequisite_github_deploy_role_arn = "REPLACE_WITH_PREREQUISITE_GITHUB_DEPLOY_ROLE_ARN"
+rds_connections_threshold           = 80
+rds_free_storage_threshold          = 5368709120
+rds_freeable_memory_threshold = 268435456
+
+cognito_user_pool_id  = ""
+cognito_app_client_id = ""
+cognito_issuer        = ""
+cognito_domain        = ""
+
+stripe_secret_key_secret_arn = ""
+stripe_webhook_secret_arn    = ""
+stripe_publishable_key       = ""
+stripe_webhook_endpoint      = ""
+
+ses_region            = "eu-west-2"
+ses_from_address      = ""
+ses_configuration_set = ""
+ses_sandbox_mode      = true

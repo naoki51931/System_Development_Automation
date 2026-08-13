@@ -1,0 +1,6 @@
+bucket       = "ai-platform-terraform-state-557604519341"
+key          = "system-navigator/staging/terraform.tfstate"
+region       = "eu-west-2"
+encrypt      = true
+kms_key_id   = "<STAGING_STATE_KMS_KEY_ARN>"
+use_lockfile = true

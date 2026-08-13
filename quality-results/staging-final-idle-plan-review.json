@@ -1,0 +1,101 @@
+{
+  "decision": "READY_FOR_FINAL_STAGING_IDLE_APPLY_APPROVAL",
+  "apply_authorized": false,
+  "git_head": "711fc1e1b202de3ad3de5465dd381323514901e9",
+  "aws_account": "557604519341",
+  "region": "eu-west-2",
+  "state_key": "system-navigator/staging/terraform.tfstate",
+  "plan": {
+    "path": "environment/staging/staging-final-idle.tfplan",
+    "sha256": "b2c8ab750e3f939a6023d89df921bcb7fd78c5bd4891de1d1a260520f4f3ee1a",
+    "add": 1,
+    "change": 1,
+    "replace": 0,
+    "destroy": 35,
+    "read": 0
+  },
+  "destroy_counts": {
+    "rds": 1,
+    "alb_and_rules": 9,
+    "interface_endpoints": 7,
+    "endpoint_security_groups": 1,
+    "ecs_cluster_task_definitions_cloud_map": 8,
+    "monitoring": 8,
+    "other": 1
+  },
+  "add": [
+    {
+      "address": "terraform_data.idle_apply_gate[0]",
+      "reason": "Fail-closed apply gate records explicit approval and AWS-verified available snapshot."
+    }
+  ],
+  "change": [
+    {
+      "address": "module.ecs.aws_iam_role_policy.execution_secrets",
+      "attribute": "policy",
+      "reason": "Remove the disappearing RDS-managed master Secret ARN while retaining the application Secret container permission."
+    }
+  ],
+  "destroy": [
+    {"category":"RDS","address":"module.database.aws_db_instance.main[0]","name":"system-navigator-staging-db","reason":"Remove the idle database compute/storage; retained manual snapshot is the recovery source."},
+    {"category":"ECS","address":"module.ecs.aws_ecs_cluster.main[0]","name":"system-navigator-staging-cluster","reason":"Idle design removes runtime control-plane resources; cluster has no service/task workload."},
+    {"category":"Task Definition","address":"module.ecs.aws_ecs_task_definition.backend[0]","name":"system-navigator-staging-backend","reason":"No idle runtime; recreate definition in ACTIVE mode."},
+    {"category":"Task Definition","address":"module.ecs.aws_ecs_task_definition.frontend[0]","name":"system-navigator-staging-frontend","reason":"No idle runtime; recreate definition in ACTIVE mode."},
+    {"category":"Task Definition","address":"module.ecs.aws_ecs_task_definition.migration[0]","name":"system-navigator-staging-migration","reason":"No migration may run in IDLE; recreate after database restore approval."},
+    {"category":"Task Definition","address":"module.ecs.aws_ecs_task_definition.worker[0]","name":"system-navigator-staging-worker","reason":"No idle runtime; recreate definition in ACTIVE mode."},
+    {"category":"Other","address":"module.ecs.aws_iam_role_policy.migration[0]","name":"database-secret-only","reason":"Migration-only inline policy is unnecessary without the migration task definition/RDS."},
+    {"category":"ALB","address":"module.ecs.aws_lb.main[0]","name":"system-navigator-staging-alb","reason":"Remove fixed ALB/public IPv4 cost in IDLE."},
+    {"category":"ALB listener/rule","address":"module.ecs.aws_lb_listener.http[0]","name":"staging HTTP listener","reason":"Listener depends on the removed ALB."},
+    {"category":"ALB listener/rule","address":"module.ecs.aws_lb_listener_rule.backend_http[0]","name":"backend HTTP rule","reason":"Rule depends on the removed listener/target group."},
+    {"category":"Target Group","address":"module.ecs.aws_lb_target_group.backend[0]","name":"system-navigator-staging-be","reason":"No backend service or ALB in IDLE."},
+    {"category":"Target Group","address":"module.ecs.aws_lb_target_group.frontend[0]","name":"system-navigator-staging-fe","reason":"No frontend service or ALB in IDLE."},
+    {"category":"Security Group","address":"module.ecs.aws_security_group.alb[0]","name":"system-navigator-staging-alb","reason":"Dedicated exclusively to the removed ALB."},
+    {"category":"Cloud Map / Service Discovery","address":"module.ecs.aws_service_discovery_private_dns_namespace.main[0]","name":"staging.system-navigator.internal","reason":"No runtime discovery clients in IDLE."},
+    {"category":"Cloud Map / Service Discovery","address":"module.ecs.aws_service_discovery_service.internal[\"backend\"]","name":"backend","reason":"No backend runtime service in IDLE."},
+    {"category":"Cloud Map / Service Discovery","address":"module.ecs.aws_service_discovery_service.internal[\"worker\"]","name":"worker","reason":"No worker runtime service in IDLE."},
+    {"category":"Security Group","address":"module.ecs.aws_vpc_security_group_ingress_rule.backend_alb[0]","name":"backend-from-ALB","reason":"Ingress source ALB is removed."},
+    {"category":"Security Group","address":"module.ecs.aws_vpc_security_group_ingress_rule.backend_internal[0]","name":"backend-internal","reason":"Runtime-internal ingress is unnecessary without ECS/Cloud Map."},
+    {"category":"Security Group","address":"module.ecs.aws_vpc_security_group_ingress_rule.frontend_alb[0]","name":"frontend-from-ALB","reason":"Ingress source ALB is removed."},
+    {"category":"Runtime Monitoring","address":"module.monitoring.aws_cloudwatch_metric_alarm.alb_5xx[0]","name":"system-navigator-staging-alb-5xx","reason":"Monitored ALB is removed."},
+    {"category":"Runtime Monitoring","address":"module.monitoring.aws_cloudwatch_metric_alarm.alb_response_time[0]","name":"system-navigator-staging-alb-response-time-p95","reason":"Monitored ALB is removed."},
+    {"category":"Runtime Monitoring","address":"module.monitoring.aws_cloudwatch_metric_alarm.rds_connections[0]","name":"system-navigator-staging-rds-connections","reason":"Monitored RDS is removed."},
+    {"category":"Runtime Monitoring","address":"module.monitoring.aws_cloudwatch_metric_alarm.rds_cpu[0]","name":"system-navigator-staging-rds-cpu","reason":"Monitored RDS is removed."},
+    {"category":"Runtime Monitoring","address":"module.monitoring.aws_cloudwatch_metric_alarm.rds_freeable_memory[0]","name":"system-navigator-staging-rds-freeable-memory","reason":"Monitored RDS is removed."},
+    {"category":"Runtime Monitoring","address":"module.monitoring.aws_cloudwatch_metric_alarm.rds_storage[0]","name":"system-navigator-staging-rds-free-storage","reason":"Monitored RDS is removed."},
+    {"category":"Runtime Monitoring","address":"module.monitoring.aws_cloudwatch_metric_alarm.unhealthy_targets[0]","name":"system-navigator-staging-target-1-unhealthy","reason":"Monitored target group is removed."},
+    {"category":"Runtime Monitoring","address":"module.monitoring.aws_cloudwatch_metric_alarm.unhealthy_targets[1]","name":"system-navigator-staging-target-2-unhealthy","reason":"Monitored target group is removed."},
+    {"category":"Endpoint Security Group","address":"module.network.aws_security_group.endpoints[0]","name":"system-navigator-staging-endpoints","reason":"Dedicated only to the seven removed Interface Endpoints."},
+    {"category":"Interface VPC Endpoint","address":"module.network.aws_vpc_endpoint.interface[\"ecr.api\"]","name":"ECR API","reason":"Paid private endpoint is unnecessary without runtime."},
+    {"category":"Interface VPC Endpoint","address":"module.network.aws_vpc_endpoint.interface[\"ecr.dkr\"]","name":"ECR DKR","reason":"Paid private endpoint is unnecessary without runtime."},
+    {"category":"Interface VPC Endpoint","address":"module.network.aws_vpc_endpoint.interface[\"kms\"]","name":"KMS","reason":"Paid private endpoint is unnecessary without runtime."},
+    {"category":"Interface VPC Endpoint","address":"module.network.aws_vpc_endpoint.interface[\"logs\"]","name":"CloudWatch Logs","reason":"Paid private endpoint is unnecessary without runtime."},
+    {"category":"Interface VPC Endpoint","address":"module.network.aws_vpc_endpoint.interface[\"monitoring\"]","name":"CloudWatch Monitoring","reason":"Paid private endpoint is unnecessary without runtime."},
+    {"category":"Interface VPC Endpoint","address":"module.network.aws_vpc_endpoint.interface[\"secretsmanager\"]","name":"Secrets Manager","reason":"Paid private endpoint is unnecessary without runtime; Secret container remains."},
+    {"category":"Interface VPC Endpoint","address":"module.network.aws_vpc_endpoint.interface[\"sts\"]","name":"STS","reason":"Paid private endpoint is unnecessary without runtime."}
+  ],
+  "preserved": [
+    "Terraform state and backend",
+    "artifact S3 and all protection resources",
+    "ECR repositories in prerequisites state",
+    "GitHub deploy IAM role, SNS, and Budget in prerequisites state",
+    "database application Secret container",
+    "manual RDS snapshot",
+    "VPC, six subnets, routes, Internet Gateway, and persistent security groups",
+    "DB subnet group",
+    "S3 Gateway Endpoint",
+    "four CloudWatch log groups with 14-day retention"
+  ],
+  "cost_usd_month": {
+    "current": 210,
+    "idle_low": 2,
+    "idle_high": 4,
+    "saving_low": 206,
+    "saving_high": 208,
+    "separate_work_ec2_candidate": 38
+  },
+  "production_actions": 0,
+  "validation": {
+    "terraform_roots_passed": 4,
+    "terraform_tests_passed": 20
+  }
+}

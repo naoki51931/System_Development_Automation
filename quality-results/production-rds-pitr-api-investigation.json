@@ -1,0 +1,58 @@
+{
+  "observed_at": "2026-08-12T04:08:53Z",
+  "aws_account": "557604519341",
+  "region": "eu-west-2",
+  "rds": {
+    "identifier": "ai-platform-prod-postgres",
+    "dbi_resource_id": "db-HLY4EEXCG4CVJNEV2G44AK2IUY",
+    "status": "available",
+    "instance_create_time": "2026-08-01T13:11:28.986Z",
+    "backup_retention_days": 14,
+    "preferred_backup_window": "23:00-23:30",
+    "earliest_restorable_time": null,
+    "latest_restorable_time": "2026-08-12T04:02:27Z"
+  },
+  "automated_backup": {
+    "identifier": "ai-platform-prod-postgres",
+    "dbi_resource_id": "db-HLY4EEXCG4CVJNEV2G44AK2IUY",
+    "resource_id_matches": true,
+    "status": "active",
+    "instance_create_time": "2026-08-01T13:11:28Z",
+    "backup_retention_days": 14,
+    "restore_window": {
+      "earliest": "2026-08-01T13:20:41.375Z",
+      "latest": "2026-08-12T04:02:27Z",
+      "ordered": true
+    }
+  },
+  "automated_snapshots": {
+    "count": 12,
+    "all_available": true,
+    "all_encrypted": true,
+    "latest_identifier": "rds:ai-platform-prod-postgres-2026-08-11-23-10",
+    "latest_create_time": "2026-08-11T23:10:13.834Z"
+  },
+  "events": {
+    "backup_failure_observed": false,
+    "successful_backup_pairs_observed": true,
+    "failover_reboot_restore_observed": false
+  },
+  "cloudtrail": {
+    "range": "2026-08-01 through 2026-08-12",
+    "production_modify_observed": false,
+    "production_restore_observed": false,
+    "production_delete_observed": false,
+    "recent_retention_change_observed": false
+  },
+  "classification": "DB_INSTANCE_API_DELAY_OR_FIELD_INCONSISTENCY",
+  "pitr_protection": "CORROBORATED_BY_ACTIVE_AUTOMATED_BACKUP_RESTORE_WINDOW",
+  "gate_change_recommended": true,
+  "restore_test": "RECOMMENDED_AS_SEPARATELY_APPROVED_ADDITIONAL_ASSURANCE",
+  "aws_changes_performed": false,
+  "terraform_apply_performed": false,
+  "production_plan": {
+    "path": "environment/production-100rpm-remediated-final.tfplan",
+    "sha256": "d6f094ded385f70628f9e0840e86c051fc2308d78a6afc313d5aafe32e8a5df0",
+    "applied": false
+  }
+}

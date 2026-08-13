@@ -1,0 +1,75 @@
+{
+  "timestamp_utc": "2026-08-12",
+  "start_git_head": "4ec5776fa6f8a90b31eb557f47ed98a3d00aa51a",
+  "aws": {"account": "557604519341", "region": "eu-west-2", "role": "instanceRoleTerraform", "changes": 0},
+  "instance": {
+    "id": "i-0add395a2d89805b5",
+    "state": "running",
+    "type": "t3.medium",
+    "public_ipv4": "18.170.41.191",
+    "elastic_ip": false,
+    "instance_store": false,
+    "profile": "instanceRoleTerraform"
+  },
+  "ebs": {
+    "id": "vol-09baf3dfa613ea20d",
+    "size_gib": 30,
+    "type": "gp3",
+    "encrypted": false,
+    "availability_zone": "eu-west-2c",
+    "device": "/dev/sda1",
+    "attachment": "attached",
+    "delete_on_termination": true,
+    "persists_stop_start": true
+  },
+  "disk": {"root_used_percent": 91, "root_free_gib": 2.7, "repository_gib": 4.0, "readiness_threshold_percent": 95},
+  "inventory": {
+    "critical_files": 6,
+    "secret_bearing_files": 6,
+    "manifest": "quality-results/work-ec2-recovery-manifest.json",
+    "hashes_recorded": true,
+    "external_backup_verified": false,
+    "regenerable_large_items": ["Terraform provider/work cache", "Playwright cache", "npm/pip cache", "frontend build output", "Docker images/build cache"],
+    "docker_postgres_volume_mib_approx": 453
+  },
+  "cost_usd_month": {
+    "always_on": 40.89,
+    "hours_160": 11.14,
+    "hours_80": 6.96,
+    "hours_40": 4.87,
+    "fully_stopped": 2.78,
+    "maximum_saving": 38.11,
+    "combined_maximum_saving": "300.11-303.11"
+  },
+  "backup": {
+    "option_a": "EBS only; stop/start safe but no independent DR",
+    "option_b": "separately approved encrypted snapshot/copy and restore verification",
+    "option_c": "separately approved managed secret/config migration",
+    "recommended": "option_b near-term, option_c long-term",
+    "approval_required": true
+  },
+  "stop_readiness": {
+    "status": "WORK_EC2_STOP_BLOCKED",
+    "git_clean": true,
+    "manifest_hashes_valid": true,
+    "failures": ["EXTERNAL_BACKUP_NOT_VERIFIED", "ACTIVE_CRITICAL_PROCESS"],
+    "active_process_category": "codex"
+  },
+  "quality": {
+    "tests": "34 passed",
+    "ruff": "PASS",
+    "format": "PASS",
+    "bandit": "PASS",
+    "compileall": "PASS",
+    "pip_audit_vulnerabilities": 0,
+    "secret_scan_findings": 0,
+    "quality_image_pip": "26.1.2"
+  },
+  "production": {
+    "rds_status": "available",
+    "current_class": "db.t4g.medium",
+    "pending_class": "db.t4g.small",
+    "decision": "RDS_DOWNSIZING_STILL_PENDING_MAINTENANCE"
+  },
+  "decision": "WORK_EC2_BACKUP_APPROVAL_REQUIRED_BEFORE_STOP"
+}

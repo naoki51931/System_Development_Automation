@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "recorded_at_utc": "2026-08-13T03:21:39Z",
+  "phase": "pre_stop_evidence",
+  "git_head_before_evidence": "3b9b317bb63dfa0ae9f5d3860a1a1d4707b4cff1",
+  "aws": {
+    "account": "557604519341",
+    "region": "eu-west-2",
+    "role": "instanceRoleTerraform"
+  },
+  "instance": {
+    "instance_id": "i-0add395a2d89805b5",
+    "pre_stop_state": "running",
+    "instance_type": "t3.medium",
+    "availability_zone": "eu-west-2c",
+    "subnet_id": "subnet-09636511a5d33c952",
+    "public_ipv4_before": "18.170.41.191",
+    "private_ipv4": "172.31.0.175",
+    "elastic_ip": false,
+    "instance_profile": "instanceRoleTerraform",
+    "disable_api_stop": false
+  },
+  "root_ebs": {
+    "volume_id": "vol-09baf3dfa613ea20d",
+    "state": "in-use",
+    "device": "/dev/sda1",
+    "size_gib": 30,
+    "type": "gp3",
+    "encrypted": false,
+    "delete_on_termination": true,
+    "stop_preserves_volume": true
+  },
+  "recovery": {
+    "source_snapshot": "snap-09251b0d48de70d17",
+    "source_state": "completed",
+    "source_encrypted": false,
+    "encrypted_snapshot": "snap-06689648ebb6033aa",
+    "encrypted_state": "completed",
+    "encrypted_progress": "100%",
+    "encrypted_size_gib": 30,
+    "encrypted": true,
+    "kms_key_state": "Enabled",
+    "kms_key_manager": "AWS",
+    "failed_copy_artifact": "snap-000caea04ca81bfef",
+    "failed_copy_state": "error",
+    "restore_test": "PASS",
+    "critical_files_exist": 6,
+    "critical_sizes_match": 6,
+    "critical_hashes_match": 6
+  },
+  "readiness": {
+    "worktree_clean_before_evidence": true,
+    "docker_running_containers": 0,
+    "local_postgresql": "inactive",
+    "critical_processes": [],
+    "authorized_control_process": "current Codex/SSH session",
+    "stop_protection_clear": true
+  },
+  "production_rds": {
+    "identifier": "ai-platform-prod-postgres",
+    "status": "available",
+    "current_class": "db.t4g.medium",
+    "pending_class": "db.t4g.small",
+    "post_maintenance_verifier_run": false,
+    "decision": "RDS_DOWNSIZING_STILL_PENDING_MAINTENANCE"
+  },
+  "decisions": [
+    "STOP_COMMAND_AUTHORIZED",
+    "STOP_EXECUTION_PENDING",
+    "WORK_EC2_READY_FOR_MANUAL_STOP"
+  ]
+}

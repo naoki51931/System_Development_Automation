@@ -62,3 +62,7 @@ output "secret_arn" {
   value     = aws_secretsmanager_secret.db.arn
   sensitive = true
 }
+
+output "db_instance_identifier" {
+  value = aws_db_instance.main.identifier
+}

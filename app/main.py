@@ -28,6 +28,11 @@ BASE_DIR = Path(__file__).resolve().parent
 
 def create_app() -> FastAPI:
     settings = get_settings()
+    if (
+        settings.environment.lower() in {"staging", "production", "prod"}
+        and settings.local_auth_enabled
+    ):
+        raise RuntimeError("LocalAuth must be disabled outside local environments")
     application = FastAPI(title=settings.name)
     application.add_middleware(
         CORSMiddleware,
@@ -41,7 +46,7 @@ def create_app() -> FastAPI:
             create_database_engine(settings)
         )
     if (
-        settings.environment.lower() not in {"production", "prod"}
+        settings.environment.lower() not in {"staging", "production", "prod"}
         and settings.local_auth_enabled
     ):
         application.state.token_verifier = LocalAuthProvider(settings.local_auth_secret)

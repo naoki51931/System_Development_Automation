@@ -1,0 +1,50 @@
+{
+  "date_utc": "2026-08-12",
+  "starting_git_head": "52e618998d3dc34c4d4e9cdc5260af87a49651ea",
+  "aws_account": "557604519341",
+  "region": "eu-west-2",
+  "state_key": "system-navigator/staging/terraform.tfstate",
+  "local_config": {
+    "before_staging_mode": "active (variable default; local tfvars omitted the setting)",
+    "after_staging_mode": "idle",
+    "enable_runtime_services": false,
+    "allow_staging_reactivation": false,
+    "allow_database_deletion": false,
+    "restore_db_from_snapshot": false,
+    "db_snapshot_identifier": ""
+  },
+  "aws_actual": {
+    "rds": "absent",
+    "alb": "absent",
+    "interface_endpoints": 0,
+    "ecs_cluster": "absent",
+    "ecs_services": 0,
+    "ecs_tasks": 0,
+    "vpc": "available",
+    "subnets": 6,
+    "s3_gateway_endpoint": "available",
+    "artifact_s3": "exists",
+    "ecr_repositories": 2,
+    "secret_container": "exists",
+    "manual_snapshot": {"status": "available", "encrypted": true}
+  },
+  "convergence_plan": {
+    "path": "environment/staging/staging-idle-convergence.tfplan",
+    "add": 0,
+    "change": 0,
+    "replace": 0,
+    "destroy": 0,
+    "applied": false
+  },
+  "validation": {
+    "terraform_fmt": "PASS",
+    "terraform_roots_validated": 4,
+    "terraform_tests": {"status": "PASS", "passed": 21},
+    "active_reactivation_negative_plan": "PASS"
+  },
+  "production": {"changes": 0, "rds": "available", "ecs": "ACTIVE", "alb": "active"},
+  "cost": {"estimated_idle_monthly_usd": "2-4", "estimated_saving_monthly_usd": "206-208"},
+  "invalid_plans": ["staging-final-idle.tfplan", "staging-current-drift-review.tfplan"],
+  "aws_changes_performed": false,
+  "final_decision": ["STAGING_IDLE_MODE_CONVERGED", "READY_FOR_PRODUCTION_SAFETY_REMEDIATION"]
+}

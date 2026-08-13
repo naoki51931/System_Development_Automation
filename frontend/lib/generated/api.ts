@@ -1568,6 +1568,13 @@ export interface components {
              */
             valid_until: string;
         };
+        /** EstimateCursorPage */
+        EstimateCursorPage: {
+            /** Items */
+            items: components["schemas"]["EstimateSummary"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
         /** EstimateItemInput */
         EstimateItemInput: {
             /** Description */
@@ -1589,6 +1596,43 @@ export interface components {
             unit: string;
             /** Unit Price */
             unit_price: number | string;
+        };
+        /** EstimateSummary */
+        EstimateSummary: {
+            /** Currency */
+            currency: string;
+            /** Estimate Number */
+            estimate_number: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Organization Id
+             * Format: uuid
+             */
+            organization_id: string;
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            /** Status */
+            status: string;
+            /** Subtotal */
+            subtotal: string;
+            /** Tax Amount */
+            tax_amount: string;
+            /** Total Amount */
+            total_amount: string;
+            /**
+             * Valid Until
+             * Format: date
+             */
+            valid_until: string;
+            /** Version */
+            version: number;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -4157,7 +4201,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["EstimateCursorPage"];
                 };
             };
             /** @description Validation Error */

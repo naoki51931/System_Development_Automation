@@ -23,6 +23,15 @@ variable "image_tag" {
   description = "ECSで実行するECRイメージのタグ"
 }
 
+variable "capacity_profile" { type = string }
+variable "backend_cpu" { type = number }
+variable "backend_memory" { type = number }
+variable "desired_count" { type = number }
+variable "min_count" { type = number }
+variable "max_count" { type = number }
+variable "cpu_target" { type = number }
+variable "memory_target" { type = number }
+
 resource "aws_ecr_repository" "app" {
   name                 = var.name
   image_tag_mutability = "IMMUTABLE"
@@ -38,6 +47,11 @@ resource "aws_ecr_repository" "app" {
 
 resource "aws_ecs_cluster" "main" {
   name = var.name
+
+  setting {
+    name  = "containerInsights"
+    value = "enabled"
+  }
 
   tags = {
     Name = "${var.name}-cluster"
@@ -247,11 +261,26 @@ resource "aws_ecs_task_definition" "app" {
   ])
 }
 
+# Keep the current Production task definition managed and registered for an
+# immediate rollback. The reviewed low-traffic profile uses a separate family,
+# avoiding replacement/deregistration of the known-good revision.
+resource "aws_ecs_task_definition" "app_low_traffic" {
+  count                    = var.capacity_profile == "low-traffic" ? 1 : 0
+  family                   = "${var.name}-low-traffic"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = tostring(var.backend_cpu)
+  memory                   = tostring(var.backend_memory)
+  execution_role_arn       = aws_iam_role.task_execution.arn
+  task_role_arn            = aws_iam_role.task.arn
+  container_definitions    = aws_ecs_task_definition.app.container_definitions
+}
+
 resource "aws_ecs_service" "app" {
   name            = var.name
   cluster         = aws_ecs_cluster.main.id
-  task_definition = aws_ecs_task_definition.app.arn
-  desired_count   = 1
+  task_definition = var.capacity_profile == "low-traffic" ? aws_ecs_task_definition.app_low_traffic[0].arn : aws_ecs_task_definition.app.arn
+  desired_count   = var.desired_count
   launch_type     = "FARGATE"
 
   enable_execute_command = true
@@ -273,10 +302,61 @@ resource "aws_ecs_service" "app" {
 
   health_check_grace_period_seconds = 60
 
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = true
+  }
+
+  lifecycle {
+    ignore_changes = [desired_count]
+  }
+
   depends_on = [
     aws_lb_listener.http,
     aws_iam_role_policy_attachment.task_execution
   ]
+}
+
+resource "aws_appautoscaling_target" "app" {
+  max_capacity       = var.max_count
+  min_capacity       = var.min_count
+  resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.app.name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+  service_namespace  = "ecs"
+}
+
+resource "aws_appautoscaling_policy" "cpu" {
+  name               = "${var.name}-cpu-target"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.app.resource_id
+  scalable_dimension = aws_appautoscaling_target.app.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.app.service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    target_value       = var.cpu_target
+    scale_in_cooldown  = 300
+    scale_out_cooldown = 60
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageCPUUtilization"
+    }
+  }
+}
+
+resource "aws_appautoscaling_policy" "memory" {
+  name               = "${var.name}-memory-target"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.app.resource_id
+  scalable_dimension = aws_appautoscaling_target.app.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.app.service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    target_value       = var.memory_target
+    scale_in_cooldown  = 300
+    scale_out_cooldown = 60
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageMemoryUtilization"
+    }
+  }
 }
 
 output "ecs_cluster_name" {
@@ -285,6 +365,14 @@ output "ecs_cluster_name" {
 
 output "ecs_service_name" {
   value = aws_ecs_service.app.name
+}
+
+output "alb_arn_suffix" {
+  value = aws_lb.main.arn_suffix
+}
+
+output "target_group_arn_suffix" {
+  value = aws_lb_target_group.app.arn_suffix
 }
 
 output "task_definition_arn" {

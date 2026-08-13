@@ -1,0 +1,62 @@
+{
+  "plan": "environment/production-100rpm-pitr-remediated-final.tfplan",
+  "sha256": "6c4a977c54942c734526abc7f233124014a74eef861fc298f91f90b28b27efc3",
+  "actions": {"add": 19, "change": 3, "replace": 0, "destroy": 0},
+  "rds": {
+    "actions": ["update"],
+    "changes": {"instance_class": {"before": "db.t4g.medium", "after": "db.t4g.small"}},
+    "replace": 0,
+    "multi_az_preserved": true,
+    "apply_immediately": false,
+    "maintenance_window": "sat:02:43-sat:03:13"
+  },
+  "ecs": {
+    "cpu": {"before": 512, "after": 256},
+    "memory_mib": {"before": 1024, "after": 512},
+    "desired": 1,
+    "min": 1,
+    "max": 2,
+    "image": "unchanged:v4",
+    "rollback_revision": "ai-platform-prod:4"
+  },
+  "monitoring": {
+    "alarms": 13,
+    "sns_topic": "ai-platform-prod-alerts",
+    "subscription_count": 1,
+    "endpoint": "info@nagi-neco.com",
+    "auto_confirmation": false,
+    "notification": "MANUAL_CONFIRMATION_REQUIRED"
+  },
+  "snapshot": {
+    "id": "ai-platform-prod-pre-100rpm-downsize-20260812-010957",
+    "status": "available",
+    "percent": 100,
+    "encrypted": true
+  },
+  "pitr": {
+    "status": "PASS",
+    "db_instance_earliest": null,
+    "db_instance_earliest_warning": "PITR_API_FIELD_WARNING",
+    "automated_backup_status": "active",
+    "dbi_resource_id_match": true,
+    "retention_days": 14,
+    "earliest": "2026-08-01T13:20:41.375000+00:00",
+    "latest": "2026-08-12T10:37:31+00:00",
+    "latest_automated_snapshot_available": true,
+    "latest_automated_snapshot_encrypted": true,
+    "recent_backup_failures": 0
+  },
+  "security": {
+    "pip_before": "25.0.1",
+    "pip_after": "26.1.2",
+    "pip_audit_findings_before": 5,
+    "pip_audit_findings_after": 0,
+    "bandit_findings": 0,
+    "secret_scan_findings": 0
+  },
+  "old_plan": {"validity": "STALE_INVALID", "sha256": "d6f094ded385f70628f9e0840e86c051fc2308d78a6afc313d5aafe32e8a5df0"},
+  "production_infrastructure_destroy": 0,
+  "staging_changes": 0,
+  "apply_performed": false,
+  "decision": "READY_WITH_MANUAL_SNS_CONFIRMATION_REQUIRED"
+}

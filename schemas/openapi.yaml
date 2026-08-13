@@ -625,6 +625,34 @@
         "title": "EstimateCreateInput",
         "type": "object"
       },
+      "EstimateCursorPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/EstimateSummary"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "EstimateCursorPage",
+        "type": "object"
+      },
       "EstimateItemInput": {
         "properties": {
           "description": {
@@ -705,6 +733,73 @@
           "unit_price"
         ],
         "title": "EstimateItemInput",
+        "type": "object"
+      },
+      "EstimateSummary": {
+        "properties": {
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "estimate_number": {
+            "title": "Estimate Number",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "organization_id": {
+            "format": "uuid",
+            "title": "Organization Id",
+            "type": "string"
+          },
+          "project_id": {
+            "format": "uuid",
+            "title": "Project Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "subtotal": {
+            "title": "Subtotal",
+            "type": "string"
+          },
+          "tax_amount": {
+            "title": "Tax Amount",
+            "type": "string"
+          },
+          "total_amount": {
+            "title": "Total Amount",
+            "type": "string"
+          },
+          "valid_until": {
+            "format": "date",
+            "title": "Valid Until",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "organization_id",
+          "project_id",
+          "estimate_number",
+          "status",
+          "currency",
+          "subtotal",
+          "tax_amount",
+          "total_amount",
+          "valid_until",
+          "version"
+        ],
+        "title": "EstimateSummary",
         "type": "object"
       },
       "HTTPValidationError": {
@@ -5254,7 +5349,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/EstimateCursorPage"
+                }
               }
             },
             "description": "Successful Response"

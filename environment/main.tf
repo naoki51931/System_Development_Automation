@@ -31,6 +31,14 @@ module "ecs" {
   private_subnet_ids = module.network.private_subnet_ids
   bucket_arn         = module.storage.bucket_arn
   image_tag          = var.container_image_tag
+  capacity_profile   = var.production_capacity_profile
+  backend_cpu        = var.backend_cpu
+  backend_memory     = var.backend_memory
+  desired_count      = var.backend_desired_count
+  min_count          = var.backend_min_count
+  max_count          = var.backend_max_count
+  cpu_target         = var.backend_cpu_target
+  memory_target      = var.backend_memory_target
 }
 
 module "database" {
@@ -39,6 +47,18 @@ module "database" {
   instance_class      = var.db_instance_class
   database_subnet_ids = module.network.database_subnet_ids
   application_sg_id   = module.ecs.application_sg_id
+}
+
+module "monitoring" {
+  source                  = "../modules/production_monitoring"
+  name                    = var.name
+  notification_email      = var.production_notification_email
+  alb_arn_suffix          = module.ecs.alb_arn_suffix
+  target_group_arn_suffix = module.ecs.target_group_arn_suffix
+  ecs_cluster_name        = module.ecs.ecs_cluster_name
+  ecs_service_name        = module.ecs.ecs_service_name
+  desired_task_count      = var.backend_desired_count
+  db_instance_identifier  = module.database.db_instance_identifier
 }
 
 resource "aws_iam_openid_connect_provider" "github" {

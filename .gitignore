@@ -1,5 +1,7 @@
 # Terraform
 **/.terraform/
+**/backend.hcl
+**/terraform.tfvars
 *.tfstate
 *.tfstate.*
 *.tfplan
@@ -8,6 +10,12 @@ terraform.tfvars
 backend.hcl
 backend.hcl.bak
 .terraform.lock.hcl
+environment/staging/backend.hcl.discovery
+environment/staging/terraform.tfvars.discovery
+environment/staging-prerequisites/backend.hcl
+environment/staging-prerequisites/terraform.tfvars
+environment/staging-prerequisites/*.tfplan
+environment/staging-prerequisites/*-plan.txt
 
 # Secrets
 .env
@@ -28,6 +36,7 @@ frontend/node_modules/
 frontend/.next/
 frontend/test-results/
 frontend/playwright-report/
+**/coverage/
 .coverage
 .coverage.*
 htmlcov/

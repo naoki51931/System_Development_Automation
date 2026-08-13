@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "collected_at": "2026-08-10T14:56:15Z",
+  "scope": {
+    "account_id": "557604519341",
+    "role": "instanceRoleTerraform",
+    "region": "eu-west-2",
+    "period_start": "2026-08-01",
+    "period_end_exclusive": "2026-08-11",
+    "read_only": true,
+    "cost_explorer_estimated": true,
+    "resource_level_cost_data_enabled": false
+  },
+  "observed_cost_usd": {
+    "Amazon Relational Database Service": 33.5285104032,
+    "EC2 - Other": 11.9532302746,
+    "Amazon Elastic Compute Cloud - Compute": 10.3178037556,
+    "Tax": 7.28,
+    "Amazon Elastic Container Service": 5.8625541346,
+    "Amazon Elastic Load Balancing": 5.4777245432,
+    "Amazon Virtual Private Cloud": 4.741277795,
+    "Amazon Route 53": 0.5020124,
+    "AWS Key Management Service": 0.276881716,
+    "AWS Secrets Manager": 0.1113558122,
+    "Amazon EC2 Container Registry (ECR)": 0.0233628647,
+    "Amazon Simple Storage Service": 0.000692267,
+    "Amazon DynamoDB": 0.0000065344,
+    "AmazonCloudWatch": 0.0
+  },
+  "key_breakdowns": {
+    "rds": {
+      "production": 33.5285104032,
+      "staging_visible": 0.0,
+      "multi_az_db_t4g_medium_compute": 29.823317975,
+      "multi_az_gp2_storage": 3.694648039
+    },
+    "ec2_other": {
+      "nat_gateway_hours": 10.4,
+      "nat_gateway_bytes": 0.0679607821,
+      "ebs_gp3": 1.4694655708,
+      "other_transfer_approx": 0.0158033517
+    },
+    "ec2_compute": {
+      "t3_small_homepage_inferred": 5.1592418784,
+      "t3_medium_work_instance_inferred": 4.894076196,
+      "t3_large_historical_unknown": 0.2644773648,
+      "resource_attribution_confidence": "high for current unique types; historical t3.large unknown"
+    },
+    "ecs": {
+      "environment": "Production",
+      "fargate_vcpu": 4.8034036444,
+      "fargate_memory": 1.0543553532,
+      "transfer": 0.004795137,
+      "staging_services": 0,
+      "staging_running_tasks": 0
+    }
+  },
+  "priorities": [
+    {"rank": 1, "resource": "7 staging Interface VPC Endpoints across 2 AZs", "estimated_monthly_usd": 127.75, "action": "delete/recreate through reviewed Terraform when unused"},
+    {"rank": 2, "resource": "system-navigator-staging-db", "estimated_monthly_usd": 54.9, "action": "stop for short idle windows; snapshot/delete workflow for long-term minimum"},
+    {"rank": 3, "resource": "system-navigator-staging-alb plus public IPv4", "estimated_monthly_usd": 26.62, "action": "delete/recreate through reviewed Terraform when runtime is disabled"}
+  ],
+  "monthly_estimates_usd": {
+    "staging_interface_endpoints": 127.75,
+    "staging_s3_gateway_endpoint": 0.0,
+    "staging_rds_available": 54.9,
+    "staging_alb": 19.32,
+    "staging_alb_public_ipv4": 7.3,
+    "staging_total_fixed_approx": 210.0,
+    "production_rds": 117.7,
+    "production_nat_gateway_excluding_data": 36.5,
+    "production_fargate": 20.72,
+    "work_ec2_compute": 34.46,
+    "all_ec2_ebs_volumes_58gb": 5.38,
+    "staging_minimum_snapshot_based": {"low": 2.0, "high": 4.0},
+    "production_preserved_savings_staging_only_approx": 210.0,
+    "production_preserved_savings_including_work_ec2_approx": 248.0
+  },
+  "inventory": {
+    "rds": [
+      {"id": "ai-platform-prod-postgres", "environment": "Production", "class": "db.t4g.medium", "multi_az": true, "storage_gb": 50, "storage_type": "gp2", "status": "available"},
+      {"id": "system-navigator-staging-db", "environment": "Staging", "class": "db.t4g.small", "multi_az": false, "storage_gb": 20, "storage_type": "gp3", "status": "available", "created": "2026-08-10T13:52:00.858Z"}
+    ],
+    "ec2": [
+      {"id": "i-0b08ca7468f7d5e1e", "environment": "Unknown", "name": "nagineco homepage", "type": "t3.small", "state": "running", "volume_gb": 20},
+      {"id": "i-05cb209b355a1c864", "environment": "Unknown", "name": "test_web_page", "type": "t3.micro", "state": "stopped", "volume_gb": 8},
+      {"id": "i-0add395a2d89805b5", "environment": "Shared", "name": "system automation", "type": "t3.medium", "state": "running", "volume_gb": 30}
+    ],
+    "ebs_snapshot_count": 0,
+    "staging_interface_endpoint_count": 7,
+    "staging_gateway_endpoint_count": 1,
+    "staging_nat_gateway_count": 0,
+    "staging_alb_count": 1,
+    "production_alb_count": 1,
+    "current_public_ip_eni_count": 6,
+    "ecr_compressed_bytes": 1385299015,
+    "secrets_count": 3
+  },
+  "scenarios": {
+    "safety_first": {"staging_monthly_usd_approx": 210.0, "configuration": "keep endpoints, ALB and RDS; ECS zero"},
+    "cost_focused": {"idle_staging_monthly_usd_range": [3.0, 6.0], "configuration": "remove endpoints and ALB; temporarily stop RDS; retain state/config/images"},
+    "minimum_maintenance": {"staging_monthly_usd_range": [2.0, 4.0], "configuration": "snapshot-based DB recovery; no live RDS, ALB, Interface Endpoints, or ECS runtime"}
+  },
+  "no_changes_performed": true
+}

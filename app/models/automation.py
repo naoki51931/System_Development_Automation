@@ -11,9 +11,10 @@ from sqlalchemy import (
     Integer,
     Numeric,
     String,
+    UniqueConstraint,
     func,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -128,6 +129,12 @@ class WorkflowJob(TimestampMixin, Base):
     locked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     locked_by: Mapped[str | None] = mapped_column(String(100))
     last_error_code: Mapped[str | None] = mapped_column(String(100))
+    resume_block_reason: Mapped[str | None] = mapped_column(String(255))
+    resume_blocked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    parent_job_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("workflow_jobs.id", ondelete="RESTRICT")
+    )
+    idempotency_key: Mapped[str | None] = mapped_column(String(64), unique=True)
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     __mapper_args__ = {"version_id_col": version}
     __table_args__ = (
@@ -142,6 +149,100 @@ class WorkflowJob(TimestampMixin, Base):
         ),
         Index("ix_workflow_jobs_claim", "status", "locked_at"),
         Index("ix_workflow_jobs_project_created", "project_id", "created_at"),
+    )
+
+
+class WorkflowJobInput(Base):
+    __tablename__ = "workflow_job_inputs"
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("projects.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    workflow_job_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("workflow_jobs.id", ondelete="RESTRICT"),
+        unique=True,
+    )
+    document_job_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("document_generation_jobs.id", ondelete="RESTRICT"),
+        unique=True,
+    )
+    input_type: Mapped[str] = mapped_column(String(30), nullable=False)
+    schema_version: Mapped[str] = mapped_column(String(20), nullable=False)
+    source_reference_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    source_reference_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), nullable=False
+    )
+    actor_user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
+    )
+    access_context_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    settings_snapshot: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    template_snapshot: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    input_payload: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    input_payload_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    idempotency_key: Mapped[str] = mapped_column(
+        String(64), nullable=False, unique=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    __table_args__ = (
+        CheckConstraint(
+            "(workflow_job_id IS NOT NULL)::int + (document_job_id IS NOT NULL)::int = 1",
+            name="ck_workflow_job_inputs_one_job",
+        ),
+        CheckConstraint(
+            "input_type IN ('document','ai_workflow')",
+            name="ck_workflow_job_inputs_type",
+        ),
+        Index("ix_workflow_job_inputs_tenant", "organization_id", "project_id"),
+    )
+
+
+class WorkflowJobStep(Base):
+    __tablename__ = "workflow_job_steps"
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    workflow_input_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("workflow_job_inputs.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    step_name: Mapped[str] = mapped_column(String(50), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
+    idempotency_key: Mapped[str] = mapped_column(
+        String(64), nullable=False, unique=True
+    )
+    result_reference: Mapped[str | None] = mapped_column(String(1024))
+    result_hash: Mapped[str | None] = mapped_column(String(64))
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    last_error_code: Mapped[str | None] = mapped_column(String(100))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    __table_args__ = (
+        UniqueConstraint(
+            "workflow_input_id", "step_name", name="uq_workflow_job_steps_name"
+        ),
+        CheckConstraint(
+            "status IN ('pending','running','completed','failed')",
+            name="ck_workflow_job_steps_status",
+        ),
+        CheckConstraint("attempt_count >= 0", name="ck_workflow_job_steps_attempts"),
     )
 
 

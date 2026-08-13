@@ -1,0 +1,75 @@
+{
+  "plan": "environment/production-100rpm-residual.tfplan",
+  "sha256": "992ec5ffb8ec5da4383b29c23e908689db7f4339bb4eccc71f18f0dc3bbc5578",
+  "state_key": "cloud-a/prod/terraform.tfstate",
+  "actions": {"add": 6, "change": 1, "replace": 0, "destroy": 0},
+  "scope": {
+    "ecs_actions": 0,
+    "alb_actions": 0,
+    "nat_actions": 0,
+    "staging_actions": 0,
+    "rds_alarm_add": 6
+  },
+  "rds": {
+    "actions": ["update"],
+    "instance_class": {"before": "db.t4g.medium", "after": "db.t4g.small"},
+    "replace": 0,
+    "multi_az": true,
+    "storage_gib": 50,
+    "storage_type": "gp2",
+    "engine": "postgres",
+    "engine_version": "18.3",
+    "backup_retention_days": 14,
+    "deletion_protection": true,
+    "encrypted": true,
+    "public": false,
+    "subnet_group": "ai-platform-prod-db",
+    "apply_immediately": false,
+    "maintenance_window": "sat:02:43-sat:03:13"
+  },
+  "alarms": {
+    "metrics": [
+      "CPUUtilization",
+      "DatabaseConnections",
+      "FreeableMemory",
+      "FreeStorageSpace",
+      "ReadLatency",
+      "WriteLatency"
+    ],
+    "dimension": {"DBInstanceIdentifier": "ai-platform-prod-postgres"},
+    "sns_topic": "ai-platform-prod-alerts"
+  },
+  "capacity": {
+    "classification": "CLASS_SUPPORTED_CAPACITY_TEMPORARILY_UNAVAILABLE",
+    "db_t4g_small_orderable": true,
+    "multi_az_capable": true,
+    "gp2_supported": true,
+    "availability_zones": ["eu-west-2a", "eu-west-2b", "eu-west-2c"],
+    "alternative": "db.t3.small",
+    "recommendation": "RETRY_SAME_CLASS_RECOMMENDED"
+  },
+  "protection": {
+    "pitr": "PASS",
+    "manual_snapshot": {"status": "available", "percent": 100, "encrypted": true}
+  },
+  "current_monitoring": {
+    "alarm_count": 7,
+    "alb": 4,
+    "ecs": 3,
+    "rds": 0,
+    "sns_subscription": "PendingConfirmation"
+  },
+  "cost_usd_month": {
+    "before": 192,
+    "current_partial": "183-184",
+    "final_target": "135-136",
+    "already_realized": "8-9",
+    "remaining_saving": 48
+  },
+  "old_plan": {
+    "sha256": "6c4a977c54942c734526abc7f233124014a74eef861fc298f91f90b28b27efc3",
+    "validity": "STALE_PARTIALLY_APPLIED_INVALID"
+  },
+  "apply_performed": false,
+  "decision": "READY_FOR_PRODUCTION_RDS_SMALL_RETRY_APPLY_APPROVAL"
+}

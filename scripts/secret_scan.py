@@ -17,6 +17,8 @@ ALLOW = {
     "docs/staging_readiness.md",
     "docs/staging_deployment_checklist.md",
     "scripts/secret_scan.py",
+    # Contains only split/synthetic signatures used to verify Terraform examples.
+    "tests/test_staging_terraform.py",
 }
 
 

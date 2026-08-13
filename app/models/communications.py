@@ -360,6 +360,13 @@ class DocumentGenerationJob(TimestampMixin, Base):
     max_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
     failure_code: Mapped[str | None] = mapped_column(String(100))
     failure_message_sanitized: Mapped[str | None] = mapped_column(Text)
+    resume_block_reason: Mapped[str | None] = mapped_column(String(255))
+    resume_blocked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    parent_job_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("document_generation_jobs.id", ondelete="RESTRICT"),
+    )
+    idempotency_key: Mapped[str | None] = mapped_column(String(64), unique=True)
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
@@ -661,4 +668,5 @@ class OutboxEvent(Base):
         CheckConstraint("attempt_count >= 0", name="ck_outbox_events_attempts"),
         Index("ix_outbox_events_available", "status", "available_at"),
         Index("ix_outbox_events_claim", "status", "available_at", "created_at", "id"),
+        Index("ix_outbox_events_lease", "status", "available_at", "lease_expires_at"),
     )

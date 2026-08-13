@@ -3,7 +3,7 @@ import os
 from collections import defaultdict
 from statistics import median
 
-from locust import HttpUser, between, events, task
+from locust import HttpUser, between, constant_throughput, events, task
 
 
 timing_samples = defaultdict(list)
@@ -75,7 +75,11 @@ def write_breakdown(environment=None, **_kwargs):
 
 
 class PortalUser(HttpUser):
-    wait_time = between(0.1, 0.5)
+    wait_time = (
+        constant_throughput(float(os.environ["TARGET_RPS_PER_USER"]))
+        if os.getenv("TARGET_RPS_PER_USER")
+        else between(0.1, 0.5)
+    )
 
     def on_start(self):
         users = self.client.get(

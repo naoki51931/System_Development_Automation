@@ -1,0 +1,94 @@
+{
+  "timestamp_utc": "2026-08-12",
+  "git_head": "db4f40623946b8507aaf72203997a17f8ea50670",
+  "aws": {
+    "account": "557604519341",
+    "region": "eu-west-2",
+    "role": "instanceRoleTerraform"
+  },
+  "state_key": "cloud-a/prod/terraform.tfstate",
+  "plan": {
+    "path": "environment/production-100rpm-residual.tfplan",
+    "sha256": "992ec5ffb8ec5da4383b29c23e908689db7f4339bb4eccc71f18f0dc3bbc5578",
+    "checksum_match": true
+  },
+  "apply": {
+    "result": "SUCCESS",
+    "add": 6,
+    "change": 1,
+    "destroy": 0,
+    "capacity_error": false,
+    "attempts": 1
+  },
+  "ecs": {
+    "task": "ai-platform-prod-low-traffic:1",
+    "cpu": 256,
+    "memory_mib": 512,
+    "desired": 1,
+    "running": 1,
+    "pending": 0,
+    "deployment": "COMPLETED",
+    "target": "healthy",
+    "smoke": {"root": 200, "health": 200, "docs": 200}
+  },
+  "rds": {
+    "previous_class": "db.t4g.medium",
+    "current_class": "db.t4g.medium",
+    "pending_class": "db.t4g.small",
+    "status": "available",
+    "classification": "RDS_DOWNSIZING_PENDING_MAINTENANCE",
+    "multi_az": true,
+    "storage_gib": 50,
+    "storage_type": "gp2",
+    "engine": "postgres",
+    "engine_version": "18.3",
+    "backup_retention_days": 14,
+    "deletion_protection": true,
+    "encrypted": true,
+    "public": false,
+    "apply_immediately": false,
+    "maintenance_window": "sat:02:43-sat:03:13"
+  },
+  "protection": {
+    "pitr": "PASS",
+    "warning": "PITR_API_FIELD_WARNING",
+    "manual_snapshot": {"status": "available", "encrypted": true, "percent": 100}
+  },
+  "monitoring": {
+    "total": 13,
+    "alb": 4,
+    "ecs": 3,
+    "rds": 6,
+    "states": {"OK": 8, "INSUFFICIENT_DATA": 5, "ALARM": 0},
+    "sns_topic": "ai-platform-prod-alerts",
+    "email": "info@nagi-neco.com",
+    "subscription": "PendingConfirmation"
+  },
+  "network": {"alb": "active", "nat": "available"},
+  "staging": {
+    "status": "STAGING_IDLE_MODE_CONVERGED",
+    "rds": 0,
+    "alb": 0,
+    "interface_endpoints": 0,
+    "runtime_ecs": 0
+  },
+  "post_apply_plan": {
+    "detailed_exitcode": 2,
+    "add": 0,
+    "change": 1,
+    "destroy": 0,
+    "classification": "POST_APPLY_PLAN_PENDING_RDS_MAINTENANCE"
+  },
+  "cost_usd_month": {
+    "partial_before_maintenance": "183-184",
+    "final_target": "135-136",
+    "remaining_saving": 48,
+    "production_total_saving": "56-57",
+    "combined_saving": "262-265"
+  },
+  "decision": [
+    "PRODUCTION_100RPM_DOWNSIZING_APPLIED",
+    "RDS_DOWNSIZING_PENDING_MAINTENANCE",
+    "MANUAL_SNS_CONFIRMATION_REQUIRED"
+  ]
+}

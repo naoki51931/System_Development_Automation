@@ -39,7 +39,13 @@ from app.models.identity import (
     Role,
     User,
 )
-from app.models.automation import AISetting, ArtifactUploadIntent, WorkflowJob
+from app.models.automation import (
+    AISetting,
+    ArtifactUploadIntent,
+    WorkflowJob,
+    WorkflowJobInput,
+    WorkflowJobStep,
+)
 from app.models.project import (
     AIRun,
     ApprovalEvent,
@@ -96,6 +102,8 @@ __all__ = [
     "Role",
     "User",
     "WorkflowJob",
+    "WorkflowJobInput",
+    "WorkflowJobStep",
     "Subscription",
     "SubscriptionInvoice",
 ]

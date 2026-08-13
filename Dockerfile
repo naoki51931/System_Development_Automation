@@ -1,10 +1,16 @@
-FROM python:3.12-slim AS base
+# Pin the existing Python 3.12.13 series to the reviewed linux/amd64 Alpine
+# digest. Debian Bookworm and Trixie both retain vulnerable essential Perl
+# packages; Alpine 3.24 avoids Perl and carries the fixed SQLite 3.53.2.
+FROM python:3.12-alpine@sha256:6d43704baacd1bfbe7c295d7f13079d5d8104ed33568873133f8fc69980419df AS base
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 PYTHONPATH=/app
 WORKDIR /app
-RUN groupadd --system app && useradd --system --gid app --home /app app
+RUN addgroup -S app && adduser -S -G app -h /app app
 RUN chown app:app /app
 COPY requirements-runtime.txt ./
-RUN pip install --no-cache-dir -r requirements-runtime.txt
+# Pin the installer used by build/quality stages to the first release fixing
+# all reviewed pip advisories. It is removed from the runtime stage below.
+RUN python -m pip install --no-cache-dir --upgrade "pip==26.1.2" \
+    && python -m pip install --no-cache-dir -r requirements-runtime.txt
 COPY --chown=app:app alembic.ini ./
 COPY --chown=app:app app ./app
 COPY --chown=app:app migrations ./migrations
@@ -23,3 +29,6 @@ COPY --chown=app:app tests ./tests
 USER app
 
 FROM base AS runtime
+USER root
+RUN python -m pip uninstall -y pip
+USER app

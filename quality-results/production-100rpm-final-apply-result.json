@@ -1,0 +1,94 @@
+{
+  "timestamp_utc": "2026-08-12",
+  "git_head": "f0ef87cbc29db964911ebf08a72072e49092f9b9",
+  "aws": {
+    "account": "557604519341",
+    "region": "eu-west-2",
+    "role": "instanceRoleTerraform"
+  },
+  "state_key": "cloud-a/prod/terraform.tfstate",
+  "plan": {
+    "path": "environment/production-100rpm-pitr-remediated-final.tfplan",
+    "sha256": "6c4a977c54942c734526abc7f233124014a74eef861fc298f91f90b28b27efc3",
+    "checksum_match": true,
+    "reviewed": {"add": 19, "change": 3, "replace": 0, "destroy": 0}
+  },
+  "apply": {
+    "exit": "FAILED_PARTIAL",
+    "error": "InsufficientDBInstanceCapacity",
+    "successful_observed": {"add": 13, "change": 2, "replace": 0, "destroy": 0},
+    "retry_performed": false
+  },
+  "ecs": {
+    "old_task": "ai-platform-prod:4",
+    "new_task": "ai-platform-prod-low-traffic:1",
+    "cpu_before": 512,
+    "cpu_after": 256,
+    "memory_mib_before": 1024,
+    "memory_mib_after": 512,
+    "desired": 1,
+    "running": 1,
+    "pending": 0,
+    "deployment": "COMPLETED",
+    "autoscaling": {"min": 1, "max": 2, "cpu_target": 60, "memory_target": 70},
+    "smoke": {"root": 200, "health": 200, "docs": 200},
+    "target": "healthy"
+  },
+  "rds": {
+    "previous_class": "db.t4g.medium",
+    "current_class": "db.t4g.medium",
+    "pending_class": null,
+    "classification": "RDS_DOWNSIZING_FAILED",
+    "status": "available",
+    "multi_az": true,
+    "storage_gib": 50,
+    "storage_type": "gp2",
+    "backup_retention_days": 14,
+    "deletion_protection": true,
+    "encrypted": true,
+    "public": false,
+    "maintenance_window": "sat:02:43-sat:03:13"
+  },
+  "protection": {
+    "pitr_pre_apply": "PASS",
+    "pitr_post_apply": "PASS",
+    "warning": "PITR_API_FIELD_WARNING",
+    "manual_snapshot": {"status": "available", "encrypted": true, "percent": 100}
+  },
+  "monitoring": {
+    "alarm_count": 7,
+    "states": {"OK": 7, "INSUFFICIENT_DATA": 0, "ALARM": 0},
+    "missing_rds_alarms": 6,
+    "sns_topic": "ai-platform-prod-alerts",
+    "email": "info@nagi-neco.com",
+    "subscription": "PendingConfirmation"
+  },
+  "network": {"alb": "active", "nat": "available"},
+  "staging": {
+    "status": "STAGING_IDLE_MODE_CONVERGED",
+    "rds": 0,
+    "alb": 0,
+    "interface_endpoints": 0,
+    "runtime_ecs": 0
+  },
+  "post_apply_plan": {
+    "detailed_exitcode": 2,
+    "add": 6,
+    "change": 1,
+    "replace": 0,
+    "destroy": 0,
+    "classification": "REMEDIATION_REQUIRED"
+  },
+  "cost": {
+    "before_usd_month": 192,
+    "target_after_usd_month": "135-136",
+    "target_production_saving_usd_month": "56-57",
+    "target_combined_saving_usd_month": "262-265",
+    "target_fully_active": false
+  },
+  "decision": "PRODUCTION_100RPM_DOWNSIZING_REQUIRES_REMEDIATION",
+  "manual_actions": [
+    "Confirm the SNS subscription email",
+    "Obtain a fresh reviewed remediation plan and separate approval after RDS capacity is available"
+  ]
+}
