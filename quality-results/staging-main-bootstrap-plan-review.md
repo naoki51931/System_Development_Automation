@@ -1,8 +1,8 @@
 # Staging main bootstrap plan review
 
-Date: 2026-08-10 UTC  
-Implementation commit: `dfab8e499cb9cde6478f19290be3bca6b0c38513`  
-AWS account / region: `557604519341` / `eu-west-2`  
+Date: 2026-08-10 UTC
+Implementation commit: `dfab8e499cb9cde6478f19290be3bca6b0c38513`
+AWS account / region: `557604519341` / `eu-west-2`
 State key: `system-navigator/staging/terraform.tfstate` (no existing state file; zero resources)
 
 ## Blockers and remediation
@@ -30,7 +30,7 @@ Required sequence:
 
 ## Saved plan review
 
-Plan: ignored `environment/staging/staging-main-bootstrap.tfplan`  
+Plan: ignored `environment/staging/staging-main-bootstrap.tfplan`
 Text rendering: ignored `environment/staging/staging-main-bootstrap-plan.txt`
 
 | Check | Result |

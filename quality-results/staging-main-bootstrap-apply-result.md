@@ -1,9 +1,9 @@
 # Staging main bootstrap apply result
 
-Date: 2026-08-10 UTC  
-Applied Git HEAD: `87ee88834956d79db266c97e087d413981ac98c5`  
-AWS account / region: `557604519341` / `eu-west-2`  
-State key: `system-navigator/staging/terraform.tfstate`  
+Date: 2026-08-10 UTC
+Applied Git HEAD: `87ee88834956d79db266c97e087d413981ac98c5`
+AWS account / region: `557604519341` / `eu-west-2`
+State key: `system-navigator/staging/terraform.tfstate`
 Applied saved plan: `/home/ubuntu/ai-platform/environment/staging/staging-main-bootstrap.tfplan`
 
 ## Apply result
@@ -45,7 +45,7 @@ This follow-up plan was not saved or applied. Runtime services remain disabled. 
 
 No Secret value was read or registered, no RDS connection or migration was attempted, `enable_runtime_services` remains false, no runtime-service plan/apply was run, and no GitHub push or production change occurred.
 
-Decision: `NOT_READY_FOR_STAGING_DATABASE_SECRET_APPROVAL`  
+Decision: `NOT_READY_FOR_STAGING_DATABASE_SECRET_APPROVAL`
 Protection status: `BOOTSTRAP_CREATED_WAITING_FOR_RDS_PROTECTION`
 
 ## 2026-08-10 reconciliation follow-up

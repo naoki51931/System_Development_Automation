@@ -1,8 +1,8 @@
 # Staging bootstrap reconciliation
 
-Date: 2026-08-10 UTC  
-Implementation commit: `5a9aa3e`  
-AWS account / region: `557604519341` / `eu-west-2`  
+Date: 2026-08-10 UTC
+Implementation commit: `5a9aa3e`
+AWS account / region: `557604519341` / `eu-west-2`
 State: `system-navigator/staging/terraform.tfstate`
 
 ## Service Discovery root cause and fix

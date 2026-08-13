@@ -4,7 +4,7 @@ Local-only verification resumed at baseline `22d9480e63f2246b40e7e84bea8c1206e22
 
 | Gate | Result | Evidence |
 |---|---|---|
-| Git diff / Terraform fmt | PASS | `git diff --check`; recursive fmt check |
+| Git diff / Terraform fmt | PASS | The original 2026-08-06 run passed `git diff --check` and recursive fmt check; the 2026-08-13 pre-push remediation rechecked the complete push tree after removing generated coverage and normalizing generated-evidence whitespace |
 | Terraform validate | PASS | Bootstrap, production, staging, and staging-prerequisites |
 | Terraform safety | PASS | 16 passed, 1 skipped (provider-schema test), 121 deselected |
 | Backend Test | PASS | 140 passed, 0 failed on local Compose PostgreSQL |
@@ -27,7 +27,7 @@ Local-only verification resumed at baseline `22d9480e63f2246b40e7e84bea8c1206e22
 | npm Audit | PASS | runtime `--omit=dev`: 0 vulnerabilities; nanoid pinned to 3.3.17 |
 | Local Images | PASS | app and frontend linux/amd64, non-root, healthchecks present |
 | Staging App Image Remediation | PASS | ECR `sha256:d92639685a9a455361b55cfe344112154cf05787bd28f4d10352bfb861f9e9e8`: CRITICAL 0, HIGH 0, MEDIUM 0; 142 tests, 82.89% overall, 90.86% critical-service, pip-audit/Bandit pass |
-| Staging Notifications | PASS | SNS email variable, manual confirmation, alarms complete; Budget 100 GBP |
+| Staging Notifications | PASS | SNS email variable, manual confirmation, alarms complete; current Budget 150 USD/month. Historical 100 GBP was rejected by the AWS Budgets API |
 | Prerequisite Root Boundary | PASS | ECR/IAM/SNS/Budget retained; custom-domain ACM/DNS disabled; explicit one-way main inputs |
 | Performance | PASS | retained 50-user/60-second: 0% errors, detail p95 490 ms, list p95 540 ms |
 | Production 100 RPM pre-apply | READY_WITH_MANUAL_SNS_CONFIRMATION_REQUIRED | Recipient is planned on an isolated topic; pip 25.0.1 tool findings are remediated by pinned 26.1.2 and runtime pip removal. Security/tests pass. Final plan is 19-add/3-change/0-replace/0-destroy. No apply authorized. |
@@ -37,7 +37,7 @@ The Compose-profile E2E attempt first failed because its quality image lacked br
 
 ## Current domain decision
 
-`true-camera-test.com` is not used. No replacement custom domain is selected. ACM, Route53 staging records and HTTPS remain disabled; temporary staging access is limited to the ALB HTTP DNS name under mock-only, non-sensitive restrictions. Notifications remain `info@nagi-neco.com` and the monthly Budget remains 100 GBP.
+`true-camera-test.com` is not used. No replacement custom domain is selected. ACM, Route53 staging records and HTTPS remain disabled; temporary staging access is limited to the ALB HTTP DNS name under mock-only, non-sensitive restrictions. Notifications remain `info@nagi-neco.com`; the current monthly Budget is 150 USD. The former 100 GBP setting was rejected by the AWS Budgets API and is retained only in dated historical evidence.
 
 Every mandatory pre-plan local gate is PASS. This authorizes only human review of prerequisite resource scope. Terraform plan/apply, AWS changes, ECR/GitHub push, image digest capture, RDS access/migration, and staging deployment remain prohibited pending the documented approvals and human inputs.
 
@@ -76,3 +76,9 @@ Production RDS remains `db.t4g.medium` with `db.t4g.small` pending maintenance; 
 AWS account/region/role, clean worktree, completed source and encrypted recovery snapshots, enabled AWS-managed EBS key, prior actual restore PASS, and current 6/6 critical-file size/SHA-256 matches are confirmed. Docker has zero running containers, local PostgreSQL is inactive, and no critical writer exists besides the explicitly authorized Codex/SSH control session. Root EBS `vol-09baf3dfa613ea20d` remains the attached 30 GiB gp3 root and stop protection is clear. Public IPv4 `18.170.41.191` is not an EIP and is expected to be released. Decision: **STOP_COMMAND_AUTHORIZED / STOP_EXECUTION_PENDING / WORK_EC2_READY_FOR_MANUAL_STOP**.
 
 Production RDS remains `db.t4g.medium` with `db.t4g.small` pending maintenance. Decision: **RDS_DOWNSIZING_STILL_PENDING_MAINTENANCE**.
+
+## 2026-08-13 GitHub pre-push remediation
+
+The pre-push remediation removes 19 tracked `frontend/coverage/` generated files, adds the repository-wide `**/coverage/` ignore rule, and normalizes trailing whitespace only in the four generated/historical evidence files reported by the complete push-range check. `git diff --check` passes for both the remediation and the complete tree proposed over `origin/agent/final-quality-gate`. Regenerating frontend coverage leaves it ignored and absent from Git status.
+
+The existing quality image reports Ruff check and format PASS, Bandit PASS, pip-audit with no known vulnerabilities, and 39 focused Staging Terraform/PITR static tests passing. Frontend unit and coverage runs pass 34 tests, runtime `npm audit --omit=dev` reports zero vulnerabilities, and the tracked-file/history secret scan reports zero actionable findings. The current Staging prerequisites Budget is statically fixed at 150 USD/month; dated references to the rejected 100 GBP configuration are historical only. No application or Terraform logic changed, and no Terraform operation, AWS change, GitHub write, or push occurred.
