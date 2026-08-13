@@ -17,6 +17,7 @@ jobs:
     env:
       TEST_DATABASE_URL: postgresql+psycopg://quality:local-ci-only@localhost:5432/quality
       APP_ENV: test
+      PYTHONPATH: .
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
