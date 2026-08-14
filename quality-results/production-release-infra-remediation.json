@@ -1,0 +1,13 @@
+{
+  "date_utc": "2026-08-14",
+  "starting_head": "f634cb8fee406e1e61bace1c13da6361b87793c4",
+  "branch": "agent/production-release-infra-remediation",
+  "starting_divergence": {"origin_master": 0, "head": 1},
+  "backend": {"passed": 197, "overall_coverage_percent": 82.60, "critical_coverage_percent": 90.69},
+  "frontend": {"passed": 34, "build": "PASS", "openapi_drift": "PASS", "npm_audit_vulnerabilities": 0},
+  "terraform": {"fmt": "PASS", "validated_roots": 4, "static_tests_passed": 33},
+  "security": {"ruff": "PASS", "ruff_format": "PASS", "bandit": "PASS", "pip_audit": "PASS", "secret_scan": "PASS"},
+  "operations": {"aws_changes": false, "terraform_apply": false, "terraform_destroy": false, "migration": false, "production_db_connection": false, "deployment": false},
+  "external_launch_ready": false,
+  "decision": "READY_FOR_GITHUB_CI_REVIEW_ONLY"
+}
