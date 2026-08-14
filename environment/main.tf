@@ -24,21 +24,26 @@ module "storage" {
 }
 
 module "ecs" {
-  source             = "../modules/ecs"
-  name               = var.name
-  vpc_id             = module.network.vpc_id
-  public_subnet_ids  = module.network.public_subnet_ids
-  private_subnet_ids = module.network.private_subnet_ids
-  bucket_arn         = module.storage.bucket_arn
-  image_tag          = var.container_image_tag
-  capacity_profile   = var.production_capacity_profile
-  backend_cpu        = var.backend_cpu
-  backend_memory     = var.backend_memory
-  desired_count      = var.backend_desired_count
-  min_count          = var.backend_min_count
-  max_count          = var.backend_max_count
-  cpu_target         = var.backend_cpu_target
-  memory_target      = var.backend_memory_target
+  source                 = "../modules/ecs"
+  name                   = var.name
+  vpc_id                 = module.network.vpc_id
+  public_subnet_ids      = module.network.public_subnet_ids
+  private_subnet_ids     = module.network.private_subnet_ids
+  bucket_arn             = module.storage.bucket_arn
+  image_tag              = var.container_image_tag
+  app_image              = var.app_image_uri
+  frontend_image         = var.frontend_image_uri
+  aws_region             = var.aws_region
+  database_secret_arn    = module.database.secret_arn
+  enable_release_runtime = var.enable_release_runtime
+  capacity_profile       = var.production_capacity_profile
+  backend_cpu            = var.backend_cpu
+  backend_memory         = var.backend_memory
+  desired_count          = var.backend_desired_count
+  min_count              = var.backend_min_count
+  max_count              = var.backend_max_count
+  cpu_target             = var.backend_cpu_target
+  memory_target          = var.backend_memory_target
 }
 
 module "database" {
@@ -50,15 +55,19 @@ module "database" {
 }
 
 module "monitoring" {
-  source                  = "../modules/production_monitoring"
-  name                    = var.name
-  notification_email      = var.production_notification_email
-  alb_arn_suffix          = module.ecs.alb_arn_suffix
-  target_group_arn_suffix = module.ecs.target_group_arn_suffix
-  ecs_cluster_name        = module.ecs.ecs_cluster_name
-  ecs_service_name        = module.ecs.ecs_service_name
-  desired_task_count      = var.backend_desired_count
-  db_instance_identifier  = module.database.db_instance_identifier
+  source                    = "../modules/production_monitoring"
+  name                      = var.name
+  notification_email        = var.production_notification_email
+  alb_arn_suffix            = module.ecs.alb_arn_suffix
+  target_group_arn_suffix   = module.ecs.target_group_arn_suffix
+  ecs_cluster_name          = module.ecs.ecs_cluster_name
+  ecs_service_name          = module.ecs.ecs_service_name
+  frontend_service_name     = module.ecs.frontend_service_name
+  worker_service_name       = module.ecs.worker_service_name
+  desired_task_count        = var.backend_desired_count
+  worker_desired_task_count = 1
+  release_runtime_enabled   = var.enable_release_runtime
+  db_instance_identifier    = module.database.db_instance_identifier
 }
 
 resource "aws_iam_openid_connect_provider" "github" {

@@ -25,6 +25,61 @@ variable "container_image_tag" {
   }
 }
 
+variable "app_image_uri" {
+  type        = string
+  description = "Reviewed Production application image. Backend, worker, and migration share this exact ECR digest URI."
+
+  validation {
+    condition = can(regex(
+      "^${var.aws_account_id}\\.dkr\\.ecr\\.${var.aws_region}\\.amazonaws\\.com/${var.name}@sha256:[0-9a-f]{64}$",
+      var.app_image_uri,
+    ))
+    error_message = "DIGEST_INPUT_UNSUPPORTED: app_image_uri must be the exact Production app ECR repository in this account/region pinned by @sha256. Tags, latest, malformed digests, and other repositories are forbidden."
+  }
+}
+
+variable "frontend_image_uri" {
+  type        = string
+  description = "Reviewed Production frontend image pinned to the dedicated frontend ECR repository."
+
+  validation {
+    condition = can(regex(
+      "^${var.aws_account_id}\\.dkr\\.ecr\\.${var.aws_region}\\.amazonaws\\.com/${var.name}-frontend@sha256:[0-9a-f]{64}$",
+      var.frontend_image_uri,
+    ))
+    error_message = "DIGEST_INPUT_UNSUPPORTED: frontend_image_uri must be the exact dedicated Production frontend ECR repository in this account/region pinned by @sha256."
+  }
+}
+
+variable "enable_release_runtime" {
+  type        = bool
+  description = "Allows the digest-pinned backend/frontend/worker rollout only after the one-off migration has succeeded."
+  default     = false
+}
+
+variable "migration_succeeded_app_image_uri" {
+  type        = string
+  description = "Exact app digest whose separately run one-off migration exited zero and reached Alembic head. Empty is fail-closed."
+  default     = ""
+}
+
+variable "external_launch_ready" {
+  type        = bool
+  description = "External launch remains blocked until Cognito, HTTPS/DNS, AI, payment, and email providers are separately connected and approved."
+  default     = false
+  validation {
+    condition     = !var.external_launch_ready
+    error_message = "PROVIDER_NOT_CONFIGURED: this remediation does not connect external launch providers and cannot declare external launch ready."
+  }
+}
+
+check "migration_before_release_runtime" {
+  assert {
+    condition     = !var.enable_release_runtime || var.migration_succeeded_app_image_uri == var.app_image_uri
+    error_message = "MIGRATION_SEQUENCE_UNSAFE: run the dedicated migration task separately, verify exit 0 and Alembic head, then attest the exact app digest before runtime rollout."
+  }
+}
+
 variable "vpc_cidr" {
   type        = string
   description = "VPC CIDR"

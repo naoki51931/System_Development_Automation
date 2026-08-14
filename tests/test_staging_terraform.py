@@ -281,8 +281,8 @@ def test_production_low_traffic_capacity_is_explicit_and_safe():
     assert "var.backend_cpu == 256" in variables
     assert "var.backend_memory == 512" in variables
     assert 'var.db_instance_class == "db.t4g.small"' in variables
-    assert "backend_cpu        = var.backend_cpu" in root
-    assert "backend_memory     = var.backend_memory" in root
+    assert re.search(r"backend_cpu\s+= var\.backend_cpu", root)
+    assert re.search(r"backend_memory\s+= var\.backend_memory", root)
     assert 'resource "aws_ecs_task_definition" "app_low_traffic"' in ecs
     assert 'family                   = "${var.name}-low-traffic"' in ecs
     assert "cpu                      = tostring(var.backend_cpu)" in ecs

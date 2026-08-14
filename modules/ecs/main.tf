@@ -23,6 +23,20 @@ variable "image_tag" {
   description = "ECSで実行するECRイメージのタグ"
 }
 
+variable "app_image" {
+  type        = string
+  description = "Digest-pinned Production image shared by backend, worker, and migration."
+}
+
+variable "frontend_image" {
+  type        = string
+  description = "Digest-pinned image from the dedicated Production frontend repository."
+}
+
+variable "aws_region" { type = string }
+variable "database_secret_arn" { type = string }
+variable "enable_release_runtime" { type = bool }
+
 variable "capacity_profile" { type = string }
 variable "backend_cpu" { type = number }
 variable "backend_memory" { type = number }
@@ -42,6 +56,19 @@ resource "aws_ecr_repository" "app" {
 
   tags = {
     Name = "${var.name}-ecr"
+  }
+}
+
+resource "aws_ecr_repository" "frontend" {
+  name                 = "${var.name}-frontend"
+  image_tag_mutability = "IMMUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+
+  tags = {
+    Name = "${var.name}-frontend-ecr"
   }
 }
 
@@ -93,6 +120,14 @@ resource "aws_security_group" "app" {
     description     = "Application traffic from ALB"
     from_port       = 8000
     to_port         = 8000
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb.id]
+  }
+
+  ingress {
+    description     = "Frontend traffic from ALB"
+    from_port       = 3000
+    to_port         = 3000
     protocol        = "tcp"
     security_groups = [aws_security_group.alb.id]
   }
@@ -168,8 +203,18 @@ output "ecr_repository_url" {
   value = aws_ecr_repository.app.repository_url
 }
 
+output "frontend_ecr_repository_url" {
+  value = aws_ecr_repository.frontend.repository_url
+}
+
 resource "aws_cloudwatch_log_group" "app" {
   name              = "/ecs/${var.name}"
+  retention_in_days = 30
+}
+
+resource "aws_cloudwatch_log_group" "release" {
+  for_each          = toset(["backend", "frontend", "worker", "migration"])
+  name              = "/ecs/${var.name}/${each.key}"
   retention_in_days = 30
 }
 
@@ -193,6 +238,19 @@ resource "aws_iam_role_policy_attachment" "task_execution" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
+data "aws_iam_policy_document" "task_execution_secrets" {
+  statement {
+    actions   = ["secretsmanager:GetSecretValue"]
+    resources = [var.database_secret_arn]
+  }
+}
+
+resource "aws_iam_role_policy" "task_execution_secrets" {
+  name   = "database-secret-read"
+  role   = aws_iam_role.task_execution.id
+  policy = data.aws_iam_policy_document.task_execution_secrets.json
+}
+
 resource "aws_iam_role" "task" {
   name = "${var.name}-task"
 
@@ -206,6 +264,39 @@ resource "aws_iam_role" "task" {
       Action = "sts:AssumeRole"
     }]
   })
+}
+
+resource "aws_iam_role" "release_task" {
+  for_each = toset(["backend", "frontend", "worker", "migration"])
+  name     = "${var.name}-${each.key}-task"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Service = "ecs-tasks.amazonaws.com"
+      }
+      Action = "sts:AssumeRole"
+    }]
+  })
+}
+
+locals {
+  production_environment = [
+    { name = "APP_ENV", value = "production" },
+    { name = "APP_LOCAL_AUTH_ENABLED", value = "false" },
+    { name = "APP_ENABLE_MOCK_AI", value = "false" },
+    { name = "APP_ENABLE_MOCK_PAYMENT", value = "false" },
+    { name = "APP_ENABLE_MOCK_EMAIL", value = "false" },
+    { name = "APP_ENABLE_COGNITO", value = "false" },
+    { name = "APP_ENABLE_STRIPE", value = "false" },
+    { name = "APP_ENABLE_SES", value = "false" }
+  ]
+  database_secret = [{
+    name      = "APP_DATABASE_SECRET_JSON"
+    valueFrom = var.database_secret_arn
+  }]
 }
 
 resource "aws_ecs_task_definition" "app" {
@@ -276,10 +367,148 @@ resource "aws_ecs_task_definition" "app_low_traffic" {
   container_definitions    = aws_ecs_task_definition.app.container_definitions
 }
 
+resource "aws_ecs_task_definition" "release_backend" {
+  family                   = "${var.name}-release-backend"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = tostring(var.backend_cpu)
+  memory                   = tostring(var.backend_memory)
+  execution_role_arn       = aws_iam_role.task_execution.arn
+  task_role_arn            = aws_iam_role.release_task["backend"].arn
+  container_definitions = jsonencode([{
+    name         = "app", image = var.app_image, essential = true,
+    command      = ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"],
+    portMappings = [{ containerPort = 8000, hostPort = 8000, protocol = "tcp" }],
+    environment  = local.production_environment, secrets = local.database_secret,
+    healthCheck = {
+      command  = ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\" || exit 1"]
+      interval = 30, timeout = 5, retries = 3, startPeriod = 20
+    },
+    logConfiguration = { logDriver = "awslogs", options = {
+      awslogs-group = aws_cloudwatch_log_group.release["backend"].name, awslogs-region = var.aws_region, awslogs-stream-prefix = "backend"
+    } }
+  }])
+}
+
+resource "aws_ecs_task_definition" "worker" {
+  family                   = "${var.name}-worker"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = "256"
+  memory                   = "512"
+  execution_role_arn       = aws_iam_role.task_execution.arn
+  task_role_arn            = aws_iam_role.release_task["worker"].arn
+  container_definitions = jsonencode([{
+    name        = "worker", image = var.app_image, essential = true,
+    command     = ["python", "-m", "app.workers.runner"],
+    environment = local.production_environment, secrets = local.database_secret,
+    healthCheck = { command = ["CMD-SHELL", "python -m app.workers.health"], interval = 30, timeout = 10, retries = 3 },
+    logConfiguration = { logDriver = "awslogs", options = {
+      awslogs-group = aws_cloudwatch_log_group.release["worker"].name, awslogs-region = var.aws_region, awslogs-stream-prefix = "worker"
+    } }
+  }])
+}
+
+resource "aws_ecs_task_definition" "frontend" {
+  family                   = "${var.name}-frontend"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = "256"
+  memory                   = "512"
+  execution_role_arn       = aws_iam_role.task_execution.arn
+  task_role_arn            = aws_iam_role.release_task["frontend"].arn
+  container_definitions = jsonencode([{
+    name         = "frontend", image = var.frontend_image, essential = true,
+    command      = ["node", "server.js"],
+    portMappings = [{ containerPort = 3000, hostPort = 3000, protocol = "tcp" }],
+    environment = [
+      { name = "APP_ENV", value = "production" },
+      { name = "APP_ENABLE_MOCK_AI", value = "false" },
+      { name = "APP_ENABLE_MOCK_PAYMENT", value = "false" },
+      { name = "APP_ENABLE_MOCK_EMAIL", value = "false" }
+    ],
+    healthCheck = { command = ["CMD-SHELL", "wget -q -O /dev/null http://localhost:3000/login || exit 1"], interval = 30, timeout = 5, retries = 3 },
+    logConfiguration = { logDriver = "awslogs", options = {
+      awslogs-group = aws_cloudwatch_log_group.release["frontend"].name, awslogs-region = var.aws_region, awslogs-stream-prefix = "frontend"
+    } }
+  }])
+}
+
+# Definition only: Terraform never invokes this task. Operators run it as a
+# separately approved one-off and attest its exact app digest at the root gate.
+resource "aws_ecs_task_definition" "migration" {
+  family                   = "${var.name}-migration"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = "256"
+  memory                   = "512"
+  execution_role_arn       = aws_iam_role.task_execution.arn
+  task_role_arn            = aws_iam_role.release_task["migration"].arn
+  container_definitions = jsonencode([{
+    name        = "migration", image = var.app_image, essential = true,
+    command     = ["alembic", "upgrade", "head"],
+    environment = local.production_environment, secrets = local.database_secret,
+    logConfiguration = { logDriver = "awslogs", options = {
+      awslogs-group = aws_cloudwatch_log_group.release["migration"].name, awslogs-region = var.aws_region, awslogs-stream-prefix = "migration"
+    } }
+  }])
+}
+
+resource "aws_lb_target_group" "frontend" {
+  name        = substr("${var.name}-frontend", 0, 32)
+  port        = 3000
+  protocol    = "HTTP"
+  target_type = "ip"
+  vpc_id      = var.vpc_id
+
+  health_check {
+    enabled             = true
+    path                = "/login"
+    protocol            = "HTTP"
+    matcher             = "200-399"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+  }
+}
+
+resource "aws_lb_listener_rule" "frontend" {
+  count        = var.enable_release_runtime ? 1 : 0
+  listener_arn = aws_lb_listener.http.arn
+  priority     = 50000
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.frontend.arn
+  }
+  condition {
+    path_pattern {
+      values = ["/*"]
+    }
+  }
+}
+
+resource "aws_lb_listener_rule" "backend_api" {
+  count        = var.enable_release_runtime ? 1 : 0
+  listener_arn = aws_lb_listener.http.arn
+  priority     = 100
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.app.arn
+  }
+  condition {
+    path_pattern {
+      values = ["/api/*", "/docs*", "/openapi.json", "/health", "/static/*"]
+    }
+  }
+}
+
 resource "aws_ecs_service" "app" {
   name            = var.name
   cluster         = aws_ecs_cluster.main.id
-  task_definition = var.capacity_profile == "low-traffic" ? aws_ecs_task_definition.app_low_traffic[0].arn : aws_ecs_task_definition.app.arn
+  task_definition = var.enable_release_runtime ? aws_ecs_task_definition.release_backend.arn : (var.capacity_profile == "low-traffic" ? aws_ecs_task_definition.app_low_traffic[0].arn : aws_ecs_task_definition.app.arn)
   desired_count   = var.desired_count
   launch_type     = "FARGATE"
 
@@ -315,6 +544,53 @@ resource "aws_ecs_service" "app" {
     aws_lb_listener.http,
     aws_iam_role_policy_attachment.task_execution
   ]
+}
+
+resource "aws_ecs_service" "worker" {
+  count           = var.enable_release_runtime ? 1 : 0
+  name            = "${var.name}-worker"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.worker.arn
+  desired_count   = 1
+  launch_type     = "FARGATE"
+  network_configuration {
+    subnets          = var.private_subnet_ids
+    security_groups  = [aws_security_group.app.id]
+    assign_public_ip = false
+  }
+  deployment_minimum_healthy_percent = 100
+  deployment_maximum_percent         = 200
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = true
+  }
+}
+
+resource "aws_ecs_service" "frontend" {
+  count           = var.enable_release_runtime ? 1 : 0
+  name            = "${var.name}-frontend"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.frontend.arn
+  desired_count   = 1
+  launch_type     = "FARGATE"
+  network_configuration {
+    subnets          = var.private_subnet_ids
+    security_groups  = [aws_security_group.app.id]
+    assign_public_ip = false
+  }
+  load_balancer {
+    target_group_arn = aws_lb_target_group.frontend.arn
+    container_name   = "frontend"
+    container_port   = 3000
+  }
+  health_check_grace_period_seconds  = 60
+  deployment_minimum_healthy_percent = 100
+  deployment_maximum_percent         = 200
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = true
+  }
+  depends_on = [aws_lb_listener_rule.frontend]
 }
 
 resource "aws_appautoscaling_target" "app" {
@@ -385,4 +661,15 @@ output "task_execution_role_arn" {
 
 output "task_role_arn" {
   value = aws_iam_role.task.arn
+}
+
+output "frontend_service_name" { value = try(aws_ecs_service.frontend[0].name, "${var.name}-frontend") }
+output "worker_service_name" { value = try(aws_ecs_service.worker[0].name, "${var.name}-worker") }
+output "release_task_definition_arns" {
+  value = {
+    backend   = aws_ecs_task_definition.release_backend.arn
+    frontend  = aws_ecs_task_definition.frontend.arn
+    worker    = aws_ecs_task_definition.worker.arn
+    migration = aws_ecs_task_definition.migration.arn
+  }
 }

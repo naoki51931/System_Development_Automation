@@ -100,7 +100,8 @@ class LocalAuthProvider:
                 "sub": subject,
                 "iat": now,
                 "exp": int(now.timestamp()) + self.ttl_seconds,
-                "token_use": "local_session",
+                # JWT token discriminator, not a credential.
+                "token_use": "local_session",  # nosec B105
             },
             self.secret,
             algorithm="HS256",
