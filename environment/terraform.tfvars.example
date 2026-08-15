@@ -1,11 +1,11 @@
-aws_account_id      = "123456789012"
-aws_region          = "ap-northeast-1"
+aws_account_id      = "557604519341"
+aws_region          = "eu-west-2"
 name                = "ai-platform-prod"
 container_image_tag = "v4"
-app_image_uri      = "123456789012.dkr.ecr.ap-northeast-1.amazonaws.com/ai-platform-prod@sha256:REPLACE_WITH_64_LOWERCASE_HEX"
-frontend_image_uri = "123456789012.dkr.ecr.ap-northeast-1.amazonaws.com/ai-platform-prod-frontend@sha256:REPLACE_WITH_64_LOWERCASE_HEX"
+app_image_uri      = "557604519341.dkr.ecr.eu-west-2.amazonaws.com/ai-platform-prod@sha256:REPLACE_WITH_64_LOWERCASE_HEX"
+frontend_image_uri = "557604519341.dkr.ecr.eu-west-2.amazonaws.com/ai-platform-prod-frontend@sha256:REPLACE_WITH_64_LOWERCASE_HEX"
 enable_release_runtime             = false
-migration_succeeded_app_image_uri = ""
+migration_attestation              = null
 external_launch_ready             = false
 vpc_cidr            = "10.20.0.0/16"
 artifact_bucket_name = "REPLACE-WITH-UNIQUE-ARTIFACT-BUCKET"

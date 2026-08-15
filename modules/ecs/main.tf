@@ -36,6 +36,7 @@ variable "frontend_image" {
 variable "aws_region" { type = string }
 variable "database_secret_arn" { type = string }
 variable "enable_release_runtime" { type = bool }
+variable "release_gate_approved" { type = bool }
 
 variable "capacity_profile" { type = string }
 variable "backend_cpu" { type = number }
@@ -67,9 +68,43 @@ resource "aws_ecr_repository" "frontend" {
     scan_on_push = true
   }
 
+  encryption_configuration {
+    encryption_type = "AES256"
+  }
+
   tags = {
     Name = "${var.name}-frontend-ecr"
   }
+}
+
+resource "aws_ecr_lifecycle_policy" "frontend" {
+  repository = aws_ecr_repository.frontend.name
+  policy = jsonencode({
+    rules = [
+      {
+        rulePriority = 1
+        description  = "Remove untagged images after seven days"
+        selection = {
+          tagStatus   = "untagged"
+          countType   = "sinceImagePushed"
+          countUnit   = "days"
+          countNumber = 7
+        }
+        action = { type = "expire" }
+      },
+      {
+        rulePriority = 2
+        description  = "Retain the newest 20 tagged release images for rollback"
+        selection = {
+          tagStatus      = "tagged"
+          tagPatternList = ["*"]
+          countType      = "imageCountMoreThan"
+          countNumber    = 20
+        }
+        action = { type = "expire" }
+      }
+    ]
+  })
 }
 
 resource "aws_ecs_cluster" "main" {
@@ -282,6 +317,24 @@ resource "aws_iam_role" "release_task" {
   })
 }
 
+data "aws_iam_policy_document" "worker_metrics" {
+  statement {
+    actions   = ["cloudwatch:PutMetricData"]
+    resources = ["*"]
+    condition {
+      test     = "StringEquals"
+      variable = "cloudwatch:namespace"
+      values   = ["SystemNavigator/Production"]
+    }
+  }
+}
+
+resource "aws_iam_role_policy" "worker_metrics" {
+  name   = "production-worker-metrics"
+  role   = aws_iam_role.release_task["worker"].id
+  policy = data.aws_iam_policy_document.worker_metrics.json
+}
+
 locals {
   production_environment = [
     { name = "APP_ENV", value = "production" },
@@ -293,6 +346,7 @@ locals {
     { name = "APP_ENABLE_STRIPE", value = "false" },
     { name = "APP_ENABLE_SES", value = "false" }
   ]
+  release_gate_valid = !var.enable_release_runtime || var.release_gate_approved
   database_secret = [{
     name      = "APP_DATABASE_SECRET_JSON"
     valueFrom = var.database_secret_arn
@@ -399,9 +453,12 @@ resource "aws_ecs_task_definition" "worker" {
   execution_role_arn       = aws_iam_role.task_execution.arn
   task_role_arn            = aws_iam_role.release_task["worker"].arn
   container_definitions = jsonencode([{
-    name        = "worker", image = var.app_image, essential = true,
-    command     = ["python", "-m", "app.workers.runner"],
-    environment = local.production_environment, secrets = local.database_secret,
+    name    = "worker", image = var.app_image, essential = true,
+    command = ["python", "-m", "app.workers.runner"],
+    environment = concat(local.production_environment, [
+      { name = "APP_WORKER_METRICS_NAMESPACE", value = "SystemNavigator/Production" },
+      { name = "APP_WORKER_SERVICE_NAME", value = "${var.name}-worker" }
+    ]), secrets = local.database_secret,
     healthCheck = { command = ["CMD-SHELL", "python -m app.workers.health"], interval = 30, timeout = 10, retries = 3 },
     logConfiguration = { logDriver = "awslogs", options = {
       awslogs-group = aws_cloudwatch_log_group.release["worker"].name, awslogs-region = var.aws_region, awslogs-stream-prefix = "worker"
@@ -538,6 +595,10 @@ resource "aws_ecs_service" "app" {
 
   lifecycle {
     ignore_changes = [desired_count]
+    precondition {
+      condition     = local.release_gate_valid
+      error_message = "MIGRATION_SEQUENCE_UNSAFE: verified migration attestation is required before backend digest rollout."
+    }
   }
 
   depends_on = [
@@ -563,6 +624,12 @@ resource "aws_ecs_service" "worker" {
   deployment_circuit_breaker {
     enable   = true
     rollback = true
+  }
+  lifecycle {
+    precondition {
+      condition     = local.release_gate_valid
+      error_message = "MIGRATION_SEQUENCE_UNSAFE: verified migration attestation is required before worker rollout."
+    }
   }
 }
 
@@ -591,6 +658,12 @@ resource "aws_ecs_service" "frontend" {
     rollback = true
   }
   depends_on = [aws_lb_listener_rule.frontend]
+  lifecycle {
+    precondition {
+      condition     = local.release_gate_valid
+      error_message = "MIGRATION_SEQUENCE_UNSAFE: verified migration attestation is required before frontend rollout."
+    }
+  }
 }
 
 resource "aws_appautoscaling_target" "app" {
@@ -673,3 +746,4 @@ output "release_task_definition_arns" {
     migration = aws_ecs_task_definition.migration.arn
   }
 }
+output "release_runtime_enabled" { value = var.enable_release_runtime }

@@ -1,13 +1,15 @@
 {
-  "date_utc": "2026-08-14",
-  "starting_head": "f634cb8fee406e1e61bace1c13da6361b87793c4",
+  "date_utc": "2026-08-15",
+  "starting_head": "d47af37fcac3192957f7b76769573076da9e2dfb",
   "branch": "agent/production-release-infra-remediation",
-  "starting_divergence": {"origin_master": 0, "head": 1},
-  "backend": {"passed": 197, "overall_coverage_percent": 82.60, "critical_coverage_percent": 90.69},
-  "frontend": {"passed": 34, "build": "PASS", "openapi_drift": "PASS", "npm_audit_vulnerabilities": 0},
-  "terraform": {"fmt": "PASS", "validated_roots": 4, "static_tests_passed": 33},
+  "starting_divergence": {"ahead": 0, "behind": 0},
+  "backend": {"passed": 210, "overall_coverage_percent": 83.04, "critical_coverage_percent": 90.86},
+  "frontend": {"passed": 34, "statement_coverage_percent": 79.03, "branch_coverage_percent": 72.88, "function_coverage_percent": 81.81, "build": "PASS", "typecheck": "PASS", "openapi_drift": "PASS", "npm_audit_vulnerabilities": 0},
+  "terraform": {"fmt": "PASS", "validated_roots": 4, "semantic_tests_passed": 10, "semantic_tests_failed": 0},
+  "findings": {"blocker": "REMEDIATED", "high": "REMEDIATED", "medium": "REMEDIATED", "low_security_group": "FOLLOW_UP_SECURITY_HARDENING"},
   "security": {"ruff": "PASS", "ruff_format": "PASS", "bandit": "PASS", "pip_audit": "PASS", "secret_scan": "PASS"},
   "operations": {"aws_changes": false, "terraform_apply": false, "terraform_destroy": false, "migration": false, "production_db_connection": false, "deployment": false},
+  "external_blockers": ["COGNITO_NOT_WIRED", "HTTPS_DNS_NOT_WIRED", "AI_PROVIDER_NOT_WIRED", "PAYMENT_PROVIDER_NOT_WIRED", "EMAIL_PROVIDER_NOT_WIRED", "RDS_PENDING_MAINTENANCE"],
   "external_launch_ready": false,
   "decision": "READY_FOR_GITHUB_CI_REVIEW_ONLY"
 }

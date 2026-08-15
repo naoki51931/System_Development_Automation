@@ -1,18 +1,31 @@
 variable "aws_account_id" {
   type        = string
   description = "クラウドAのAWSアカウントID"
+  default     = "557604519341"
+  validation {
+    condition     = var.aws_account_id == "557604519341"
+    error_message = "PRODUCTION_ACCOUNT_MISMATCH: Production is fixed to AWS account 557604519341."
+  }
 }
 
 variable "aws_region" {
   type        = string
   description = "AWSリージョン"
   default     = "eu-west-2"
+  validation {
+    condition     = var.aws_region == "eu-west-2"
+    error_message = "PRODUCTION_REGION_MISMATCH: Production is fixed to eu-west-2."
+  }
 }
 
 variable "name" {
   type        = string
   description = "リソース名の接頭辞"
   default     = "ai-platform-prod"
+  validation {
+    condition     = var.name == "ai-platform-prod"
+    error_message = "PRODUCTION_REPOSITORY_MISMATCH: Production resource prefix is fixed to ai-platform-prod."
+  }
 }
 
 variable "container_image_tag" {
@@ -31,7 +44,7 @@ variable "app_image_uri" {
 
   validation {
     condition = can(regex(
-      "^${var.aws_account_id}\\.dkr\\.ecr\\.${var.aws_region}\\.amazonaws\\.com/${var.name}@sha256:[0-9a-f]{64}$",
+      "^557604519341\\.dkr\\.ecr\\.eu-west-2\\.amazonaws\\.com/ai-platform-prod@sha256:[0-9a-f]{64}$",
       var.app_image_uri,
     ))
     error_message = "DIGEST_INPUT_UNSUPPORTED: app_image_uri must be the exact Production app ECR repository in this account/region pinned by @sha256. Tags, latest, malformed digests, and other repositories are forbidden."
@@ -44,7 +57,7 @@ variable "frontend_image_uri" {
 
   validation {
     condition = can(regex(
-      "^${var.aws_account_id}\\.dkr\\.ecr\\.${var.aws_region}\\.amazonaws\\.com/${var.name}-frontend@sha256:[0-9a-f]{64}$",
+      "^557604519341\\.dkr\\.ecr\\.eu-west-2\\.amazonaws\\.com/ai-platform-prod-frontend@sha256:[0-9a-f]{64}$",
       var.frontend_image_uri,
     ))
     error_message = "DIGEST_INPUT_UNSUPPORTED: frontend_image_uri must be the exact dedicated Production frontend ECR repository in this account/region pinned by @sha256."
@@ -57,10 +70,23 @@ variable "enable_release_runtime" {
   default     = false
 }
 
-variable "migration_succeeded_app_image_uri" {
-  type        = string
-  description = "Exact app digest whose separately run one-off migration exited zero and reached Alembic head. Empty is fail-closed."
-  default     = ""
+variable "migration_attestation" {
+  type = object({
+    release_sha                   = string
+    ecs_cluster                   = string
+    migration_task_arn            = string
+    migration_task_definition     = string
+    expected_app_image_uri        = string
+    resolved_image_digest         = string
+    task_stopped_reason           = string
+    essential_container_exit_code = number
+    expected_alembic_head         = string
+    verified_alembic_head         = string
+    verified_at                   = string
+    artifact_sha256               = string
+  })
+  description = "Metadata from the read-only Production migration attestation verifier. Null is fail-closed for runtime rollout."
+  default     = null
 }
 
 variable "external_launch_ready" {
@@ -75,8 +101,8 @@ variable "external_launch_ready" {
 
 check "migration_before_release_runtime" {
   assert {
-    condition     = !var.enable_release_runtime || var.migration_succeeded_app_image_uri == var.app_image_uri
-    error_message = "MIGRATION_SEQUENCE_UNSAFE: run the dedicated migration task separately, verify exit 0 and Alembic head, then attest the exact app digest before runtime rollout."
+    condition     = !var.enable_release_runtime || local.migration_attestation_valid
+    error_message = "MIGRATION_SEQUENCE_UNSAFE: runtime requires a verifier-produced attestation for this digest, exit zero, and Alembic head 8d4f2a7c9b11."
   }
 }
 

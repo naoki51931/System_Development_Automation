@@ -55,8 +55,11 @@ def test_terraform_digest_inputs_are_fail_closed(image_name: str):
     assert block
     assert "@sha256:[0-9a-f]{64}" in block.group(1)
     assert "DIGEST_INPUT_UNSUPPORTED" in block.group(1)
-    assert "aws_account_id" in block.group(1)
-    assert "aws_region" in block.group(1)
+    assert ACCOUNT in block.group(1)
+    assert REGION in block.group(1)
+    assert (
+        APP_REPOSITORY if image_name == "app_image_uri" else FRONTEND_REPOSITORY
+    ) in block.group(1)
 
 
 def test_frontend_has_dedicated_ecr_and_complete_runtime_topology():
@@ -64,6 +67,8 @@ def test_frontend_has_dedicated_ecr_and_complete_runtime_topology():
     assert 'resource "aws_ecr_repository" "frontend"' in ecs
     assert 'name                 = "${var.name}-frontend"' in ecs
     assert 'image_tag_mutability = "IMMUTABLE"' in ecs
+    assert 'encryption_type = "AES256"' in ecs
+    assert 'resource "aws_ecr_lifecycle_policy" "frontend"' in ecs
     assert 'resource "aws_ecs_task_definition" "frontend"' in ecs
     assert "image = var.frontend_image" in ecs
     assert re.search(r'command\s*=\s*\[\s*"node",\s*"server.js"\s*\]', ecs)
@@ -108,21 +113,25 @@ def test_worker_is_independent_low_traffic_service_with_monitoring():
     for metric in (
         "RunningTaskCount",
         "CPUUtilization",
+        "MemoryUtilization",
         "WorkerHeartbeatAgeSeconds",
         "DeadLetterCount",
     ):
         assert metric in monitoring
     assert 'namespace           = "SystemNavigator/Production"' in monitoring
+    assert 'statistic           = "Maximum"' in monitoring
 
 
 def test_migration_is_definition_only_and_runtime_gate_matches_exact_digest():
     root = text(PRODUCTION / "variables.tf")
+    main = text(PRODUCTION / "main.tf")
     ecs = text(ECS)
     assert 'check "migration_before_release_runtime"' in root
-    assert (
-        "!var.enable_release_runtime || "
-        "var.migration_succeeded_app_image_uri == var.app_image_uri"
-    ) in root
+    assert 'resource "terraform_data" "release_runtime_gate"' in main
+    assert "precondition" in main
+    assert "var.migration_attestation.expected_app_image_uri" in main
+    assert "var.migration_attestation.resolved_image_digest" in main
+    assert "depends_on             = [terraform_data.release_runtime_gate]" in main
     assert "MIGRATION_SEQUENCE_UNSAFE" in root
     assert 'resource "aws_ecs_task_definition" "migration"' in ecs
     assert 'resource "aws_ecs_service" "migration"' not in ecs

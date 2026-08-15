@@ -167,6 +167,22 @@ resource "aws_cloudwatch_metric_alarm" "worker_cpu" {
   ok_actions          = local.alarm_actions
 }
 
+resource "aws_cloudwatch_metric_alarm" "worker_memory" {
+  count               = var.release_runtime_enabled ? 1 : 0
+  alarm_name          = "${var.name}-worker-memory"
+  namespace           = "AWS/ECS"
+  metric_name         = "MemoryUtilization"
+  statistic           = "Average"
+  period              = 300
+  evaluation_periods  = 2
+  threshold           = 80
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "breaching"
+  dimensions          = { ClusterName = var.ecs_cluster_name, ServiceName = var.worker_service_name }
+  alarm_actions       = local.alarm_actions
+  ok_actions          = local.alarm_actions
+}
+
 resource "aws_cloudwatch_metric_alarm" "worker_heartbeat" {
   count               = var.release_runtime_enabled ? 1 : 0
   alarm_name          = "${var.name}-worker-heartbeat"
@@ -178,7 +194,7 @@ resource "aws_cloudwatch_metric_alarm" "worker_heartbeat" {
   threshold           = 120
   comparison_operator = "GreaterThanThreshold"
   treat_missing_data  = "breaching"
-  dimensions          = { Environment = "production" }
+  dimensions          = { Environment = "production", ServiceName = var.worker_service_name }
   alarm_actions       = local.alarm_actions
   ok_actions          = local.alarm_actions
 }
@@ -188,13 +204,13 @@ resource "aws_cloudwatch_metric_alarm" "worker_dead_letter" {
   alarm_name          = "${var.name}-dead-letter-growth"
   namespace           = "SystemNavigator/Production"
   metric_name         = "DeadLetterCount"
-  statistic           = "Sum"
+  statistic           = "Maximum"
   period              = 300
   evaluation_periods  = 1
   threshold           = 0
   comparison_operator = "GreaterThanThreshold"
   treat_missing_data  = "notBreaching"
-  dimensions          = { Environment = "production" }
+  dimensions          = { Environment = "production", ServiceName = var.worker_service_name }
   alarm_actions       = local.alarm_actions
   ok_actions          = local.alarm_actions
 }
@@ -227,5 +243,5 @@ resource "aws_cloudwatch_metric_alarm" "rds" {
 }
 
 output "sns_topic_arn" { value = aws_sns_topic.alerts.arn }
-output "alarm_count" { value = 13 + (var.release_runtime_enabled ? 5 : 0) }
+output "alarm_count" { value = 13 + (var.release_runtime_enabled ? 6 : 0) }
 output "notification_configured" { value = var.notification_email != "" }
