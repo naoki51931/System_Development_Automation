@@ -17,36 +17,45 @@ locals {
   production_region              = "eu-west-2"
   production_app_repository      = "ai-platform-prod"
   production_frontend_repository = "ai-platform-prod-frontend"
-  migration_attestation_valid = var.migration_attestation != null && (
+  # This fixed, gitignored file is emitted by the verifier in the protected
+  # Production workflow. There is deliberately no tfvar or arbitrary path.
+  migration_attestation_path = "${path.module}/.production-release/verified-attestation.json"
+  migration_attestation = fileexists(local.migration_attestation_path) ? try(
+    jsondecode(file(local.migration_attestation_path)), null
+  ) : null
+  migration_attestation_valid = local.migration_attestation != null && (
     var.approved_release_sha != "" &&
-    try(var.migration_attestation.schema_version, 0) == 1 &&
-    try(var.migration_attestation.release_sha, "") == var.approved_release_sha &&
-    try(var.migration_attestation.github_sha, "") == var.approved_release_sha &&
-    try(var.migration_attestation.aws_account_id, "") == local.production_account_id &&
-    try(var.migration_attestation.aws_region, "") == local.production_region &&
-    try(var.migration_attestation.github_repository, "") == "naoki51931/System_Development_Automation" &&
-    try(var.migration_attestation.github_workflow, "") == "production-release" &&
-    try(var.migration_attestation.github_job, "") == "migration-attestation" &&
-    try(var.migration_attestation.github_ref, "") == "refs/heads/master" &&
-    try(var.migration_attestation.artifact_signature, "") != "" &&
-    try(var.migration_attestation.signature_algorithm, "") == "Ed25519" &&
-    try(var.migration_attestation.signing_key_id, "") != "" &&
-    try(var.migration_attestation.app_image_uri, "") == var.app_image_uri &&
-    try(var.migration_attestation.resolved_image_digest, "") == try(split("@", var.app_image_uri)[1], "") &&
-    try(var.migration_attestation.exit_code, -1) == 0 &&
-    try(var.migration_attestation.expected_alembic_head, "") == "8d4f2a7c9b11" &&
-    try(var.migration_attestation.verified_alembic_head, "") == "8d4f2a7c9b11" &&
-    try(var.migration_attestation.ecs_cluster_arn, "") == "arn:aws:ecs:eu-west-2:557604519341:cluster/ai-platform-prod" &&
-    can(regex("^arn:aws:ecs:eu-west-2:557604519341:task/ai-platform-prod/[0-9a-f]{32}$", try(var.migration_attestation.migration_task_arn, ""))) &&
-    can(regex("^arn:aws:ecs:eu-west-2:557604519341:task-definition/ai-platform-prod-migration:[1-9][0-9]*$", try(var.migration_attestation.migration_task_definition_arn, ""))) &&
-    try(var.migration_attestation.migration_task_definition_revision, 0) > 0 &&
-    try(var.migration_attestation.container_name, "") == "migration" &&
-    try(var.migration_attestation.stopped_reason, "") != "" &&
-    try(var.migration_attestation.alembic_verification_method, "") != "" &&
-    try(var.migration_attestation.alembic_verification_reference, "") != "" &&
-    can(regex("^[0-9a-f]{40}$", try(var.migration_attestation.release_sha, ""))) &&
-    can(formatdate("YYYY-MM-DD'T'hh:mm:ssZ", try(var.migration_attestation.verified_at, ""))) &&
-    can(regex("^[0-9a-f]{64}$", try(var.migration_attestation.artifact_sha256, "")))
+    try(local.migration_attestation.schema_version, 0) == 2 &&
+    try(local.migration_attestation.release_sha, "") == var.approved_release_sha &&
+    try(local.migration_attestation.github_sha, "") == var.approved_release_sha &&
+    try(local.migration_attestation.aws_account_id, "") == local.production_account_id &&
+    try(local.migration_attestation.aws_region, "") == local.production_region &&
+    try(local.migration_attestation.github_repository, "") == "naoki51931/System_Development_Automation" &&
+    try(local.migration_attestation.github_workflow, "") == "production-release" &&
+    try(local.migration_attestation.github_job, "") == "production-plan" &&
+    try(local.migration_attestation.github_ref, "") == "refs/heads/master" &&
+    try(local.migration_attestation.artifact_signature, "") != "" &&
+    try(local.migration_attestation.signature_algorithm, "") == "Ed25519" &&
+    try(local.migration_attestation.signing_key_id, "") == "production-release-2026-01" &&
+    try(local.migration_attestation.app_image_uri, "") == var.app_image_uri &&
+    try(local.migration_attestation.resolved_image_digest, "") == try(split("@", var.app_image_uri)[1], "") &&
+    try(local.migration_attestation.exit_code, -1) == 0 &&
+    try(local.migration_attestation.expected_alembic_head, "") == "8d4f2a7c9b11" &&
+    try(local.migration_attestation.verified_alembic_head, "") == "8d4f2a7c9b11" &&
+    try(local.migration_attestation.ecs_cluster_arn, "") == "arn:aws:ecs:eu-west-2:557604519341:cluster/ai-platform-prod" &&
+    can(regex("^arn:aws:ecs:eu-west-2:557604519341:task/ai-platform-prod/[0-9a-f]{32}$", try(local.migration_attestation.migration_task_arn, ""))) &&
+    can(regex("^arn:aws:ecs:eu-west-2:557604519341:task-definition/ai-platform-prod-migration:[1-9][0-9]*$", try(local.migration_attestation.migration_task_definition_arn, ""))) &&
+    try(local.migration_attestation.migration_task_definition_revision, 0) > 0 &&
+    try(local.migration_attestation.container_name, "") == "migration" &&
+    try(local.migration_attestation.stopped_reason, "") != "" &&
+    can(regex("^[0-9a-f]{64}$", try(local.migration_attestation.alembic_evidence_sha256, ""))) &&
+    can(regex("^[0-9a-f]{64}$", try(local.migration_attestation.artifact_sha256, ""))) &&
+    can(timecmp(try(local.migration_attestation.verified_at, ""), timeadd(plantimestamp(), "5m"))) &&
+    timecmp(try(local.migration_attestation.verified_at, ""), timeadd(plantimestamp(), "5m")) <= 0 &&
+    timecmp(try(local.migration_attestation.verified_at, ""), timeadd(plantimestamp(), "-24h")) >= 0 &&
+    can(timecmp(try(local.migration_attestation.handoff_verified_at, ""), timeadd(plantimestamp(), "5m"))) &&
+    timecmp(try(local.migration_attestation.handoff_verified_at, ""), timeadd(plantimestamp(), "5m")) <= 0 &&
+    timecmp(try(local.migration_attestation.handoff_verified_at, ""), timeadd(plantimestamp(), "-24h")) >= 0
   )
 }
 

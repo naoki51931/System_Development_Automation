@@ -1,0 +1,95 @@
+name: production-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_sha:
+        description: Reviewed post-merge master SHA
+        required: true
+        type: string
+      attestation_run_id:
+        description: Same-repository run containing the fixed signed evidence artifacts
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  production-plan:
+    name: Verify attestation and prepare Production plan
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Validate protected release identity
+        env:
+          RELEASE_SHA: ${{ inputs.release_sha }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "naoki51931/System_Development_Automation"
+          test "$GITHUB_REF" = "refs/heads/master"
+          test "${#RELEASE_SHA}" -eq 40
+          case "$RELEASE_SHA" in (*[!0-9a-f]*) exit 1;; esac
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12", cache: pip}
+      - uses: hashicorp/setup-terraform@v3
+      - name: Download fixed evidence artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVIDENCE_RUN_ID: ${{ inputs.attestation_run_id }}
+        run: |
+          set -euo pipefail
+          mkdir -m 700 .production-release-input
+          gh run download "$EVIDENCE_RUN_ID" --repo "$GITHUB_REPOSITORY" --name production-migration-attestation --dir .production-release-input
+          test -f .production-release-input/migration-attestation.json
+          test -f .production-release-input/alembic-verification.json
+      - name: Verify trust chain and create sole Terraform handoff
+        env:
+          RELEASE_SHA: ${{ inputs.release_sha }}
+        run: |
+          set -euo pipefail
+          pip install --requirement requirements-runtime.txt
+          python scripts/verify_production_migration_attestation.py \
+            --attestation-file .production-release-input/migration-attestation.json \
+            --alembic-evidence-file .production-release-input/alembic-verification.json \
+            --approved-release-sha "$RELEASE_SHA" \
+            --output environment/.production-release/verified-attestation.json
+      - name: Native Terraform safety gate
+        run: |
+          set -euo pipefail
+          rm -f environment/.production-release/verified-attestation.json
+          terraform -chdir=environment init -backend=false
+          terraform -chdir=environment validate
+          terraform -chdir=environment test -filter=tests/production_release_missing_handoff.tftest.hcl
+          python scripts/write_test_terraform_handoff.py
+          terraform -chdir=environment test -filter=tests/production_release_gate.tftest.hcl
+      - name: Recheck freshness immediately before plan preparation
+        env:
+          RELEASE_SHA: ${{ inputs.release_sha }}
+        run: |
+          set -euo pipefail
+          python scripts/verify_production_migration_attestation.py \
+            --attestation-file .production-release-input/migration-attestation.json \
+            --alembic-evidence-file .production-release-input/alembic-verification.json \
+            --approved-release-sha "$RELEASE_SHA" \
+            --output environment/.production-release/verified-attestation.json
+      - name: Prepare fail-closed Production gate plan (no apply)
+        working-directory: environment
+        env:
+          TF_VAR_approved_release_sha: ${{ inputs.release_sha }}
+          TF_VAR_enable_release_runtime: "true"
+          TF_VAR_app_image_uri: ${{ vars.PRODUCTION_APP_IMAGE_URI }}
+          TF_VAR_frontend_image_uri: ${{ vars.PRODUCTION_FRONTEND_IMAGE_URI }}
+          TF_VAR_artifact_bucket_name: ${{ vars.PRODUCTION_ARTIFACT_BUCKET_NAME }}
+          TF_VAR_github_org: naoki51931
+          TF_VAR_github_repository: System_Development_Automation
+        run: |
+          set -euo pipefail
+          terraform plan -refresh=false -target=terraform_data.release_runtime_gate -out=.production-release/release-gate.tfplan

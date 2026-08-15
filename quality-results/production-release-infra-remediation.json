@@ -3,14 +3,16 @@
   "starting_head": "d47af37fcac3192957f7b76769573076da9e2dfb",
   "branch": "agent/production-release-infra-remediation",
   "starting_divergence": {"ahead": 0, "behind": 0},
-  "backend": {"passed": 210, "overall_coverage_percent": 83.04, "critical_coverage_percent": 90.86},
+  "backend": {"passed": 223, "overall_coverage_percent": 82.55, "critical_coverage_percent": 90.69},
   "frontend": {"passed": 34, "statement_coverage_percent": 79.03, "branch_coverage_percent": 72.88, "function_coverage_percent": 81.81, "build": "PASS", "typecheck": "PASS", "openapi_drift": "PASS", "npm_audit_vulnerabilities": 0},
-  "terraform": {"fmt": "PASS", "validated_roots": 4, "semantic_tests_passed": 10, "semantic_tests_failed": 0, "attestation": "canonical-signed-schema-v1"},
+  "terraform": {"fmt": "PASS", "validated_roots": 4, "semantic_tests_passed": 8, "semantic_tests_failed": 0, "attestation": "closed-canonical-signed-schema-v2-fixed-handoff"},
   "findings": {"blocker": "REMEDIATED", "high": "REMEDIATED", "medium": "REMEDIATED", "low_security_group": "FOLLOW_UP_SECURITY_HARDENING"},
   "security": {"ruff": "PASS", "ruff_format": "PASS", "bandit": "PASS", "pip_audit": "PASS", "secret_scan": "PASS"},
   "operations": {"aws_changes": false, "terraform_apply": false, "terraform_destroy": false, "migration": false, "production_db_connection": false, "deployment": false},
   "external_blockers": ["COGNITO_NOT_WIRED", "HTTPS_DNS_NOT_WIRED", "AI_PROVIDER_NOT_WIRED", "PAYMENT_PROVIDER_NOT_WIRED", "EMAIL_PROVIDER_NOT_WIRED", "RDS_PENDING_MAINTENANCE"],
   "external_launch_ready": false,
-  "attestation_trust": {"checksum": "SHA-256 over sorted compact canonical JSON excluding checksum/signature", "signature": "Ed25519 with approved signing key identity", "release_binding": "approved post-merge master SHA and fixed workflow/job", "freshness": "24h maximum age, 5m clock skew", "alembic_provenance": "allowlisted approved verification method and reference"},
-  "decision": "ATTESTATION_TRUST_REMEDIATED"
+  "attestation_trust": {"checksum": "SHA-256 over strict sorted compact canonical JSON excluding checksum/signature", "signature": "Ed25519 with repository-fixed reviewed public key and key identity; no CLI overrides", "release_binding": "approved post-merge master SHA and fixed production-release/production-plan identity", "freshness": "24h maximum age, 5m clock skew rechecked before plan", "alembic_provenance": "closed read-only evidence cryptographically bound by canonical SHA-256"},
+  "github_environment": "GITHUB_PRODUCTION_ENVIRONMENT_CONFIGURATION_REQUIRED",
+  "fourth_remediation": {"high_1_trust_root": "REMEDIATED", "high_2_verifier_plan_handoff": "REMEDIATED", "high_3_alembic_evidence": "REMEDIATED", "medium_1_closed_schema": "REMEDIATED", "medium_2_native_terraform_ci": "REMEDIATED"},
+  "decision": "PRODUCTION_ATTESTATION_TRUST_CHAIN_REMEDIATED"
 }

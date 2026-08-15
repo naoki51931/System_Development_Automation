@@ -139,6 +139,11 @@ jobs:
       - run: terraform fmt -check -recursive
       - working-directory: environment
         run: terraform init -backend=false && terraform validate
+      - name: Native Production Terraform release gate tests
+        run: |
+          terraform -chdir=environment test -filter=tests/production_release_missing_handoff.tftest.hcl
+          python3 scripts/write_test_terraform_handoff.py
+          terraform -chdir=environment test -filter=tests/production_release_gate.tftest.hcl
       - working-directory: bootstrap
         run: terraform init -backend=false && terraform validate
       - working-directory: environment/staging

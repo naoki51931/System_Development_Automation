@@ -74,6 +74,8 @@ Before apply, allow replacement of only the ECS task definition when it creates 
 
 ## Integration baseline
 
+- Production release preparation uses `.github/workflows/production-release.yml`: a manual `master`-only, `environment: production`, read-only-permissions job verifies repository-pinned Ed25519 trust and hash-bound Alembic evidence before native Terraform tests and a gate-only plan. Terraform reads only the gitignored fixed handoff path; see `docs/production_release_attestation.md`. Never commit the Production private key or claim GitHub Environment reviewers/branch restrictions are configured without external verification.
+
 - Authentication target is AWS Cognito access tokens; verify signature, issuer, expiry, subject, token_use, and client_id or audience. Do not create or change Cognito resources without approval.
 - Users are global by unique lowercase email and unique Cognito sub; organization roles belong to memberships, not directly to users.
 - Authorization order is JWT, user status, membership, membership role, resource organization, then operation.

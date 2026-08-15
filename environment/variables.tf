@@ -80,42 +80,6 @@ variable "approved_release_sha" {
   }
 }
 
-variable "migration_attestation" {
-  type = object({
-    schema_version                     = number
-    release_sha                        = string
-    aws_account_id                     = string
-    aws_region                         = string
-    ecs_cluster_arn                    = string
-    migration_task_arn                 = string
-    migration_task_definition_arn      = string
-    migration_task_definition_revision = number
-    app_image_uri                      = string
-    resolved_image_digest              = string
-    container_name                     = string
-    exit_code                          = number
-    stopped_reason                     = string
-    expected_alembic_head              = string
-    verified_alembic_head              = string
-    alembic_verification_method        = string
-    alembic_verification_reference     = string
-    verified_at                        = string
-    github_repository                  = string
-    github_workflow                    = string
-    github_run_id                      = number
-    github_run_attempt                 = number
-    github_job                         = string
-    github_sha                         = string
-    github_ref                         = string
-    signature_algorithm                = string
-    signing_key_id                     = string
-    artifact_sha256                    = string
-    artifact_signature                 = string
-  })
-  description = "Metadata from the read-only Production migration attestation verifier. Null is fail-closed for runtime rollout."
-  default     = null
-}
-
 variable "external_launch_ready" {
   type        = bool
   description = "External launch remains blocked until Cognito, HTTPS/DNS, AI, payment, and email providers are separately connected and approved."

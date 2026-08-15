@@ -24,6 +24,7 @@ environment/staging-prerequisites/*-plan.txt
 *.key
 *.attestation.json
 release-attestations/
+.production-release/
 
 # Python
 __pycache__/
@@ -36,6 +37,7 @@ __pycache__/
 # Frontend
 frontend/node_modules/
 frontend/.next/
+frontend/tsconfig.tsbuildinfo
 frontend/test-results/
 frontend/playwright-report/
 **/coverage/
