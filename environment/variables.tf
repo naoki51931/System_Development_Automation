@@ -70,20 +70,47 @@ variable "enable_release_runtime" {
   default     = false
 }
 
+variable "approved_release_sha" {
+  type        = string
+  description = "Approved post-merge Production release commit SHA supplied by the protected release workflow."
+  default     = ""
+  validation {
+    condition     = var.approved_release_sha == "" || can(regex("^[0-9a-f]{40}$", var.approved_release_sha))
+    error_message = "approved_release_sha must be a 40-character lowercase Git commit SHA."
+  }
+}
+
 variable "migration_attestation" {
   type = object({
-    release_sha                   = string
-    ecs_cluster                   = string
-    migration_task_arn            = string
-    migration_task_definition     = string
-    expected_app_image_uri        = string
-    resolved_image_digest         = string
-    task_stopped_reason           = string
-    essential_container_exit_code = number
-    expected_alembic_head         = string
-    verified_alembic_head         = string
-    verified_at                   = string
-    artifact_sha256               = string
+    schema_version                     = number
+    release_sha                        = string
+    aws_account_id                     = string
+    aws_region                         = string
+    ecs_cluster_arn                    = string
+    migration_task_arn                 = string
+    migration_task_definition_arn      = string
+    migration_task_definition_revision = number
+    app_image_uri                      = string
+    resolved_image_digest              = string
+    container_name                     = string
+    exit_code                          = number
+    stopped_reason                     = string
+    expected_alembic_head              = string
+    verified_alembic_head              = string
+    alembic_verification_method        = string
+    alembic_verification_reference     = string
+    verified_at                        = string
+    github_repository                  = string
+    github_workflow                    = string
+    github_run_id                      = number
+    github_run_attempt                 = number
+    github_job                         = string
+    github_sha                         = string
+    github_ref                         = string
+    signature_algorithm                = string
+    signing_key_id                     = string
+    artifact_sha256                    = string
+    artifact_signature                 = string
   })
   description = "Metadata from the read-only Production migration attestation verifier. Null is fail-closed for runtime rollout."
   default     = null

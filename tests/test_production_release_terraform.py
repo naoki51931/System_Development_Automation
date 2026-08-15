@@ -129,8 +129,10 @@ def test_migration_is_definition_only_and_runtime_gate_matches_exact_digest():
     assert 'check "migration_before_release_runtime"' in root
     assert 'resource "terraform_data" "release_runtime_gate"' in main
     assert "precondition" in main
-    assert "var.migration_attestation.expected_app_image_uri" in main
+    assert "var.migration_attestation.app_image_uri" in main
     assert "var.migration_attestation.resolved_image_digest" in main
+    assert "var.migration_attestation.artifact_signature" in main
+    assert "var.approved_release_sha" in main
     assert "depends_on             = [terraform_data.release_runtime_gate]" in main
     assert "MIGRATION_SEQUENCE_UNSAFE" in root
     assert 'resource "aws_ecs_task_definition" "migration"' in ecs

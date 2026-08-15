@@ -22,6 +22,8 @@ environment/staging-prerequisites/*-plan.txt
 .env.*
 *.pem
 *.key
+*.attestation.json
+release-attestations/
 
 # Python
 __pycache__/

@@ -1,8 +1,12 @@
+from datetime import datetime, timezone
+
 import pytest
 
 from scripts.verify_production_migration_attestation import (
     ALEMBIC_HEAD,
     VerificationError,
+    load_artifact,
+    validate_artifact,
     verify,
 )
 
@@ -76,19 +80,31 @@ def call(client):
     return verify(
         client,
         release_sha="b" * 40,
+        approved_release_sha="b" * 40,
         cluster="ai-platform-prod",
         task_arn=TASK_ARN,
         task_definition_arn=TASK_DEFINITION,
         expected_image_uri=IMAGE,
         verified_alembic_head=ALEMBIC_HEAD,
-        verified_at="2026-08-14T00:00:00+00:00",
+        alembic_verification_method="approved migration verification task",
+        alembic_verification_reference="run-123",
+        github_run_id=123,
+        github_run_attempt=1,
+        github_sha="b" * 40,
+        github_ref="refs/heads/master",
+        verified_at="2026-08-15T00:00:00Z",
+        signature="signed-payload",
+        signing_key_id="prod-release-1",
+        signature_verifier=lambda payload, signature, key_id: signature
+        == "signed-payload",
+        now=datetime(2026, 8, 15, 1, 0, tzinfo=timezone.utc),
     )
 
 
 def test_verified_attestation_contains_required_non_secret_evidence():
     artifact = call(ECS())
     assert artifact["resolved_image_digest"] == f"sha256:{DIGEST}"
-    assert artifact["essential_container_exit_code"] == 0
+    assert artifact["exit_code"] == 0
     assert artifact["expected_alembic_head"] == ALEMBIC_HEAD
     assert artifact["verified_alembic_head"] == ALEMBIC_HEAD
     assert len(artifact["artifact_sha256"]) == 64
@@ -121,11 +137,23 @@ def test_attestation_rejects_wrong_account_region_repository_and_digest():
             verify(
                 ECS(),
                 release_sha="b" * 40,
+                approved_release_sha="b" * 40,
                 cluster="ai-platform-prod",
                 task_arn=TASK_ARN,
                 task_definition_arn=TASK_DEFINITION,
                 expected_image_uri=image,
                 verified_alembic_head=ALEMBIC_HEAD,
+                alembic_verification_method="approved migration verification task",
+                alembic_verification_reference="run-123",
+                github_run_id=123,
+                github_run_attempt=1,
+                github_sha="b" * 40,
+                github_ref="refs/heads/master",
+                verified_at="2026-08-15T00:00:00Z",
+                signature="signed-payload",
+                signing_key_id="prod-release-1",
+                signature_verifier=lambda payload, signature, key_id: True,
+                now=datetime(2026, 8, 15, 1, 0, tzinfo=timezone.utc),
             )
 
 
@@ -143,9 +171,118 @@ def test_attestation_rejects_task_outside_production_boundary(cluster, task_arn)
         verify(
             ECS(),
             release_sha="b" * 40,
+            approved_release_sha="b" * 40,
             cluster=cluster,
             task_arn=task_arn,
             task_definition_arn=TASK_DEFINITION,
             expected_image_uri=IMAGE,
             verified_alembic_head=ALEMBIC_HEAD,
+            alembic_verification_method="approved migration verification task",
+            alembic_verification_reference="run-123",
+            github_run_id=123,
+            github_run_attempt=1,
+            github_sha="b" * 40,
+            github_ref="refs/heads/master",
+            verified_at="2026-08-15T00:00:00Z",
+            signature="signed-payload",
+            signing_key_id="prod-release-1",
+            signature_verifier=lambda payload, signature, key_id: True,
+            now=datetime(2026, 8, 15, 1, 0, tzinfo=timezone.utc),
         )
+
+
+def test_stored_artifact_checksum_and_signature_fail_closed_on_tamper():
+    artifact = call(ECS())
+    validate_artifact(
+        artifact,
+        approved_release_sha="b" * 40,
+        signature_verifier=lambda payload, signature, key_id: True,
+        now=datetime(2026, 8, 15, 1, 0, tzinfo=timezone.utc),
+    )
+    for field, value in (
+        ("release_sha", "c" * 40),
+        ("migration_task_arn", TASK_ARN.replace("1234", "abcd")),
+        ("app_image_uri", IMAGE.replace(DIGEST, "b" * 64)),
+        ("verified_alembic_head", "000000000000"),
+        ("verified_at", "2026-08-15T00:01:00Z"),
+    ):
+        tampered = dict(artifact)
+        tampered[field] = value
+        with pytest.raises(VerificationError, match="checksum"):
+            validate_artifact(
+                tampered,
+                approved_release_sha="b" * 40,
+                signature_verifier=lambda payload, signature, key_id: True,
+                now=datetime(2026, 8, 15, 1, 0, tzinfo=timezone.utc),
+            )
+
+
+@pytest.mark.parametrize(
+    "timestamp",
+    ["2026-08-14T00:00:00Z", "2026-08-15T01:06:00Z", "not-a-timestamp"],
+)
+def test_timestamp_freshness_is_fail_closed(timestamp):
+    with pytest.raises(VerificationError):
+        verify(
+            ECS(),
+            release_sha="b" * 40,
+            approved_release_sha="b" * 40,
+            cluster="ai-platform-prod",
+            task_arn=TASK_ARN,
+            task_definition_arn=TASK_DEFINITION,
+            expected_image_uri=IMAGE,
+            verified_alembic_head=ALEMBIC_HEAD,
+            alembic_verification_method="approved migration verification task",
+            alembic_verification_reference="run-123",
+            github_run_id=123,
+            github_run_attempt=1,
+            github_sha="b" * 40,
+            github_ref="refs/heads/master",
+            verified_at=timestamp,
+            signature="signed-payload",
+            signing_key_id="prod-release-1",
+            signature_verifier=lambda payload, signature, key_id: True,
+            now=datetime(2026, 8, 15, 1, 0, tzinfo=timezone.utc),
+        )
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"signature": None},
+        {"signature": "signed-payload", "signature_verifier": lambda *_: False},
+        {"approved_release_sha": "c" * 40},
+        {"alembic_verification_method": "operator typed value"},
+    ],
+)
+def test_signature_release_and_provenance_contracts_fail_closed(kwargs):
+    base = {
+        "release_sha": "b" * 40,
+        "approved_release_sha": "b" * 40,
+        "cluster": "ai-platform-prod",
+        "task_arn": TASK_ARN,
+        "task_definition_arn": TASK_DEFINITION,
+        "expected_image_uri": IMAGE,
+        "verified_alembic_head": ALEMBIC_HEAD,
+        "alembic_verification_method": "approved migration verification task",
+        "alembic_verification_reference": "run-123",
+        "github_run_id": 123,
+        "github_run_attempt": 1,
+        "github_sha": "b" * 40,
+        "github_ref": "refs/heads/master",
+        "verified_at": "2026-08-15T00:00:00Z",
+        "signature": "signed-payload",
+        "signing_key_id": "prod-release-1",
+        "signature_verifier": lambda payload, signature, key_id: True,
+        "now": datetime(2026, 8, 15, 1, 0, tzinfo=timezone.utc),
+    }
+    base.update(kwargs)
+    with pytest.raises(VerificationError):
+        verify(ECS(), **base)
+
+
+def test_artifact_loader_rejects_duplicate_json_keys(tmp_path):
+    path = tmp_path / "attestation.json"
+    path.write_text('{"schema_version":1,"schema_version":1}', encoding="utf-8")
+    with pytest.raises(VerificationError, match="duplicate"):
+        load_artifact(path)

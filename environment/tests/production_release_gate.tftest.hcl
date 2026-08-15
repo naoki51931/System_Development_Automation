@@ -14,6 +14,7 @@ variables {
   artifact_bucket_name = "production-release-test-artifacts"
   github_org           = "naoki51931"
   github_repository    = "System_Development_Automation"
+  approved_release_sha = "cccccccccccccccccccccccccccccccccccccccc"
   app_image_uri        = "557604519341.dkr.ecr.eu-west-2.amazonaws.com/ai-platform-prod@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
   frontend_image_uri   = "557604519341.dkr.ecr.eu-west-2.amazonaws.com/ai-platform-prod-frontend@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
 }
@@ -51,18 +52,35 @@ run "runtime_digest_mismatch_hard_fails" {
   variables {
     enable_release_runtime = true
     migration_attestation = {
-      release_sha                   = "cccccccccccccccccccccccccccccccccccccccc"
-      ecs_cluster                   = "arn:aws:ecs:eu-west-2:557604519341:cluster/ai-platform-prod"
-      migration_task_arn            = "arn:aws:ecs:eu-west-2:557604519341:task/ai-platform-prod/1234567890abcdef1234567890abcdef"
-      migration_task_definition     = "arn:aws:ecs:eu-west-2:557604519341:task-definition/ai-platform-prod-migration:7"
-      expected_app_image_uri        = "557604519341.dkr.ecr.eu-west-2.amazonaws.com/ai-platform-prod@sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
-      resolved_image_digest         = "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
-      task_stopped_reason           = "Essential container in task exited"
-      essential_container_exit_code = 0
-      expected_alembic_head         = "8d4f2a7c9b11"
-      verified_alembic_head         = "8d4f2a7c9b11"
-      verified_at                   = "2026-08-14T00:00:00+00:00"
-      artifact_sha256               = "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      schema_version                     = 1
+      release_sha                        = "cccccccccccccccccccccccccccccccccccccccc"
+      aws_account_id                     = "557604519341"
+      aws_region                         = "eu-west-2"
+      ecs_cluster_arn                    = "arn:aws:ecs:eu-west-2:557604519341:cluster/ai-platform-prod"
+      migration_task_arn                 = "arn:aws:ecs:eu-west-2:557604519341:task/ai-platform-prod/1234567890abcdef1234567890abcdef"
+      migration_task_definition_arn      = "arn:aws:ecs:eu-west-2:557604519341:task-definition/ai-platform-prod-migration:7"
+      migration_task_definition_revision = 7
+      app_image_uri                      = "557604519341.dkr.ecr.eu-west-2.amazonaws.com/ai-platform-prod@sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      resolved_image_digest              = "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      container_name                     = "migration"
+      exit_code                          = 0
+      stopped_reason                     = "Essential container in task exited"
+      expected_alembic_head              = "8d4f2a7c9b11"
+      verified_alembic_head              = "8d4f2a7c9b11"
+      alembic_verification_method        = "approved migration verification task"
+      alembic_verification_reference     = "run-123"
+      verified_at                        = "2026-08-14T00:00:00+00:00"
+      github_repository                  = "naoki51931/System_Development_Automation"
+      github_workflow                    = "production-release"
+      github_run_id                      = 123
+      github_run_attempt                 = 1
+      github_job                         = "migration-attestation"
+      github_sha                         = "cccccccccccccccccccccccccccccccccccccccc"
+      github_ref                         = "refs/heads/master"
+      signature_algorithm                = "Ed25519"
+      signing_key_id                     = "prod-release-1"
+      artifact_sha256                    = "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      artifact_signature                 = "signed-payload"
     }
   }
   expect_failures = [
@@ -76,18 +94,35 @@ run "verified_runtime_gate_passes" {
   variables {
     enable_release_runtime = true
     migration_attestation = {
-      release_sha                   = "cccccccccccccccccccccccccccccccccccccccc"
-      ecs_cluster                   = "arn:aws:ecs:eu-west-2:557604519341:cluster/ai-platform-prod"
-      migration_task_arn            = "arn:aws:ecs:eu-west-2:557604519341:task/ai-platform-prod/1234567890abcdef1234567890abcdef"
-      migration_task_definition     = "arn:aws:ecs:eu-west-2:557604519341:task-definition/ai-platform-prod-migration:7"
-      expected_app_image_uri        = "557604519341.dkr.ecr.eu-west-2.amazonaws.com/ai-platform-prod@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-      resolved_image_digest         = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-      task_stopped_reason           = "Essential container in task exited"
-      essential_container_exit_code = 0
-      expected_alembic_head         = "8d4f2a7c9b11"
-      verified_alembic_head         = "8d4f2a7c9b11"
-      verified_at                   = "2026-08-14T00:00:00+00:00"
-      artifact_sha256               = "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      schema_version                     = 1
+      release_sha                        = "cccccccccccccccccccccccccccccccccccccccc"
+      aws_account_id                     = "557604519341"
+      aws_region                         = "eu-west-2"
+      ecs_cluster_arn                    = "arn:aws:ecs:eu-west-2:557604519341:cluster/ai-platform-prod"
+      migration_task_arn                 = "arn:aws:ecs:eu-west-2:557604519341:task/ai-platform-prod/1234567890abcdef1234567890abcdef"
+      migration_task_definition_arn      = "arn:aws:ecs:eu-west-2:557604519341:task-definition/ai-platform-prod-migration:7"
+      migration_task_definition_revision = 7
+      app_image_uri                      = "557604519341.dkr.ecr.eu-west-2.amazonaws.com/ai-platform-prod@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      resolved_image_digest              = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      container_name                     = "migration"
+      exit_code                          = 0
+      stopped_reason                     = "Essential container in task exited"
+      expected_alembic_head              = "8d4f2a7c9b11"
+      verified_alembic_head              = "8d4f2a7c9b11"
+      alembic_verification_method        = "approved migration verification task"
+      alembic_verification_reference     = "run-123"
+      verified_at                        = "2026-08-14T00:00:00+00:00"
+      github_repository                  = "naoki51931/System_Development_Automation"
+      github_workflow                    = "production-release"
+      github_run_id                      = 123
+      github_run_attempt                 = 1
+      github_job                         = "migration-attestation"
+      github_sha                         = "cccccccccccccccccccccccccccccccccccccccc"
+      github_ref                         = "refs/heads/master"
+      signature_algorithm                = "Ed25519"
+      signing_key_id                     = "prod-release-1"
+      artifact_sha256                    = "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      artifact_signature                 = "signed-payload"
     }
   }
   assert {
@@ -105,6 +140,14 @@ run "wrong_account_fails" {
   command = plan
   variables { aws_account_id = "000000000000" }
   expect_failures = [var.aws_account_id]
+}
+
+run "approved_release_sha_mismatch_fails" {
+  command = plan
+  variables {
+    approved_release_sha = "dddddddddddddddddddddddddddddddddddddddd"
+  }
+  expect_failures = [terraform_data.release_runtime_gate]
 }
 
 run "wrong_region_fails" {

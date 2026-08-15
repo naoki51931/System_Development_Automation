@@ -5,6 +5,7 @@ container_image_tag = "v4"
 app_image_uri      = "557604519341.dkr.ecr.eu-west-2.amazonaws.com/ai-platform-prod@sha256:REPLACE_WITH_64_LOWERCASE_HEX"
 frontend_image_uri = "557604519341.dkr.ecr.eu-west-2.amazonaws.com/ai-platform-prod-frontend@sha256:REPLACE_WITH_64_LOWERCASE_HEX"
 enable_release_runtime             = false
+approved_release_sha               = ""
 migration_attestation              = null
 external_launch_ready             = false
 vpc_cidr            = "10.20.0.0/16"

@@ -18,16 +18,33 @@ locals {
   production_app_repository      = "ai-platform-prod"
   production_frontend_repository = "ai-platform-prod-frontend"
   migration_attestation_valid = var.migration_attestation != null && (
-    try(var.migration_attestation.expected_app_image_uri, "") == var.app_image_uri &&
+    var.approved_release_sha != "" &&
+    try(var.migration_attestation.schema_version, 0) == 1 &&
+    try(var.migration_attestation.release_sha, "") == var.approved_release_sha &&
+    try(var.migration_attestation.github_sha, "") == var.approved_release_sha &&
+    try(var.migration_attestation.aws_account_id, "") == local.production_account_id &&
+    try(var.migration_attestation.aws_region, "") == local.production_region &&
+    try(var.migration_attestation.github_repository, "") == "naoki51931/System_Development_Automation" &&
+    try(var.migration_attestation.github_workflow, "") == "production-release" &&
+    try(var.migration_attestation.github_job, "") == "migration-attestation" &&
+    try(var.migration_attestation.github_ref, "") == "refs/heads/master" &&
+    try(var.migration_attestation.artifact_signature, "") != "" &&
+    try(var.migration_attestation.signature_algorithm, "") == "Ed25519" &&
+    try(var.migration_attestation.signing_key_id, "") != "" &&
+    try(var.migration_attestation.app_image_uri, "") == var.app_image_uri &&
     try(var.migration_attestation.resolved_image_digest, "") == try(split("@", var.app_image_uri)[1], "") &&
-    try(var.migration_attestation.essential_container_exit_code, -1) == 0 &&
+    try(var.migration_attestation.exit_code, -1) == 0 &&
     try(var.migration_attestation.expected_alembic_head, "") == "8d4f2a7c9b11" &&
     try(var.migration_attestation.verified_alembic_head, "") == "8d4f2a7c9b11" &&
-    try(var.migration_attestation.ecs_cluster, "") == "arn:aws:ecs:eu-west-2:557604519341:cluster/ai-platform-prod" &&
-    try(var.migration_attestation.task_stopped_reason, "") != "" &&
-    can(regex("^[0-9a-f]{40}$", try(var.migration_attestation.release_sha, ""))) &&
+    try(var.migration_attestation.ecs_cluster_arn, "") == "arn:aws:ecs:eu-west-2:557604519341:cluster/ai-platform-prod" &&
     can(regex("^arn:aws:ecs:eu-west-2:557604519341:task/ai-platform-prod/[0-9a-f]{32}$", try(var.migration_attestation.migration_task_arn, ""))) &&
-    can(regex("^arn:aws:ecs:eu-west-2:557604519341:task-definition/ai-platform-prod-migration:[1-9][0-9]*$", try(var.migration_attestation.migration_task_definition, ""))) &&
+    can(regex("^arn:aws:ecs:eu-west-2:557604519341:task-definition/ai-platform-prod-migration:[1-9][0-9]*$", try(var.migration_attestation.migration_task_definition_arn, ""))) &&
+    try(var.migration_attestation.migration_task_definition_revision, 0) > 0 &&
+    try(var.migration_attestation.container_name, "") == "migration" &&
+    try(var.migration_attestation.stopped_reason, "") != "" &&
+    try(var.migration_attestation.alembic_verification_method, "") != "" &&
+    try(var.migration_attestation.alembic_verification_reference, "") != "" &&
+    can(regex("^[0-9a-f]{40}$", try(var.migration_attestation.release_sha, ""))) &&
     can(formatdate("YYYY-MM-DD'T'hh:mm:ssZ", try(var.migration_attestation.verified_at, ""))) &&
     can(regex("^[0-9a-f]{64}$", try(var.migration_attestation.artifact_sha256, "")))
   )
