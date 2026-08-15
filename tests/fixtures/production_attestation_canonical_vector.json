@@ -1,0 +1,10 @@
+{
+  "canonical_utf8": "{\"ascii\":\"release\",\"count\":1}",
+  "input": {
+    "ascii": "release",
+    "count": 1
+  },
+  "public_key_b64": "A6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg=",
+  "sha256": "d15083eea4203aba38b43010fad3a6e59598f66ca3de257a56bd7fee3bf5f0ba",
+  "signature_b64": "RO3vhMk4tJZlfbbQIhc1PAFLjFDRWwNBNkopAFdAwn4VlEfamvWqvIwsfUXKkf1mp1Qd9pD+DtTLQmPLf0U0BQ=="
+}

@@ -11,7 +11,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives.asymmetric.ed25519 import (
+    Ed25519PrivateKey,
+    Ed25519PublicKey,
+)
 
 from scripts.verify_production_migration_attestation import (
     ATTESTATION_PAYLOAD_FIELDS,
@@ -31,6 +35,10 @@ TASK = "arn:aws:ecs:eu-west-2:557604519341:task/ai-platform-prod/1234567890abcde
 TASK_DEFINITION = (
     "arn:aws:ecs:eu-west-2:557604519341:task-definition/ai-platform-prod-migration:7"
 )
+VERIFICATION_TASK_DEFINITION = (
+    "arn:aws:ecs:eu-west-2:557604519341:task-definition/"
+    "ai-platform-prod-alembic-verification:11"
+)
 
 
 def evidence(**updates):
@@ -39,16 +47,19 @@ def evidence(**updates):
         "release_sha": RELEASE_SHA,
         "aws_account_id": "557604519341",
         "aws_region": "eu-west-2",
+        "ecs_cluster_arn": "arn:aws:ecs:eu-west-2:557604519341:cluster/ai-platform-prod",
+        "app_image_uri": f"557604519341.dkr.ecr.eu-west-2.amazonaws.com/ai-platform-prod@sha256:{DIGEST}",
         "verification_task_arn": TASK,
-        "verification_task_definition_arn": TASK_DEFINITION,
+        "verification_task_definition_arn": VERIFICATION_TASK_DEFINITION,
+        "verification_task_definition_revision": 11,
         "exit_code": 0,
         "expected_alembic_head": "8d4f2a7c9b11",
         "observed_alembic_head": "8d4f2a7c9b11",
         "verified_at": "2026-08-15T00:00:00Z",
         "output_sha256": "c" * 64,
         "github_repository": "naoki51931/System_Development_Automation",
-        "github_workflow": "production-release",
-        "github_job": "production-plan",
+        "github_workflow": "production-migration-evidence",
+        "github_job": "produce-migration-evidence",
         "github_ref": "refs/heads/master",
         "github_run_id": 123,
         "github_run_attempt": 1,
@@ -77,10 +88,10 @@ def artifact(ev=None, **updates):
         "verified_alembic_head": "8d4f2a7c9b11",
         "verified_at": "2026-08-15T00:00:00Z",
         "github_repository": "naoki51931/System_Development_Automation",
-        "github_workflow": "production-release",
+        "github_workflow": "production-migration-evidence",
         "github_run_id": 123,
         "github_run_attempt": 1,
-        "github_job": "production-plan",
+        "github_job": "produce-migration-evidence",
         "github_sha": RELEASE_SHA,
         "github_ref": "refs/heads/master",
         "signature_algorithm": "Ed25519",
@@ -209,6 +220,22 @@ def test_canonical_vectors_are_platform_stable():
     ]
     for value, expected_sha in vectors:
         assert hashlib.sha256(canonical_json(value)).hexdigest() == expected_sha
+
+
+def test_fixed_canonical_signature_vector_and_tamper_rejection():
+    vector = load_json(
+        Path(__file__).parent / "fixtures/production_attestation_canonical_vector.json"
+    )
+    canonical = canonical_json(vector["input"])
+    assert canonical == vector["canonical_utf8"].encode("utf-8")
+    assert hashlib.sha256(canonical).hexdigest() == vector["sha256"]
+    public_key = Ed25519PublicKey.from_public_bytes(
+        base64.b64decode(vector["public_key_b64"], validate=True)
+    )
+    signature = base64.b64decode(vector["signature_b64"], validate=True)
+    public_key.verify(signature, canonical)
+    with pytest.raises(InvalidSignature):
+        public_key.verify(signature, canonical + b" ")
 
 
 def test_non_ascii_schema_value_is_rejected_before_canonicalization():

@@ -31,8 +31,8 @@ locals {
     try(local.migration_attestation.aws_account_id, "") == local.production_account_id &&
     try(local.migration_attestation.aws_region, "") == local.production_region &&
     try(local.migration_attestation.github_repository, "") == "naoki51931/System_Development_Automation" &&
-    try(local.migration_attestation.github_workflow, "") == "production-release" &&
-    try(local.migration_attestation.github_job, "") == "production-plan" &&
+    try(local.migration_attestation.github_workflow, "") == "production-migration-evidence" &&
+    try(local.migration_attestation.github_job, "") == "produce-migration-evidence" &&
     try(local.migration_attestation.github_ref, "") == "refs/heads/master" &&
     try(local.migration_attestation.artifact_signature, "") != "" &&
     try(local.migration_attestation.signature_algorithm, "") == "Ed25519" &&
@@ -50,6 +50,7 @@ locals {
     try(local.migration_attestation.stopped_reason, "") != "" &&
     can(regex("^[0-9a-f]{64}$", try(local.migration_attestation.alembic_evidence_sha256, ""))) &&
     can(regex("^[0-9a-f]{64}$", try(local.migration_attestation.artifact_sha256, ""))) &&
+    can(regex("^[0-9a-f]{64}$", try(local.migration_attestation.verifier_receipt_sha256, ""))) &&
     can(timecmp(try(local.migration_attestation.verified_at, ""), timeadd(plantimestamp(), "5m"))) &&
     timecmp(try(local.migration_attestation.verified_at, ""), timeadd(plantimestamp(), "5m")) <= 0 &&
     timecmp(try(local.migration_attestation.verified_at, ""), timeadd(plantimestamp(), "-24h")) >= 0 &&

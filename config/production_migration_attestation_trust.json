@@ -1,10 +1,10 @@
 {
   "algorithm": "Ed25519",
   "approved_key_id": "production-release-2026-01",
-  "github_job": "production-plan",
+  "github_job": "produce-migration-evidence",
   "github_ref": "refs/heads/master",
   "github_repository": "naoki51931/System_Development_Automation",
-  "github_workflow": "production-release",
+  "github_workflow": "production-migration-evidence",
   "public_key_b64": "MIphKiR0f0hOoZ/Q48s5fpIPOaMIHZrRP8R1bUaSRPg=",
   "schema_version": 1
 }

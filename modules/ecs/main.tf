@@ -248,7 +248,7 @@ resource "aws_cloudwatch_log_group" "app" {
 }
 
 resource "aws_cloudwatch_log_group" "release" {
-  for_each          = toset(["backend", "frontend", "worker", "migration"])
+  for_each          = toset(["backend", "frontend", "worker", "migration", "alembic-verification"])
   name              = "/ecs/${var.name}/${each.key}"
   retention_in_days = 30
 }
@@ -511,6 +511,27 @@ resource "aws_ecs_task_definition" "migration" {
   }])
 }
 
+# Definition only: the protected producer may run this command after separate
+# approval. It reads the current Alembic head and performs no schema mutation.
+resource "aws_ecs_task_definition" "alembic_verification" {
+  family                   = "${var.name}-alembic-verification"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = "256"
+  memory                   = "512"
+  execution_role_arn       = aws_iam_role.task_execution.arn
+  task_role_arn            = aws_iam_role.release_task["migration"].arn
+  container_definitions = jsonencode([{
+    name                   = "alembic-verification", image = var.app_image, essential = true,
+    command                = ["python", "-m", "scripts.emit_alembic_verification"],
+    environment            = local.production_environment, secrets = local.database_secret,
+    readonlyRootFilesystem = true,
+    logConfiguration = { logDriver = "awslogs", options = {
+      awslogs-group = aws_cloudwatch_log_group.release["alembic-verification"].name, awslogs-region = var.aws_region, awslogs-stream-prefix = "alembic-verification"
+    } }
+  }])
+}
+
 resource "aws_lb_target_group" "frontend" {
   name        = substr("${var.name}-frontend", 0, 32)
   port        = 3000
@@ -740,10 +761,11 @@ output "frontend_service_name" { value = try(aws_ecs_service.frontend[0].name, "
 output "worker_service_name" { value = try(aws_ecs_service.worker[0].name, "${var.name}-worker") }
 output "release_task_definition_arns" {
   value = {
-    backend   = aws_ecs_task_definition.release_backend.arn
-    frontend  = aws_ecs_task_definition.frontend.arn
-    worker    = aws_ecs_task_definition.worker.arn
-    migration = aws_ecs_task_definition.migration.arn
+    backend              = aws_ecs_task_definition.release_backend.arn
+    frontend             = aws_ecs_task_definition.frontend.arn
+    worker               = aws_ecs_task_definition.worker.arn
+    migration            = aws_ecs_task_definition.migration.arn
+    alembic_verification = aws_ecs_task_definition.alembic_verification.arn
   }
 }
 output "release_runtime_enabled" { value = var.enable_release_runtime }

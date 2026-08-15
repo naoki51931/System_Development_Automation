@@ -141,9 +141,8 @@ jobs:
         run: terraform init -backend=false && terraform validate
       - name: Native Production Terraform release gate tests
         run: |
-          terraform -chdir=environment test -filter=tests/production_release_missing_handoff.tftest.hcl
-          python3 scripts/write_test_terraform_handoff.py
-          terraform -chdir=environment test -filter=tests/production_release_gate.tftest.hcl
+          terraform -chdir=tests/terraform/production_release_gate_fixture init -backend=false
+          terraform -chdir=tests/terraform/production_release_gate_fixture test
       - working-directory: bootstrap
         run: terraform init -backend=false && terraform validate
       - working-directory: environment/staging

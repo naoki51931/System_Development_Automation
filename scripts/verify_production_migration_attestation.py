@@ -9,7 +9,9 @@ import base64
 import binascii
 import hashlib
 import json
+import os
 import re
+import tempfile
 import unicodedata
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -21,8 +23,8 @@ ACCOUNT = "557604519341"
 REGION = "eu-west-2"
 ALEMBIC_HEAD = "8d4f2a7c9b11"
 WORKFLOW_REPOSITORY = "naoki51931/System_Development_Automation"
-WORKFLOW_NAME = "production-release"
-WORKFLOW_JOB = "production-plan"
+WORKFLOW_NAME = "production-migration-evidence"
+WORKFLOW_JOB = "produce-migration-evidence"
 WORKFLOW_REF = "refs/heads/master"
 TRUST_CONFIG_PATH = (
     Path(__file__).resolve().parents[1]
@@ -44,6 +46,10 @@ TASK_DEFINITION = re.compile(
     rf"arn:aws:ecs:{REGION}:{ACCOUNT}:task-definition/"
     r"ai-platform-prod-migration:[1-9][0-9]*\Z"
 )
+VERIFICATION_TASK_DEFINITION = re.compile(
+    rf"arn:aws:ecs:{REGION}:{ACCOUNT}:task-definition/"
+    r"ai-platform-prod-alembic-verification:([1-9][0-9]*)\Z"
+)
 
 TRUST_FIELDS = {
     "schema_version",
@@ -60,8 +66,11 @@ ALEMBIC_FIELDS = {
     "release_sha",
     "aws_account_id",
     "aws_region",
+    "ecs_cluster_arn",
+    "app_image_uri",
     "verification_task_arn",
     "verification_task_definition_arn",
+    "verification_task_definition_revision",
     "exit_code",
     "expected_alembic_head",
     "observed_alembic_head",
@@ -210,12 +219,30 @@ def validate_alembic_evidence(evidence, *, release_sha, now):
     _require(evidence["aws_account_id"] == ACCOUNT, "Alembic account mismatch")
     _require(evidence["aws_region"] == REGION, "Alembic region mismatch")
     _require(
+        evidence["ecs_cluster_arn"]
+        == f"arn:aws:ecs:{REGION}:{ACCOUNT}:cluster/ai-platform-prod",
+        "Alembic cluster mismatch",
+    )
+    _require(IMAGE.fullmatch(evidence["app_image_uri"]), "Alembic image mismatch")
+    _require(
         TASK.fullmatch(evidence["verification_task_arn"]),
         "invalid verification task ARN",
     )
     _require(
-        TASK_DEFINITION.fullmatch(evidence["verification_task_definition_arn"]),
+        VERIFICATION_TASK_DEFINITION.fullmatch(
+            evidence["verification_task_definition_arn"]
+        ),
         "invalid verification task definition ARN",
+    )
+    definition_match = VERIFICATION_TASK_DEFINITION.fullmatch(
+        evidence["verification_task_definition_arn"]
+    )
+    _require(
+        type(evidence["verification_task_definition_revision"]) is int
+        and evidence["verification_task_definition_revision"] > 0
+        and int(definition_match.group(1))
+        == evidence["verification_task_definition_revision"],
+        "verification task definition revision mismatch",
     )
     _require(
         type(evidence["exit_code"]) is int and evidence["exit_code"] == 0,
@@ -257,6 +284,8 @@ def validate_artifact(
     approved_release_sha,
     alembic_evidence,
     trust_config_path=TRUST_CONFIG_PATH,
+    expected_producer_run_id=None,
+    expected_producer_run_attempt=None,
     now=None,
 ):
     current = now or datetime.now(timezone.utc)
@@ -296,6 +325,11 @@ def validate_artifact(
         "invalid task revision",
     )
     _require(
+        int(artifact["migration_task_definition_arn"].rsplit(":", 1)[1])
+        == artifact["migration_task_definition_revision"],
+        "task definition revision mismatch",
+    )
+    _require(
         artifact["ecs_cluster_arn"]
         == f"arn:aws:ecs:{REGION}:{ACCOUNT}:cluster/ai-platform-prod",
         "cluster mismatch",
@@ -323,12 +357,34 @@ def validate_artifact(
         and artifact["github_run_attempt"] > 0,
         "invalid run attempt",
     )
+    if expected_producer_run_id is not None:
+        _require(
+            artifact["github_run_id"] == expected_producer_run_id,
+            "producer run id mismatch",
+        )
+        _require(
+            alembic_evidence["github_run_id"] == expected_producer_run_id,
+            "Alembic producer run id mismatch",
+        )
+    if expected_producer_run_attempt is not None:
+        _require(
+            artifact["github_run_attempt"] == expected_producer_run_attempt,
+            "producer run attempt mismatch",
+        )
+        _require(
+            alembic_evidence["github_run_attempt"] == expected_producer_run_attempt,
+            "Alembic producer run attempt mismatch",
+        )
     for field, value in artifact.items():
         if isinstance(value, str):
             _ascii(value, f"attestation {field}")
     _parse_timestamp(artifact["verified_at"], now=current)
     evidence_sha = validate_alembic_evidence(
         alembic_evidence, release_sha=approved_release_sha, now=current
+    )
+    _require(
+        alembic_evidence["app_image_uri"] == artifact["app_image_uri"],
+        "Alembic image binding mismatch",
     )
     _require(
         artifact["alembic_evidence_sha256"] == evidence_sha,
@@ -362,6 +418,8 @@ def parse_args(argv=None):
     parser.add_argument("--attestation-file", type=Path, required=True)
     parser.add_argument("--alembic-evidence-file", type=Path, required=True)
     parser.add_argument("--approved-release-sha", required=True)
+    parser.add_argument("--expected-producer-run-id", type=int, required=True)
+    parser.add_argument("--expected-producer-run-attempt", type=int, required=True)
     parser.add_argument("--output", type=Path, required=True)
     return parser.parse_args(argv)
 
@@ -373,16 +431,45 @@ def main():
         load_json(args.attestation_file),
         approved_release_sha=args.approved_release_sha,
         alembic_evidence=load_json(args.alembic_evidence_file),
+        expected_producer_run_id=args.expected_producer_run_id,
+        expected_producer_run_attempt=args.expected_producer_run_attempt,
         now=now,
     )
     handoff = dict(artifact)
     handoff["handoff_verified_at"] = now.isoformat(timespec="seconds").replace(
         "+00:00", "Z"
     )
+    receipt = {
+        "release_sha": handoff["release_sha"],
+        "artifact_sha256": handoff["artifact_sha256"],
+        "alembic_evidence_sha256": handoff["alembic_evidence_sha256"],
+        "github_run_id": handoff["github_run_id"],
+        "github_run_attempt": handoff["github_run_attempt"],
+        "handoff_verified_at": handoff["handoff_verified_at"],
+    }
+    handoff["verifier_receipt_sha256"] = hashlib.sha256(
+        canonical_json(receipt)
+    ).hexdigest()
     args.output.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-    args.output.write_text(
-        json.dumps(handoff, indent=2, sort_keys=True, allow_nan=False) + "\n",
+    _require(
+        not args.output.parent.is_symlink(), "handoff directory must not be a symlink"
+    )
+    payload = json.dumps(handoff, indent=2, sort_keys=True, allow_nan=False) + "\n"
+    with tempfile.NamedTemporaryFile(
+        mode="w",
         encoding="utf-8",
+        dir=args.output.parent,
+        prefix=".verified-attestation-",
+        delete=False,
+    ) as temporary:
+        temporary.write(payload)
+        temporary.flush()
+        os.fchmod(temporary.fileno(), 0o600)
+        temporary_path = Path(temporary.name)
+    os.replace(temporary_path, args.output)
+    _require(
+        not args.output.is_symlink() and (args.output.stat().st_mode & 0o777) == 0o600,
+        "unsafe handoff file permissions",
     )
     print(f"MIGRATION_ATTESTATION_VERIFIED {artifact['artifact_sha256']}")
 

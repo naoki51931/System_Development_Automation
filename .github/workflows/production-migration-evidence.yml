@@ -1,0 +1,107 @@
+name: production-migration-evidence
+
+on: workflow_dispatch
+
+permissions:
+  contents: read
+
+jobs:
+  produce-migration-evidence:
+    name: Produce signed migration and Alembic evidence
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with: {ref: "${{ github.sha }}", fetch-depth: 0, persist-credentials: false}
+      - name: Bind producer to current protected master
+        env: {RELEASE_SHA: "${{ github.sha }}"}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "naoki51931/System_Development_Automation"
+          test "$GITHUB_REF" = "refs/heads/master"
+          git fetch --no-tags origin master
+          git merge-base --is-ancestor "$RELEASE_SHA" origin/master
+          test "$RELEASE_SHA" = "$(git rev-parse origin/master)"
+          test "$RELEASE_SHA" = "$(git rev-parse HEAD)"
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with: {python-version: "3.12"}
+      - uses: aws-actions/configure-aws-credentials@ff717079ee2060e4bcee96c4779b553acc87447c # v4
+        with:
+          role-to-assume: ${{ vars.PRODUCTION_VERIFICATION_ROLE_ARN }}
+          aws-region: eu-west-2
+      - name: Collect fixed migration task result and run read-only verifier task
+        id: verification
+        env:
+          MIGRATION_TASK_ARN: ${{ vars.PRODUCTION_MIGRATION_TASK_ARN }}
+          VERIFICATION_TASK_DEFINITION: ${{ vars.PRODUCTION_ALEMBIC_VERIFICATION_TASK_DEFINITION_ARN }}
+          NETWORK_CONFIGURATION: ${{ secrets.PRODUCTION_VERIFICATION_NETWORK_CONFIGURATION }}
+        run: |
+          set -euo pipefail
+          umask 077
+          test -n "$MIGRATION_TASK_ARN"
+          test -n "$VERIFICATION_TASK_DEFINITION"
+          test -n "$NETWORK_CONFIGURATION"
+          case "$MIGRATION_TASK_ARN" in
+            (arn:aws:ecs:eu-west-2:557604519341:task/ai-platform-prod/[0-9a-f][0-9a-f]*) ;;
+            (*) exit 1 ;;
+          esac
+          case "$VERIFICATION_TASK_DEFINITION" in
+            (arn:aws:ecs:eu-west-2:557604519341:task-definition/ai-platform-prod-alembic-verification:[1-9]*) ;;
+            (*) exit 1 ;;
+          esac
+          cluster="arn:aws:ecs:eu-west-2:557604519341:cluster/ai-platform-prod"
+          aws ecs describe-tasks --cluster "$cluster" --tasks "$MIGRATION_TASK_ARN" \
+            > "$RUNNER_TEMP/migration-task.json"
+          aws ecs run-task --cluster "$cluster" --launch-type FARGATE --count 1 \
+            --task-definition "$VERIFICATION_TASK_DEFINITION" \
+            --network-configuration "$NETWORK_CONFIGURATION" \
+            --overrides '{"containerOverrides":[{"name":"alembic-verification","command":["python","-m","scripts.emit_alembic_verification"]}]}' \
+            > "$RUNNER_TEMP/verification-run.json"
+          task_arn="$(jq -er '.tasks | if length == 1 then .[0].taskArn else error("task count") end' "$RUNNER_TEMP/verification-run.json")"
+          aws ecs wait tasks-stopped --cluster "$cluster" --tasks "$task_arn"
+          aws ecs describe-tasks --cluster "$cluster" --tasks "$task_arn" \
+            > "$RUNNER_TEMP/verification-task.json"
+          task_definition="$(jq -er '.tasks[0].taskDefinitionArn' "$RUNNER_TEMP/verification-task.json")"
+          aws ecs describe-task-definition --task-definition "$task_definition" \
+            > "$RUNNER_TEMP/verification-definition.json"
+          log_group="$(jq -er '.taskDefinition.containerDefinitions[] | select(.name == "alembic-verification") | .logConfiguration.options["awslogs-group"]' "$RUNNER_TEMP/verification-definition.json")"
+          log_prefix="$(jq -er '.taskDefinition.containerDefinitions[] | select(.name == "alembic-verification") | .logConfiguration.options["awslogs-stream-prefix"]' "$RUNNER_TEMP/verification-definition.json")"
+          task_id="${task_arn##*/}"
+          aws logs get-log-events --log-group-name "$log_group" \
+            --log-stream-name "$log_prefix/alembic-verification/$task_id" --start-from-head \
+            | jq -er '[.events[].message | select(startswith("ALEMBIC_VERIFICATION_RESULT="))] | if length == 1 then .[0] else error("verification result count") end' \
+            > "$RUNNER_TEMP/alembic-verification-output.txt"
+      - name: Generate and self-verify signed evidence
+        env:
+          RELEASE_SHA: ${{ github.sha }}
+          APP_IMAGE_URI: ${{ vars.PRODUCTION_APP_IMAGE_URI }}
+          PRODUCTION_ATTESTATION_SIGNING_KEY_B64: ${{ secrets.PRODUCTION_ATTESTATION_SIGNING_KEY_B64 }}
+        run: |
+          set -euo pipefail
+          umask 077
+          python -m pip install --requirement requirements-runtime.txt
+          install -d -m 700 "$RUNNER_TEMP/production-evidence"
+          python scripts/produce_production_migration_evidence.py \
+            --migration-task-json "$RUNNER_TEMP/migration-task.json" \
+            --verification-task-json "$RUNNER_TEMP/verification-task.json" \
+            --verification-output "$RUNNER_TEMP/alembic-verification-output.txt" \
+            --release-sha "$RELEASE_SHA" --app-image-uri "$APP_IMAGE_URI" \
+            --github-run-id "$GITHUB_RUN_ID" --github-run-attempt "$GITHUB_RUN_ATTEMPT" \
+            --evidence-output "$RUNNER_TEMP/production-evidence/alembic-verification.json" \
+            --attestation-output "$RUNNER_TEMP/production-evidence/migration-attestation.json"
+          python scripts/verify_production_migration_attestation.py \
+            --attestation-file "$RUNNER_TEMP/production-evidence/migration-attestation.json" \
+            --alembic-evidence-file "$RUNNER_TEMP/production-evidence/alembic-verification.json" \
+            --approved-release-sha "$RELEASE_SHA" \
+            --expected-producer-run-id "$GITHUB_RUN_ID" \
+            --expected-producer-run-attempt "$GITHUB_RUN_ATTEMPT" \
+            --output "$RUNNER_TEMP/verified-attestation.json"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: production-migration-attestation
+          path: ${{ runner.temp }}/production-evidence
+          retention-days: 1
+          if-no-files-found: error

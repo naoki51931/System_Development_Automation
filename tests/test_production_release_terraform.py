@@ -8,6 +8,8 @@ ROOT = Path(__file__).resolve().parents[1]
 PRODUCTION = ROOT / "environment"
 ECS = ROOT / "modules/ecs/main.tf"
 MONITORING = ROOT / "modules/production_monitoring/main.tf"
+CONSUMER_WORKFLOW = ROOT / ".github/workflows/production-release.yml"
+PRODUCER_WORKFLOW = ROOT / ".github/workflows/production-migration-evidence.yml"
 
 
 def text(path: Path) -> str:
@@ -138,14 +140,45 @@ def test_migration_is_definition_only_and_runtime_gate_matches_exact_digest():
     assert "local.migration_attestation.resolved_image_digest" in main
     assert "local.migration_attestation.artifact_signature" in main
     assert "handoff_verified_at" in main
+    assert not (ROOT / "scripts/write_test_terraform_handoff.py").exists()
+    assert "environment/.production-release" not in text(
+        ROOT / "tests/terraform/production_release_gate_fixture/main.tf"
+    )
     assert "var.approved_release_sha" in main
     assert "depends_on             = [terraform_data.release_runtime_gate]" in main
     assert "MIGRATION_SEQUENCE_UNSAFE" in root
     assert 'resource "aws_ecs_task_definition" "migration"' in ecs
+    assert 'resource "aws_ecs_task_definition" "alembic_verification"' in ecs
     assert 'resource "aws_ecs_service" "migration"' not in ecs
     assert not re.search(r'resource "aws_ecs_task"', ecs)
     assert "local-exec" not in ecs
     assert "count        = var.enable_release_runtime ? 1 : 0" in ecs
+
+
+def test_protected_workflows_fix_control_plane_producer_and_full_plan():
+    consumer = text(CONSUMER_WORKFLOW)
+    producer = text(PRODUCER_WORKFLOW)
+    assert "release_sha:" not in consumer
+    assert "path: control-plane" in consumer
+    assert "path: release-tree" in consumer
+    assert "git -C control-plane merge-base --is-ancestor" in consumer
+    assert (
+        "control-plane/scripts/verify_production_migration_attestation.py" in consumer
+    )
+    assert 'gh api "repos/$GITHUB_REPOSITORY/actions/runs/$PRODUCER_RUN_ID"' in consumer
+    assert "actions/runs/$PRODUCER_RUN_ID/attempts/$run_attempt/jobs" in consumer
+    assert '.conclusion == "success"' in consumer
+    assert "terraform plan" in consumer
+    assert "-target" not in consumer
+    assert "environment: production" in consumer
+    assert "environment: production" in producer
+    assert "--observed" not in producer
+    assert "PRODUCTION_ATTESTATION_SIGNING_KEY_B64" in producer
+    for workflow in (consumer, producer):
+        for line in workflow.splitlines():
+            if "uses:" in line:
+                reference = line.split("uses:", 1)[1].split("#", 1)[0].strip()
+                assert re.search(r"@[0-9a-f]{40}$", reference), reference
 
 
 def test_external_providers_are_fail_closed_and_not_launch_ready():
