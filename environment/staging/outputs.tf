@@ -7,6 +7,10 @@ output "vpc_id" {
 output "alb_dns_name" {
   value = module.ecs.alb_dns_name
 }
+output "staging_alb_dns_name" {
+  description = "ALB target for the external test CNAME; null while staging is idle."
+  value       = module.ecs.alb_dns_name
+}
 output "staging_url" {
   value = module.ecs.alb_dns_name == null ? null : (var.enable_custom_domain && var.enable_https ? "https://${var.domain_name}" : "http://${module.ecs.alb_dns_name}")
 }

@@ -193,13 +193,13 @@ def test_idle_mode_removes_costly_runtime_and_preserves_foundations():
     ecs = text(ROOT / "modules/staging_ecs/main.tf")
     storage = text(ROOT / "modules/staging_storage/main.tf")
 
-    assert 'default     = "active"' in variables
+    assert 'default     = "idle"' in variables
     assert 'contains(["idle", "active"], var.staging_mode)' in variables
     assert 'active_mode = var.staging_mode == "active"' in root
     assert 'variable "allow_staging_reactivation"' in variables
     assert 'var.staging_mode == "idle" || var.allow_staging_reactivation' in variables
     assert "ACTIVE_REACTIVATION blocked" in variables
-    assert "allow_staging_reactivation       = true" in text(
+    assert "allow_staging_reactivation       = false" in text(
         STAGING / "terraform.tfvars.example"
     )
     assert (
@@ -469,7 +469,10 @@ def test_prerequisite_trust_budget_dns_and_outputs_are_safe():
     assert "aws_acm_certificate_validation" in dns
     assert "var.domain_name" in dns and "var.route53_zone_id" in dns
     assert 'variable "enable_custom_domain"' in variables
-    assert '!var.enable_custom_domain || can(regex("^staging\\\\."' in variables
+    assert (
+        '!var.enable_custom_domain || var.domain_name == "test.system-navigation.com"'
+        in variables
+    )
     assert 'default = "USD"' in variables
     assert 'var.budget_currency == "USD"' in variables
     assert "default = 150" in variables
@@ -491,7 +494,7 @@ def test_prerequisite_trust_budget_dns_and_outputs_are_safe():
         assert f'output "{name}"' in outputs
 
 
-def test_custom_domain_is_disabled_without_removing_other_prerequisites():
+def test_custom_domain_uses_external_dns_without_removing_other_prerequisites():
     prerequisite_main = text(PREREQUISITES / "main.tf")
     prerequisite_vars = text(PREREQUISITES / "variables.tf")
     prerequisite_example = text(PREREQUISITES / "terraform.tfvars.example")
@@ -502,14 +505,15 @@ def test_custom_domain_is_disabled_without_removing_other_prerequisites():
 
     assert "count           = var.enable_custom_domain ? 1 : 0" in prerequisite_main
     assert 'variable "enable_custom_domain"' in prerequisite_vars
-    assert "default     = false" in prerequisite_vars
-    assert "enable_custom_domain = false" in prerequisite_example
-    assert 'domain_name          = ""' in prerequisite_example
+    assert "default     = true" in prerequisite_vars
+    assert "enable_custom_domain = true" in prerequisite_example
+    assert 'domain_name          = "test.system-navigation.com"' in prerequisite_example
+    assert 'dns_provider         = "external"' in prerequisite_example
     assert 'route53_zone_id      = ""' in prerequisite_example
     assert 'variable "enable_custom_domain"' in staging_vars
     assert "var.enable_custom_domain && var.enable_https" in staging_dns
-    assert "enable_custom_domain  = false" in staging_example
-    assert "enable_https          = false" in staging_example
+    assert "enable_custom_domain  = true" in staging_example
+    assert "enable_https          = true" in staging_example
     assert "create_route53_record = false" in staging_example
     assert 'module "ecr"' in prerequisite_main
     assert 'module "deploy_role"' in prerequisite_main

@@ -124,7 +124,7 @@ variable "enable_runtime_services" {
 variable "staging_mode" {
   type        = string
   description = "Staging cost mode. idle retains persistent/free foundations; active creates runtime infrastructure."
-  default     = "active"
+  default     = "idle"
   validation {
     condition     = contains(["idle", "active"], var.staging_mode)
     error_message = "staging_mode must be idle or active."
@@ -207,12 +207,25 @@ variable "production_rds_identifier" {
 
 variable "domain_name" {
   type    = string
-  default = ""
+  default = "test.system-navigation.com"
+  validation {
+    condition     = var.domain_name == "test.system-navigation.com"
+    error_message = "The staging domain must be test.system-navigation.com."
+  }
 }
 variable "enable_custom_domain" {
   type        = bool
-  description = "Enable a separately approved custom domain, ACM certificate and Route53 alias."
-  default     = false
+  description = "Enable the approved custom domain without activating staging runtime."
+  default     = true
+}
+variable "dns_provider" {
+  type        = string
+  description = "Authoritative DNS provider; external is the staging default."
+  default     = "external"
+  validation {
+    condition     = contains(["external", "route53"], var.dns_provider)
+    error_message = "dns_provider must be external or route53."
+  }
 }
 variable "route53_zone_id" {
   type    = string
@@ -224,7 +237,12 @@ variable "acm_certificate_arn" {
 }
 variable "enable_https" {
   type    = bool
-  default = false
+  default = true
+}
+variable "acm_certificate_issued" {
+  type        = bool
+  description = "Human-confirmed ACM ISSUED gate required before an active HTTPS plan."
+  default     = false
 }
 variable "prerequisite_sns_topic_arn" {
   type        = string
@@ -363,8 +381,13 @@ check "network_selection" {
 }
 check "https_inputs" {
   assert {
-    condition     = var.enable_custom_domain ? (var.enable_https && var.create_route53_record && var.domain_name != "" && var.route53_zone_id != "" && var.acm_certificate_arn != "") : (!var.enable_https && !var.create_route53_record && var.domain_name == "" && var.route53_zone_id == "" && var.acm_certificate_arn == "")
-    error_message = "Custom domains require HTTPS, Route53 and ACM inputs; disabled custom domains require all domain settings to remain off and empty."
+    condition = var.enable_custom_domain ? (
+      var.enable_https &&
+      var.domain_name == "test.system-navigation.com" &&
+      (var.dns_provider == "external" ? (!var.create_route53_record && var.route53_zone_id == "") : (var.create_route53_record && var.route53_zone_id != "")) &&
+      (!local.active_mode || (var.acm_certificate_arn != "" && var.acm_certificate_issued))
+    ) : (!var.enable_https && !var.create_route53_record && var.acm_certificate_arn == "")
+    error_message = "Custom-domain ACTIVE plans require the approved domain, HTTPS, DNS-mode-consistent inputs, an ACM ARN, and human confirmation that ACM is ISSUED."
   }
 }
 check "image_identity" {

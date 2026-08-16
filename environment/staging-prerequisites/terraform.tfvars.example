@@ -12,8 +12,9 @@ github_org               = "REPLACE_ME"
 github_repository        = "REPLACE_ME"
 github_environment       = "staging"
 
-enable_custom_domain = false
-domain_name          = ""
+enable_custom_domain = true
+domain_name          = "test.system-navigation.com"
+dns_provider         = "external"
 route53_zone_id      = ""
 
 alarm_notification_email = "REPLACE_WITH_NOTIFICATION_EMAIL"

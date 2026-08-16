@@ -132,6 +132,7 @@ module "ecs" {
   stripe_mode                     = var.stripe_mode
   enable_https                    = var.enable_custom_domain && var.enable_https
   acm_certificate_arn             = local.effective_acm_certificate_arn
+  frontend_origin                 = "https://${var.domain_name}"
   cognito_user_pool_id            = var.cognito_user_pool_id
   cognito_app_client_id           = var.cognito_app_client_id
   cognito_issuer                  = var.cognito_issuer

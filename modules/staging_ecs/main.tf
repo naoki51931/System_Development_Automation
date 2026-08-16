@@ -91,6 +91,10 @@ variable "enable_https" {
 variable "acm_certificate_arn" {
   type = string
 }
+variable "frontend_origin" {
+  type        = string
+  description = "Exact browser origin allowed by the staging backend."
+}
 variable "cognito_user_pool_id" {
   type = string
 }
@@ -483,7 +487,9 @@ resource "aws_ecs_task_definition" "backend" {
   container_definitions = jsonencode([{
     name = "backend", image = var.backend_image, essential = true, command = ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"], portMappings = [{
       containerPort = 8000
-      }], environment = local.common_environment, secrets = [{
+      }], environment = concat(local.common_environment, [{
+        name = "APP_FRONTEND_ORIGIN", value = var.frontend_origin
+      }]), secrets = [{
       name = "APP_DATABASE_SECRET_JSON", valueFrom = var.application_database_secret_arn
       }], healthCheck = {
       command = ["CMD-SHELL", "python -c \"__import__('urllib.request').request.urlopen('http://localhost:8000/health')\""], interval = 30, timeout = 5, retries = 3
