@@ -21,7 +21,7 @@ services:
       TEST_DATABASE_URL: postgresql+psycopg://systemnavigator:local-only-password@postgres/systemnavigator
       APP_LOCAL_AUTH_ENABLED: "true"
       APP_LOCAL_AUTH_SECRET: local-compose-secret-change-me
-      APP_FRONTEND_ORIGIN: http://localhost:3000
+      APP_FRONTEND_ORIGIN: http://localhost
       APP_PERFORMANCE_TIMING: "true"
     command: sh -c "alembic upgrade head && python -m app.seed && uvicorn app.main:app --host 0.0.0.0 --port 8000"
     depends_on: {postgres: {condition: service_healthy}}
@@ -61,7 +61,7 @@ services:
       interval: 3s
       timeout: 3s
       retries: 20
-    ports: ["3000:3000"]
+    ports: ["80:3000"]
 
   e2e:
     profiles: ["e2e"]
