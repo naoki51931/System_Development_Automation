@@ -139,6 +139,10 @@ jobs:
       - run: terraform fmt -check -recursive
       - working-directory: environment
         run: terraform init -backend=false && terraform validate
+      - name: Native Production Terraform release gate tests
+        run: |
+          terraform -chdir=tests/terraform/production_release_gate_fixture init -backend=false
+          terraform -chdir=tests/terraform/production_release_gate_fixture test
       - working-directory: bootstrap
         run: terraform init -backend=false && terraform validate
       - working-directory: environment/staging

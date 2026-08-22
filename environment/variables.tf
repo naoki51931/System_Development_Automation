@@ -1,18 +1,31 @@
 variable "aws_account_id" {
   type        = string
   description = "クラウドAのAWSアカウントID"
+  default     = "557604519341"
+  validation {
+    condition     = var.aws_account_id == "557604519341"
+    error_message = "PRODUCTION_ACCOUNT_MISMATCH: Production is fixed to AWS account 557604519341."
+  }
 }
 
 variable "aws_region" {
   type        = string
   description = "AWSリージョン"
   default     = "eu-west-2"
+  validation {
+    condition     = var.aws_region == "eu-west-2"
+    error_message = "PRODUCTION_REGION_MISMATCH: Production is fixed to eu-west-2."
+  }
 }
 
 variable "name" {
   type        = string
   description = "リソース名の接頭辞"
   default     = "ai-platform-prod"
+  validation {
+    condition     = var.name == "ai-platform-prod"
+    error_message = "PRODUCTION_REPOSITORY_MISMATCH: Production resource prefix is fixed to ai-platform-prod."
+  }
 }
 
 variable "container_image_tag" {
@@ -22,6 +35,65 @@ variable "container_image_tag" {
   validation {
     condition     = var.container_image_tag != "latest"
     error_message = "The mutable latest tag is forbidden in production."
+  }
+}
+
+variable "app_image_uri" {
+  type        = string
+  description = "Reviewed Production application image. Backend, worker, and migration share this exact ECR digest URI."
+
+  validation {
+    condition = can(regex(
+      "^557604519341\\.dkr\\.ecr\\.eu-west-2\\.amazonaws\\.com/ai-platform-prod@sha256:[0-9a-f]{64}$",
+      var.app_image_uri,
+    ))
+    error_message = "DIGEST_INPUT_UNSUPPORTED: app_image_uri must be the exact Production app ECR repository in this account/region pinned by @sha256. Tags, latest, malformed digests, and other repositories are forbidden."
+  }
+}
+
+variable "frontend_image_uri" {
+  type        = string
+  description = "Reviewed Production frontend image pinned to the dedicated frontend ECR repository."
+
+  validation {
+    condition = can(regex(
+      "^557604519341\\.dkr\\.ecr\\.eu-west-2\\.amazonaws\\.com/ai-platform-prod-frontend@sha256:[0-9a-f]{64}$",
+      var.frontend_image_uri,
+    ))
+    error_message = "DIGEST_INPUT_UNSUPPORTED: frontend_image_uri must be the exact dedicated Production frontend ECR repository in this account/region pinned by @sha256."
+  }
+}
+
+variable "enable_release_runtime" {
+  type        = bool
+  description = "Allows the digest-pinned backend/frontend/worker rollout only after the one-off migration has succeeded."
+  default     = false
+}
+
+variable "approved_release_sha" {
+  type        = string
+  description = "Approved post-merge Production release commit SHA supplied by the protected release workflow."
+  default     = ""
+  validation {
+    condition     = var.approved_release_sha == "" || can(regex("^[0-9a-f]{40}$", var.approved_release_sha))
+    error_message = "approved_release_sha must be a 40-character lowercase Git commit SHA."
+  }
+}
+
+variable "external_launch_ready" {
+  type        = bool
+  description = "External launch remains blocked until Cognito, HTTPS/DNS, AI, payment, and email providers are separately connected and approved."
+  default     = false
+  validation {
+    condition     = !var.external_launch_ready
+    error_message = "PROVIDER_NOT_CONFIGURED: this remediation does not connect external launch providers and cannot declare external launch ready."
+  }
+}
+
+check "migration_before_release_runtime" {
+  assert {
+    condition     = !var.enable_release_runtime || local.migration_attestation_valid
+    error_message = "MIGRATION_SEQUENCE_UNSAFE: runtime requires a verifier-produced attestation for this digest, exit zero, and Alembic head 8d4f2a7c9b11."
   }
 }
 
