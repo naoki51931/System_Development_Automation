@@ -13,6 +13,10 @@ class ProjectCreate(BaseModel):
     project_manager_user_id: uuid.UUID | None = None
 
 
+class ProjectVersionInput(BaseModel):
+    version: int = Field(ge=1)
+
+
 class ArtifactCreate(BaseModel):
     artifact_type: str
     title: str = Field(min_length=1, max_length=255)

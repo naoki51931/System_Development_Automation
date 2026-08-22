@@ -1200,6 +1200,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/{project_id}/start-estimate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start Estimate */
+        post: operations["start_estimate_api_v1_projects__project_id__start_estimate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/review-comments": {
         parameters: {
             query?: never;
@@ -1701,6 +1718,11 @@ export interface components {
             project_code: string;
             /** Project Manager User Id */
             project_manager_user_id?: string | null;
+        };
+        /** ProjectVersionInput */
+        ProjectVersionInput: {
+            /** Version */
+            version: number;
         };
         /** ReviewCommentCreate */
         ReviewCommentCreate: {
@@ -4267,6 +4289,41 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_estimate_api_v1_projects__project_id__start_estimate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectVersionInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
