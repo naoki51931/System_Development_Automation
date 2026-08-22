@@ -82,3 +82,70 @@ def test_project_api_rejects_unrelated_tenant_and_unaffiliated_creator(
         ).status_code
         == 403
     )
+
+
+def test_pm_can_start_estimate_with_version_and_customer_cannot(db_session: Session):
+    organization = Organization(name="Estimate transition", status="active")
+    pm = User(
+        cognito_sub="estimate-pm",
+        email="estimate-pm@example.com",
+        display_name="PM",
+        status="active",
+    )
+    customer = User(
+        cognito_sub="estimate-customer",
+        email="estimate-customer@example.com",
+        display_name="Customer",
+        status="active",
+    )
+    pm_role = Role(code="project_manager", display_name="PM", is_system=True)
+    customer_role = Role(code="customer", display_name="Customer", is_system=True)
+    pm_membership = OrganizationMembership(
+        organization=organization, user=pm, status="active"
+    )
+    pm_membership.roles.append(MembershipRole(role=pm_role))
+    customer_membership = OrganizationMembership(
+        organization=organization, user=customer, status="active"
+    )
+    customer_membership.roles.append(MembershipRole(role=customer_role))
+    db_session.add_all([pm_membership, customer_membership])
+    db_session.commit()
+
+    pm_client = client_for(db_session, pm, "pm-token")
+    created = pm_client.post(
+        "/api/v1/projects",
+        headers={"Authorization": "Bearer pm-token"},
+        json={
+            "organization_id": str(organization.id),
+            "project_code": "ESTIMATE-1",
+            "name": "Estimate transition",
+        },
+    )
+    assert created.status_code == 201
+    project = created.json()
+    assert project["version"] == 1
+
+    customer_client = client_for(db_session, customer, "customer-token")
+    forbidden = customer_client.post(
+        f"/api/v1/projects/{project['id']}/start-estimate",
+        headers={"Authorization": "Bearer customer-token"},
+        json={"version": project["version"]},
+    )
+    assert forbidden.status_code == 403
+
+    started = pm_client.post(
+        f"/api/v1/projects/{project['id']}/start-estimate",
+        headers={"Authorization": "Bearer pm-token"},
+        json={"version": project["version"]},
+    )
+    assert started.status_code == 200
+    assert started.json()["status"] == "estimating"
+    assert started.json()["current_phase"] == "estimate"
+    assert started.json()["version"] == 2
+
+    stale = pm_client.post(
+        f"/api/v1/projects/{project['id']}/start-estimate",
+        headers={"Authorization": "Bearer pm-token"},
+        json={"version": project["version"]},
+    )
+    assert stale.status_code == 409

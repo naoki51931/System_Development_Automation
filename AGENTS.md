@@ -10,6 +10,7 @@ Update this file whenever implementation changes so documentation and code stay 
 - `app/models`: Identity/RBAC plus tenant-scoped project, artifact, immutable version, review, AI-run, and approval-history models.
 - `app/services/workflow.py`: Tenant-safe project/artifact operations and validated review/approval state transitions.
 - `app/api/projects.py`: Authenticated minimal project, artifact, version, review, comment, submit, approve, and change-request APIs.
+- PM/organization administrators can explicitly move a version-checked `draft|hearing` project from `hearing` to `estimating/estimate` through `POST /api/v1/projects/{id}/start-estimate`; invalid transitions and stale versions fail closed.
 - `app/auth`: Cognito access-token verifier abstraction plus FastAPI authentication and tenant authorization dependencies.
 - `app/seed.py`: Idempotent system-role seed command with no fixed role UUIDs.
 - `docs/identity_access.md`: ER, Cognito validation, tenant boundary, deletion, audit, and RDS preflight design.
@@ -124,11 +125,14 @@ Before apply, allow replacement of only the ECS task definition when it creates 
 ## Web portal and local worker phase
 
 - `frontend/` is the separate Next.js/TypeScript application. It uses only local CSS, a shared cookie/CSRF API client, accessible responsive shell, role-oriented portal/admin screens, and no external UI service.
+- When `NEXT_PUBLIC_LOCAL_AUTH_ENABLED=true`, the shared header exposes a local-only test-user selector. Switching users replaces the LocalAuth session, clears organization/project session state, and reloads the portal; the control is absent from staging/production builds.
+- Project detail loads the project as the authoritative view and isolates estimate/chat authorization failures, so a forbidden related resource is shown as unavailable without replacing the readable project with a page-wide 403.
+- The PM estimate action moves a version-checked hearing project into `estimating/estimate`, routes to the selected project's estimate screen, and exposes a PM/admin-only local draft form with one manual JPY line item.
 - `app/api/local_auth.py` provides development-only test-user login with a short-lived HttpOnly signed cookie. Tokens contain only the immutable user subject; organization and roles are always loaded from PostgreSQL. `APP_ENV=production` or `APP_LOCAL_AUTH_ENABLED=false` disables LocalAuth. Cognito remains a network-disabled stub.
 - `app/api/pagination.py` signs `created_at + id` cursors with HMAC, rejects tampering, caps pages at 100, and always applies tenant filters before cursors.
 - `app/workers/` claims Outbox jobs with `FOR UPDATE SKIP LOCKED`, worker identity, heartbeat, expiring lease, bounded exponential retry, idempotency constraints, and dead letter state. Providers remain local mocks.
 - Migration `6b1e4c9f2a10` only adds Outbox lease/retry columns and an index; offline SQL is committed. Never apply it to RDS in this phase.
-- `compose.yaml` starts local PostgreSQL, backend, frontend, and worker. It contains local-only credentials and never enables Cognito, Stripe, SES, S3, external AI, AWS, or public deployment.
+- `compose.yaml` starts local PostgreSQL, backend, frontend, and worker. The browser uses same-origin `/api/v1`, which the Compose frontend rewrites to the internal backend service so preview/remote browser hosts do not depend on browser-local port 8000. It contains local-only credentials and never enables Cognito, Stripe, SES, S3, external AI, AWS, or public deployment.
 - Run `docker compose up --build`, `docker compose run --rm backend python -m pytest -q`, and `docker compose run --rm frontend npm test`. LocalAuth must never be enabled in a production environment.
 
 ## Staging readiness quality gate

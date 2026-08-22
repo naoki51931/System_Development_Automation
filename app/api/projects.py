@@ -11,6 +11,7 @@ from app.api.schemas import (
     ArtifactVersionCreate,
     DecisionRequest,
     ProjectCreate,
+    ProjectVersionInput,
     ReviewCommentCreate,
     ReviewCreate,
 )
@@ -33,6 +34,7 @@ from app.services.workflow import (
     create_review,
     get_project_for_user,
     request_changes,
+    start_project_estimate,
     submit_version,
 )
 
@@ -47,6 +49,7 @@ def project_json(project: Project) -> dict[str, object]:
         "name": project.name,
         "status": project.status,
         "current_phase": project.current_phase,
+        "version": project.version,
     }
 
 
@@ -96,6 +99,19 @@ def get_project(
     session: Annotated[Session, Depends(get_session)],
 ):  # type: ignore[no-untyped-def]
     project, _access = get_project_for_user(session, project_id, authenticated)
+    return project_json(project)
+
+
+@router.post("/projects/{project_id}/start-estimate")
+def start_estimate(
+    project_id: uuid.UUID,
+    payload: ProjectVersionInput,
+    authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)],
+    session: Annotated[Session, Depends(get_session)],
+):  # type: ignore[no-untyped-def]
+    project, access = get_project_for_user(session, project_id, authenticated)
+    start_project_estimate(project, access, payload.version)
+    session.commit()
     return project_json(project)
 
 

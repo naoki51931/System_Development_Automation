@@ -1025,6 +1025,20 @@
         "title": "ProjectCreate",
         "type": "object"
       },
+      "ProjectVersionInput": {
+        "properties": {
+          "version": {
+            "minimum": 1.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version"
+        ],
+        "title": "ProjectVersionInput",
+        "type": "object"
+      },
       "ReviewCommentCreate": {
         "properties": {
           "author_user_id": {
@@ -5485,6 +5499,62 @@
         "summary": "Post Maintenance Contract",
         "tags": [
           "estimate-contract-payment"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/start-estimate": {
+      "post": {
+        "operationId": "start_estimate_api_v1_projects__project_id__start_estimate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectVersionInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Start Estimate",
+        "tags": [
+          "projects"
         ]
       }
     },
