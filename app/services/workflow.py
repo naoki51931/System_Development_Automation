@@ -4,7 +4,7 @@ from decimal import Decimal
 
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, object_session
 
 from app.auth.dependencies import (
     AuthenticatedUser,
@@ -77,6 +77,26 @@ def get_project_for_user(
         project.organization_id, authenticated, session
     )
     return project, access
+
+
+def start_project_estimate(
+    project: Project, access: OrganizationAccess, expected_version: int
+) -> Project:
+    ensure_resource_organization(access, project.organization_id)
+    if access.role_codes.isdisjoint(PROJECT_WRITE_ROLES):
+        raise domain_error("Permission denied", status.HTTP_403_FORBIDDEN)
+    if project.version != expected_version:
+        raise domain_error("Project was updated by another request")
+    if project.status == "estimating" and project.current_phase == "estimate":
+        return project
+    if project.status not in {"draft", "hearing"} or project.current_phase != "hearing":
+        raise domain_error("Project cannot enter estimation from its current state")
+    project.status = "estimating"
+    project.current_phase = "estimate"
+    session = object_session(project)
+    if session is not None:
+        session.flush()
+    return project
 
 
 def add_project_member(

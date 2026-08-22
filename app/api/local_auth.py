@@ -120,7 +120,14 @@ def me(
     return {
         "id": str(authenticated.user.id),
         "display_name": authenticated.user.display_name,
-        "organizations": [{"id": str(o.id), "name": o.name} for _, o in rows],
+        "organizations": [
+            {
+                "id": str(o.id),
+                "name": o.name,
+                "roles": sorted(item.role.code for item in membership.roles),
+            }
+            for membership, o in rows
+        ],
     }
 
 
