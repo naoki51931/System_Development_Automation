@@ -125,6 +125,8 @@ Before apply, allow replacement of only the ECS task definition when it creates 
 ## Web portal and local worker phase
 
 - `frontend/` is the separate Next.js/TypeScript application. It uses only local CSS, a shared cookie/CSRF API client, accessible responsive shell, role-oriented portal/admin screens, and no external UI service.
+- `frontend/app/page.tsx` is the public landing page ported from the backend's server-rendered `/` page; its CSS module keeps landing styles isolated from portal routes.
+- Public `/` remains the landing page. The portal is exposed under `/development` using Next.js rewrites, and all portal navigation stays within that prefix.
 - When `NEXT_PUBLIC_LOCAL_AUTH_ENABLED=true`, the shared header exposes a local-only test-user selector. Switching users replaces the LocalAuth session, clears organization/project session state, and reloads the portal; the control is absent from staging/production builds.
 - Project detail loads the project as the authoritative view and isolates estimate/chat authorization failures, so a forbidden related resource is shown as unavailable without replacing the readable project with a page-wide 403.
 - The PM estimate action moves a version-checked hearing project into `estimating/estimate`, routes to the selected project's estimate screen, and exposes a PM/admin-only local draft form with one manual JPY line item.

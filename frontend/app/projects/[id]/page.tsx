@@ -61,7 +61,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         body: JSON.stringify({ version: project.version }),
       });
       setProject(updated);
-      router.push("/estimates");
+      router.push("/development/estimates");
     } catch (value) {
       setError(value);
       setStartingEstimate(false);
@@ -78,7 +78,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         body: JSON.stringify({ version: project.version }),
       });
       sessionStorage.removeItem("sn.project");
-      router.push("/projects");
+      router.push("/development/projects");
     } catch (value) {
       setError(value);
       setDeleting(false);
@@ -104,7 +104,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         </button>}
       </section>
       <div className="grid">
-        <Link href="/estimates" className="card"><h2>見積</h2><p>{countText(counts.estimates)}</p></Link>
+        <Link href="/development/estimates" className="card"><h2>見積</h2><p>{countText(counts.estimates)}</p></Link>
         <section className="card"><h2>チャットルーム</h2><p>{countText(counts.chat_rooms)}</p></section>
       </div>
     </>}
