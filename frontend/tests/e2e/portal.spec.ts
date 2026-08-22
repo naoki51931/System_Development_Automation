@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 test("LocalAuth login and verified organization switch", async ({ page }) => {
-  await page.goto("/login");
+  await page.goto("/development/login");
   await expect(page.getByRole("heading", { name: /SystemNavigator AI/ })).toBeVisible();
   await expect(page.getByText("AIと人が、システム開発を完成までナビゲート。")).toBeVisible();
   await page.getByLabel("テストユーザー").selectOption({ label: "organization_owner (organization_owner@quality.local)" });

@@ -7,11 +7,11 @@ import { api } from "@/lib/api";
 import { useOrganization } from "@/lib/organization";
 
 const links = [
-  ["/", "ダッシュボード"], ["/projects", "案件"], ["/estimates", "見積"],
-  ["/contracts", "契約"], ["/payments", "Mock決済"], ["/artifacts", "成果物"],
-  ["/reviews", "レビュー"], ["/chat", "チャット"], ["/change-requests", "修正依頼"],
-  ["/notifications", "通知"], ["/ai-settings", "AI設定"], ["/maintenance", "保守"],
-  ["/users", "組織管理"], ["/audit-logs", "監査ログ"], ["/dead-letters", "Dead letter"],
+  ["/development", "ダッシュボード"], ["/development/projects", "案件"], ["/development/estimates", "見積"],
+  ["/development/contracts", "契約"], ["/development/payments", "Mock決済"], ["/development/artifacts", "成果物"],
+  ["/development/reviews", "レビュー"], ["/development/chat", "チャット"], ["/development/change-requests", "修正依頼"],
+  ["/development/notifications", "通知"], ["/development/ai-settings", "AI設定"], ["/development/maintenance", "保守"],
+  ["/development/users", "組織管理"], ["/development/audit-logs", "監査ログ"], ["/development/dead-letters", "Dead letter"],
 ];
 
 type LocalUser = { id: string; display_name: string; email: string };
