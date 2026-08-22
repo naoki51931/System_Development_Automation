@@ -1,5 +1,6 @@
 import re
 import uuid
+from datetime import datetime, timezone
 from decimal import Decimal
 
 from fastapi import HTTPException, status
@@ -28,6 +29,7 @@ AI_PASSING_SCORE_DEFAULT = 95
 PROJECT_WRITE_ROLES = frozenset(
     {"organization_owner", "organization_admin", "project_manager"}
 )
+PROJECT_DELETE_ROLES = frozenset({"organization_owner", "organization_admin"})
 ARTIFACT_WRITE_ROLES = PROJECT_WRITE_ROLES | {"developer"}
 REVIEW_ROLES = PROJECT_WRITE_ROLES | {"reviewer"}
 APPROVAL_ROLES = PROJECT_WRITE_ROLES | {"customer"}
@@ -77,6 +79,21 @@ def get_project_for_user(
         project.organization_id, authenticated, session
     )
     return project, access
+
+
+def archive_project(
+    project: Project, access: OrganizationAccess, expected_version: int
+) -> Project:
+    ensure_resource_organization(access, project.organization_id)
+    if access.role_codes.isdisjoint(PROJECT_DELETE_ROLES):
+        raise domain_error("Permission denied", status.HTTP_403_FORBIDDEN)
+    if project.version != expected_version:
+        raise domain_error("Project was updated by another request")
+    project.archived_at = datetime.now(timezone.utc)
+    session = object_session(project)
+    if session is not None:
+        session.flush()
+    return project
 
 
 def start_project_estimate(

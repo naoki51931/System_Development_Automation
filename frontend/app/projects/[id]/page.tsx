@@ -19,9 +19,11 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>();
   const [startingEstimate, setStartingEstimate] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const roles = me?.organizations.find((item) => item.id === organizationId)?.roles || [];
   const canStartEstimate = roles.some((role) => ["organization_owner", "organization_admin", "project_manager"].includes(role));
+  const canDelete = roles.some((role) => ["organization_owner", "organization_admin"].includes(role));
 
   useEffect(() => {
     sessionStorage.setItem("sn.project", id);
@@ -66,18 +68,38 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
     }
   }
 
+  async function deleteProject() {
+    if (!project?.id || typeof project.version !== "number" || !window.confirm("削除しますか？")) return;
+    setDeleting(true);
+    setError(undefined);
+    try {
+      await api("/projects/" + project.id, {
+        method: "DELETE",
+        body: JSON.stringify({ version: project.version }),
+      });
+      sessionStorage.removeItem("sn.project");
+      router.push("/projects");
+    } catch (value) {
+      setError(value);
+      setDeleting(false);
+    }
+  }
+
   return <Shell title="案件詳細">
     <AsyncState loading={loading} error={error}/>
     {project && <>
       {relatedWarning && <p role="status" className="card">権限により一部の関連情報は表示されません。</p>}
-      <section className="card">
+      <section className="card projectDetailCard">
+        {canDelete && <button className="dangerButton projectDeleteButton" disabled={deleting || startingEstimate} onClick={deleteProject}>
+          {deleting ? "削除中…" : "案件を削除"}
+        </button>}
         <h2>{String(project.name)}</h2>
         <dl>
           <dt>案件コード</dt><dd>{String(project.project_code)}</dd>
           <dt>状態・工程</dt><dd>{String(project.status)} / {String(project.current_phase)}</dd>
           <dt>version</dt><dd>{String(project.version)}</dd>
         </dl>
-        {canStartEstimate && project.current_phase === "hearing" && <button disabled={startingEstimate} onClick={startEstimate}>
+        {canStartEstimate && project.current_phase === "hearing" && <button disabled={startingEstimate || deleting} onClick={startEstimate}>
           {startingEstimate ? "見積工程へ移動中…" : "見積作成へ進む"}
         </button>}
       </section>

@@ -7,3 +7,5 @@
   padding: 0.55rem 1rem;
   text-align: center;
 }
+
+.projectDetailCard{position:relative;padding-top:68px}.projectDeleteButton{position:absolute;top:18px;right:18px}.dangerButton{background:#b42318;border-color:#8f1c13;color:#fff;font-weight:700}.dangerButton:hover:not(:disabled){background:#8f1c13}.dangerButton:disabled{background:#d98b85;border-color:#d98b85;cursor:not-allowed}

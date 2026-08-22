@@ -132,6 +132,7 @@ Before apply, allow replacement of only the ECS task definition when it creates 
 - `app/api/pagination.py` signs `created_at + id` cursors with HMAC, rejects tampering, caps pages at 100, and always applies tenant filters before cursors.
 - `app/workers/` claims Outbox jobs with `FOR UPDATE SKIP LOCKED`, worker identity, heartbeat, expiring lease, bounded exponential retry, idempotency constraints, and dead letter state. Providers remain local mocks.
 - Migration `6b1e4c9f2a10` only adds Outbox lease/retry columns and an index; offline SQL is committed. Never apply it to RDS in this phase.
+- Project deletion is a version-checked logical archive. Only `organization_owner` and `organization_admin` may call `DELETE /api/v1/projects/{project_id}`; the portal requires an explicit Japanese confirmation before deletion.
 - `compose.yaml` starts local PostgreSQL, backend, frontend, and worker. The browser uses same-origin `/api/v1`, which the Compose frontend rewrites to the internal backend service so preview/remote browser hosts do not depend on browser-local port 8000. It contains local-only credentials and never enables Cognito, Stripe, SES, S3, external AI, AWS, or public deployment.
 - Run `docker compose up --build`, `docker compose run --rm backend python -m pytest -q`, and `docker compose run --rm frontend npm test`. LocalAuth must never be enabled in a production environment.
 

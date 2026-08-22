@@ -25,6 +25,7 @@ from app.models.project import Artifact, ArtifactVersion, Project, Review
 from app.services.workflow import (
     ARTIFACT_WRITE_ROLES,
     PROJECT_WRITE_ROLES,
+    archive_project,
     REVIEW_ROLES,
     add_artifact_version,
     add_review_comment,
@@ -100,6 +101,18 @@ def get_project(
 ):  # type: ignore[no-untyped-def]
     project, _access = get_project_for_user(session, project_id, authenticated)
     return project_json(project)
+
+
+@router.delete("/projects/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_project(
+    project_id: uuid.UUID,
+    payload: ProjectVersionInput,
+    authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)],
+    session: Annotated[Session, Depends(get_session)],
+):
+    project, access = get_project_for_user(session, project_id, authenticated)
+    archive_project(project, access, payload.version)
+    session.commit()
 
 
 @router.post("/projects/{project_id}/start-estimate")
