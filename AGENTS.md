@@ -10,6 +10,7 @@ Update this file whenever implementation changes so documentation and code stay 
 - `app/models`: Identity/RBAC plus tenant-scoped project, artifact, immutable version, review, AI-run, and approval-history models.
 - `app/services/workflow.py`: Tenant-safe project/artifact operations and validated review/approval state transitions.
 - `app/api/projects.py`: Authenticated minimal project, artifact, version, review, comment, submit, approve, and change-request APIs.
+- PM/organization administrators can explicitly move a version-checked `draft|hearing` project from `hearing` to `estimating/estimate` through `POST /api/v1/projects/{id}/start-estimate`; invalid transitions and stale versions fail closed.
 - `app/auth`: Cognito access-token verifier abstraction plus FastAPI authentication and tenant authorization dependencies.
 - `app/seed.py`: Idempotent system-role seed command with no fixed role UUIDs.
 - `docs/identity_access.md`: ER, Cognito validation, tenant boundary, deletion, audit, and RDS preflight design.
@@ -74,6 +75,8 @@ Before apply, allow replacement of only the ECS task definition when it creates 
 
 ## Integration baseline
 
+- Production release preparation uses two manual `master`-only, `environment: production` workflows. `.github/workflows/production-migration-evidence.yml` is the future trusted AWS/GitHub machine-evidence producer and sole signer; `.github/workflows/production-release.yml` verifies the producer run through GitHub API, runs repository-fixed verifier/trust code from a trusted control-plane checkout, creates an ephemeral handoff, and makes a full non-targeted saved plan plus bound metadata. It never applies. Native gate tests live only under `tests/terraform/production_release_gate_fixture`; no test helper may write the Production handoff path. See `docs/production_release_attestation.md`. Never commit the Production private key or claim GitHub Environment reviewers/branch restrictions are configured without external verification.
+
 - Authentication target is AWS Cognito access tokens; verify signature, issuer, expiry, subject, token_use, and client_id or audience. Do not create or change Cognito resources without approval.
 - Users are global by unique lowercase email and unique Cognito sub; organization roles belong to memberships, not directly to users.
 - Authorization order is JWT, user status, membership, membership role, resource organization, then operation.
@@ -122,11 +125,14 @@ Before apply, allow replacement of only the ECS task definition when it creates 
 ## Web portal and local worker phase
 
 - `frontend/` is the separate Next.js/TypeScript application. It uses only local CSS, a shared cookie/CSRF API client, accessible responsive shell, role-oriented portal/admin screens, and no external UI service.
+- When `NEXT_PUBLIC_LOCAL_AUTH_ENABLED=true`, the shared header exposes a local-only test-user selector. Switching users replaces the LocalAuth session, clears organization/project session state, and reloads the portal; the control is absent from staging/production builds.
+- Project detail loads the project as the authoritative view and isolates estimate/chat authorization failures, so a forbidden related resource is shown as unavailable without replacing the readable project with a page-wide 403.
+- The PM estimate action moves a version-checked hearing project into `estimating/estimate`, routes to the selected project's estimate screen, and exposes a PM/admin-only local draft form with one manual JPY line item.
 - `app/api/local_auth.py` provides development-only test-user login with a short-lived HttpOnly signed cookie. Tokens contain only the immutable user subject; organization and roles are always loaded from PostgreSQL. `APP_ENV=production` or `APP_LOCAL_AUTH_ENABLED=false` disables LocalAuth. Cognito remains a network-disabled stub.
 - `app/api/pagination.py` signs `created_at + id` cursors with HMAC, rejects tampering, caps pages at 100, and always applies tenant filters before cursors.
 - `app/workers/` claims Outbox jobs with `FOR UPDATE SKIP LOCKED`, worker identity, heartbeat, expiring lease, bounded exponential retry, idempotency constraints, and dead letter state. Providers remain local mocks.
 - Migration `6b1e4c9f2a10` only adds Outbox lease/retry columns and an index; offline SQL is committed. Never apply it to RDS in this phase.
-- `compose.yaml` starts local PostgreSQL, backend, frontend, and worker. It contains local-only credentials and never enables Cognito, Stripe, SES, S3, external AI, AWS, or public deployment.
+- `compose.yaml` starts local PostgreSQL, backend, frontend, and worker. The browser uses same-origin `/api/v1`, which the Compose frontend rewrites to the internal backend service so preview/remote browser hosts do not depend on browser-local port 8000. It contains local-only credentials and never enables Cognito, Stripe, SES, S3, external AI, AWS, or public deployment.
 - Run `docker compose up --build`, `docker compose run --rm backend python -m pytest -q`, and `docker compose run --rm frontend npm test`. LocalAuth must never be enabled in a production environment.
 
 ## Staging readiness quality gate
@@ -206,3 +212,16 @@ Before apply, allow replacement of only the ECS task definition when it creates 
 - `scripts/verify_production_100rpm_post_maintenance.py` performs the post-window fail-closed verification with describe/list APIs and GET only. Production NAT currently serves the two app private subnets for ECR/S3 image pull and CloudWatch Logs; database subnets are local-only. NAT removal is not cost-effective versus the minimum two-AZ ECR API/DKR/Logs endpoints and requires separate destination evidence and approval.
 - The local prerequisite-root gate is `READY_FOR_STAGING_PREREQUISITES_PLAN_APPROVAL` only. This permits humans to approve a prerequisites plan, not apply. No AWS change, apply, ECR/GitHub push, RDS connection, or migration is implied.
 - The approved staging operations recipient is `info@nagi-neco.com`, supplied only through ignored `environment/staging-prerequisites/terraform.tfvars`. CloudWatch alarms publish to the prerequisite `system-navigator-staging-alerts`; its email subscription remains `PendingConfirmation` until a human confirms it. AWS Budgets sends 50/80/100% actual and 100% forecast notifications directly to the same address for the 150 USD monthly budget. Never auto-confirm, send application mail to this address, build SES inbound/MX/S3 inbox infrastructure, or alter `nagi-neco.com` DNS/mail service.
+
+## Production release infrastructure remediation
+
+- Production release inputs are full ECR URIs pinned with `@sha256`. Account, region, and repository must exactly match the Production app or dedicated frontend repository; tags, `latest`, malformed digests, uppercase digests, and cross-account/region/repository inputs fail validation.
+- Backend, worker, and the one-off migration task definition share `app_image_uri`. Frontend uses the immutable `${name}-frontend` ECR repository and `frontend_image_uri`.
+- Terraform defines but never runs the migration task. `enable_release_runtime=true` is hard-failed by lifecycle preconditions unless a verifier-produced signed canonical schema-v2 attestation matches the fixed Production cluster/task/task-definition, current protected `master` release SHA, exact application digest, exit zero, fresh timestamp, and Alembic head `8d4f2a7c9b11`. The protected producer obtains task and observed-head facts mechanically; the consumer recomputes canonical checksums, verifies Ed25519 origin and producer run identity, then creates the full saved plan. Production DB verification remains a separately approved future workflow execution.
+- The existing Production backend ECS service, task definitions, target group, listener, ALB, RDS, NAT, and state addresses remain in place. The digest backend task, frontend target/service/routing, worker service, and release log groups are additive; the service switch is disabled by default.
+- Production worker uses the implemented `python -m app.workers.runner` entry point at 256 CPU/512 MiB and desired count one. It emits heartbeat-age and dead-letter gauges to the fixed Production namespace using worker-only namespace-constrained IAM. Running-task, CPU, memory, heartbeat-age, and dead-letter alarms are created only with release runtime.
+- The frontend ECR repository retains 20 tagged rollback images and expires untagged images after seven days while preserving immutable tags, scan-on-push, and AES256 encryption.
+- Current and rollback frontend digests must retain immutable `release-<gitsha>` tags; attestation JSON artifacts are protected workflow artifacts/object versions and are never committed to the repository.
+- Shared application security-group separation is `FOLLOW_UP_SECURITY_HARDENING`; do not risk existing Production backend/RDS/ALB replacement without live state and plan evidence.
+- Cognito, HTTPS/DNS, AI, payment, and email integrations remain disabled. `external_launch_ready` is forced false and provider flags are false, so this remediation is not Production deployment or external launch approval.
+- Staging IDLE resources and inputs are unchanged. Active Production/Staging Terraform contains no `true-camera-test.com` reference.

@@ -12,6 +12,7 @@ from app.models.communications import OutboxEvent
 from app.testing.faults import InjectedFault, inject
 from app.workers.exceptions import LeaseLost, NonRetryableWorkerError, WorkerError
 from app.workers.health import WorkerStatus
+from app.workers.metrics import production_metrics_from_environment
 from app.workers.outbox import claim, complete_owned, fail, heartbeat_owned
 from app.workers.registry import WorkerContext, default_registry, resolve_job_type
 
@@ -132,7 +133,9 @@ def main():
     args = parser.parse_args()
     factory = create_session_factory(create_database_engine(get_settings()))
     worker_id = f"{socket.gethostname()}:{os.getpid()}"
-    status = WorkerStatus(factory, worker_id)
+    status = WorkerStatus(
+        factory, worker_id, metrics=production_metrics_from_environment()
+    )
     status.poll()
     while True:
         worked = run_once(

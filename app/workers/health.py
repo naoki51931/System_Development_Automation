@@ -9,6 +9,7 @@ from sqlalchemy import func, select, text
 from app.core.config import get_settings
 from app.db.session import create_database_engine, create_session_factory
 from app.models.communications import OutboxEvent
+from app.workers.metrics import publish_or_log
 
 STATUS_PATH = Path(
     os.getenv(
@@ -19,8 +20,13 @@ STATUS_PATH = Path(
 
 
 class WorkerStatus:
-    def __init__(self, factory, worker_id: str, path: Path = STATUS_PATH):
-        self.factory, self.worker_id, self.path = factory, worker_id, path
+    def __init__(self, factory, worker_id: str, path: Path = STATUS_PATH, metrics=None):
+        self.factory, self.worker_id, self.path, self.metrics = (
+            factory,
+            worker_id,
+            path,
+            metrics,
+        )
         self.started_at = datetime.now(timezone.utc)
 
     def poll(self, *, heartbeat=False, error=None):
@@ -56,6 +62,11 @@ class WorkerStatus:
         with os.fdopen(fd, "w") as stream:
             json.dump(data, stream, sort_keys=True)
         os.replace(temporary, self.path)
+        publish_or_log(
+            self.metrics,
+            heartbeat_age_seconds=0,
+            dead_letter_count=dead_letters,
+        )
 
 
 def check(path: Path = STATUS_PATH, max_poll_age=30) -> tuple[bool, str]:
