@@ -32,7 +32,7 @@ Static review found no SECURITY_CRITICAL_GAP_FOUND in the reviewed foundation. T
 | SHA triple match | Static PASS | Stored artifact SHA == plan SHA == execution SHA, rechecked at authorize and prepare; approval SHA also checked. |
 | TOCTOU | Static PASS by inspection | Artifact is reread and hashed during authorize and again during prepare. DB integration test was not runnable here. |
 | Path safety | Static PASS | Relative allowlist and component symlink checks. |
-| Arbitrary command / shell | Static PASS | No subprocess, `os.system`, `eval`, `exec`, user command API, or `shell=True` found in the reviewed executor path. Terraform argv helpers are inert and no process call exists. |
+| Arbitrary command / shell | Static PASS | The only subprocess call is inside the fixed read-only Terraform runner; no `os.system`, `eval`, `exec`, user command API, or `shell=True` exists. |
 | AWS calls | PASS by static scope | No AWS client/import/call in executor or reviewed deployment services. |
 | Production hard lock | Static PASS | Model constraints and executor/gate require staging. |
 
@@ -77,6 +77,70 @@ Terraform CLI invocation, `terraform show`, plan/apply/destroy, AWS calls, state
 
 AWS changes: none. Production changes: none. Staging changes: none. Terraform init/plan/apply/destroy: none. Production/Staging DB operations: none. DNS changes: none. Git commit: NO. Git push: NO. Git merge: NO. Git stash/reset/restore/clean: NO.
 
+## Step 3 — Isolated Terraform CLI verification
+
+The read-only Terraform CLI boundary was added and verified using only a
+provider-free local fixture. The runner resolves the fixed `terraform` binary,
+uses argv lists with `shell=False`, validates the trusted workspace and saved
+plan path, scrubs credential environment variables, bounds output, redacts
+credential-shaped output, and exposes only `get_version()` and
+`show_saved_plan_json()`. There is no generic command, apply, or destroy API.
+
+- CI environment: Python 3.12.13 container, PostgreSQL 16 container, isolated
+  ephemeral database and temporary fixture directory.
+- Terraform: `/usr/bin/terraform`, v1.15.8; only `version` and local
+  `show -json` were executed through the runner.
+- Fixture creation: one provider-free `init -backend=false` and one local
+  `plan -out`; no backend, provider, AWS, or remote state was used.
+- Saved-plan verification: JSON parsing and minimal resource-change
+  extraction passed; SHA-256 before/after equality passed; mutation,
+  traversal, symlink, non-regular, invalid JSON, and non-zero-exit cases fail
+  closed.
+- Security integration: delete/destroy is blocked by the existing gate;
+  production, AI_AGENT, and cross-tenant denial tests remain passing.
+- Migration: existing chain round-trip passed in ephemeral PostgreSQL 16
+  (`upgrade head` → `downgrade ab12cd34ef56` → `upgrade head`); no new schema
+  migration was required.
+- Focused security/gate/executor/Terraform suite: 39 passed, 0 skipped.
+- Full backend pytest with coverage: 234 passed, 0 skipped, 168 seconds;
+  overall coverage 82.55%, critical-service aggregate 90.86%, executor
+  coverage 76.44%.
+- Terraform runner coverage: 94% (14 passed, 0 skipped) in the same Python
+  3.12.13 image; the first read-only-container attempt only exposed a
+  non-code coverage-file permission issue and was rerun with coverage output
+  in the container temporary directory.
+- Ruff format/check: PASS. Bandit 1.8.3: PASS, High/Medium/Low = 0/0/2;
+  the two low findings are Bandit's expected subprocess B404/B603 notices on
+  the narrowly constrained runner call.
+  Secret scan: PASS. pip-audit: PASS, no known vulnerabilities.
+- Concurrency and idempotency remain protected by the existing partial unique
+  index and collision handling; the regression suite passed without changing
+  that security rule.
+
+## Final Step 3 decision
+
+**ENTERPRISE_PHASE2_TERRAFORM_CLI_VERIFICATION_READY**
+
+No real Staging or Production Terraform root, state, AWS API, credential,
+database, DNS, IAM, secrets, or deployment operation was used. Terraform
+`apply` and `destroy` calls were zero. Actual saved-plan execution remains
+blocked pending a separate design and approval.
+
+## Future saved-plan execution boundary (design requirements only)
+
+No execution code is included in this step. Before a future apply boundary is
+approved, it must bind the approved `DeploymentPlan`, approval, and exact
+saved-plan binary SHA; rehash the file immediately before launch; prohibit
+re-plan and raw user arguments; and use fixed argv with the trusted binary.
+It must revalidate state identity, AWS account, region, and Terraform root,
+approval expiry, four-eyes approval, superseded-plan status, production hard
+deny, and AI_AGENT deny. It must also enforce timeout, output redaction,
+sanitized audit evidence, idempotency, concurrency locking, post-run evidence,
+and fail-closed failure handling.
+
 ## Recommended next step
 
-Run the exact CI gate in a Python 3.12/PostgreSQL 16 environment, including live migration round-trip and true concurrent requests. Resolve/explicitly test the unique-constraint race result, then reassess the executor critical-branch coverage target. Only after human review and those gates pass should Terraform CLI design be introduced; actual apply remains a separate approval.
+Human review of this read-only CLI boundary and its diff. A later step may
+design an approved saved-plan execution boundary; it must preserve the fixed
+argv, environment scrubbing, path/hash revalidation, staging-only gate, and
+production hard lock. Actual apply remains a separate approval.
