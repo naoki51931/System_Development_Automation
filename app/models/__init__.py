@@ -46,6 +46,9 @@ from app.models.automation import (
     WorkflowJobInput,
     WorkflowJobStep,
 )
+from app.models.approval import ProtectedApproval
+from app.models.deployment import DeploymentPlan
+from app.models.execution import DeploymentExecution
 from app.models.project import (
     AIRun,
     ApprovalEvent,
@@ -80,6 +83,9 @@ __all__ = [
     "OrganizationMembership",
     "Project",
     "ProjectMember",
+    "ProtectedApproval",
+    "DeploymentPlan",
+    "DeploymentExecution",
     "DocumentGenerationJob",
     "DocumentTemplate",
     "EmailMessage",

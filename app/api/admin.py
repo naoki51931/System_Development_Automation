@@ -1,6 +1,6 @@
 import uuid
 from typing import Annotated
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
@@ -18,6 +18,8 @@ from app.models import (
     Role,
 )
 from app.workers.outbox import retry_dead_letter
+from app.audit import record_audit_log
+from app.auth.permissions import Permission, require_permission
 
 router = APIRouter(prefix="/api/v1/admin", tags=["administration"])
 ADMIN = frozenset({"organization_owner", "organization_admin"})
@@ -99,6 +101,7 @@ def users(
 def roles(
     membership_id: uuid.UUID,
     payload: RoleUpdate,
+    request: Request,
     authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)],
     session: Annotated[Session, Depends(get_session)],
 ):
@@ -111,7 +114,8 @@ def roles(
     )
     if not membership:
         raise HTTPException(404, "Membership not found")
-    access(membership.organization_id, authenticated, session)
+    membership_access = access(membership.organization_id, authenticated, session)
+    require_permission(session, membership_access, Permission.PERMISSION_CHANGE)
     ensure_last_owner(
         session, membership, authenticated.user.id, set(payload.role_codes)
     )
@@ -122,8 +126,22 @@ def roles(
     ).all()
     if len(role_rows) != len(set(payload.role_codes)):
         raise HTTPException(422, "Unknown or system role")
+    before = sorted(r.role.code for r in membership.roles)
     membership.roles.clear()
     membership.roles.extend(MembershipRole(role=x) for x in role_rows)
+    record_audit_log(
+        session,
+        organization_id=membership.organization_id,
+        actor_user_id=authenticated.user.id,
+        action="permission.change",
+        resource_type="organization_membership",
+        resource_id=membership.id,
+        request_id=uuid.uuid4(),
+        before={"roles": before},
+        after={"roles": sorted(payload.role_codes)},
+        ip_address=request.client.host if request.client else None,
+        result="success",
+    )
     session.commit()
     return {"roles": sorted(payload.role_codes)}
 

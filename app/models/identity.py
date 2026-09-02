@@ -148,18 +148,29 @@ class AuditLog(Base):
     actor_user_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL")
     )
+    actor_type: Mapped[str] = mapped_column(String(20), nullable=False, default="human")
+    approval_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("protected_approvals.id", ondelete="SET NULL")
+    )
+    correlation_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
     action: Mapped[str] = mapped_column(String(100), nullable=False)
     resource_type: Mapped[str] = mapped_column(String(100), nullable=False)
     resource_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
     before_json: Mapped[dict | None] = mapped_column(JSONB)
     after_json: Mapped[dict | None] = mapped_column(JSONB)
     ip_address: Mapped[str | None] = mapped_column(INET)
+    result: Mapped[str | None] = mapped_column(String(30))
+    reason: Mapped[str | None] = mapped_column(Text)
     request_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
 
     __table_args__ = (
+        CheckConstraint(
+            "actor_type IN ('human','system','ai_agent')",
+            name="ck_audit_logs_actor_type",
+        ),
         Index(
             "ix_audit_logs_organization_created", "organization_id", created_at.desc()
         ),
