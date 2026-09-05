@@ -79,6 +79,15 @@ class DeploymentExecution(Base):
             ),
         ),
         Index(
+            "uq_deployment_executions_active_project_environment",
+            "organization_id",
+            "project_id",
+            unique=True,
+            postgresql_where=text(
+                "status IN ('requested','validating','authorized','prepared')"
+            ),
+        ),
+        Index(
             "ix_deployment_executions_tenant",
             "organization_id",
             "project_id",

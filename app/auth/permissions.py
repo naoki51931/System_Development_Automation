@@ -48,6 +48,7 @@ class Permission(StrEnum):
     DEPLOYMENT_PLAN_CREATE = "deployment.plan.create"
     DEPLOYMENT_SECURITY_CHECK = "deployment.security_check"
     DEPLOYMENT_EXECUTE_AUTHORIZE = "deployment.execute_authorize"
+    DEPLOYMENT_EXECUTE = "deployment.execute"
 
 
 class ProtectedAction(StrEnum):

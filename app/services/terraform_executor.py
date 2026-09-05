@@ -48,19 +48,8 @@ class NoopTerraformVersionProvider:
         return {}
 
 
-@dataclass(frozen=True)
-class ApprovedPlanFile:
-    """Opaque handle for a plan file materialized by this executor."""
-
-    path: Path
-
-
 class TerraformCommandPolicy:
-    """Fixed argv policy for a future apply implementation.
-
-    The current foundation exposes no method that launches a process.  This
-    helper documents the future boundary and rejects arbitrary command input.
-    """
+    """Read-only command names retained for documentation/tests only."""
 
     @staticmethod
     def version_argv() -> list[str]:
@@ -69,12 +58,6 @@ class TerraformCommandPolicy:
     @staticmethod
     def show_argv() -> list[str]:
         return ["terraform", "show"]
-
-    @staticmethod
-    def apply_argv(plan_file: ApprovedPlanFile) -> list[str]:
-        if not isinstance(plan_file, ApprovedPlanFile):
-            raise ValueError("only an executor-materialized plan file is accepted")
-        return ["terraform", "apply", str(plan_file.path)]
 
 
 class SafeStagingTerraformExecutor:
@@ -145,7 +128,8 @@ class SafeStagingTerraformExecutor:
         existing = session.scalar(
             select(DeploymentExecution)
             .where(
-                DeploymentExecution.deployment_plan_id == plan.id,
+                DeploymentExecution.organization_id == plan.organization_id,
+                DeploymentExecution.project_id == plan.project_id,
                 DeploymentExecution.status.in_(
                     ("requested", "validating", "authorized", "prepared")
                 ),
@@ -252,10 +236,13 @@ class SafeStagingTerraformExecutor:
         context: ExecutionEnvironmentContext,
         request_id: uuid.UUID,
         actor_type: str = "human",
+        force_revalidate: bool = False,
     ) -> DeploymentExecution:
         if execution.organization_id != access.membership.organization_id:
             raise HTTPException(status.HTTP_403_FORBIDDEN, "Cross-tenant access denied")
-        if execution.status in {"prepared", "executed"}:
+        if execution.status in {"prepared", "executed"} and not force_revalidate:
+            return execution
+        if execution.status == "executed":
             return execution
         execution.status = "validating"
         self._audit(

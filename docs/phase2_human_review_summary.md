@@ -144,3 +144,50 @@ Human review of this read-only CLI boundary and its diff. A later step may
 design an approved saved-plan execution boundary; it must preserve the fixed
 argv, environment scrubbing, path/hash revalidation, staging-only gate, and
 production hard lock. Actual apply remains a separate approval.
+
+## Step 4 — Saved Plan Execution Boundary
+
+Step 4 adds a fake-only execution boundary for workflow verification. The
+`FakeTerraformApplyExecutor` never starts Terraform, calls AWS, or mutates the
+filesystem. It revalidates the prepared execution, approval, plan, staging
+context, security gate, and exact saved-plan file immediately before producing
+synthetic evidence. The saved-plan evidence is rechecked by realpath,
+regular-file, device/inode/size, and SHA; mutations fail closed.
+
+Execution now has a separate `deployment.execute` permission, which is not
+granted to viewer, developer, reviewer, project manager, or organization admin
+roles. The owner-only policy is the sole current grant, and AI_AGENT remains
+explicitly denied. Existing plan approval and execution-time four-eyes,
+expiry, checksum, supersession, tenant, account, region, state, root, and
+staging-only checks are all revalidated.
+
+Active execution protection now covers organization/project staging scope with
+a PostgreSQL partial unique index in addition to plan uniqueness. Fake execution
+uses a row lock and terminal-state idempotency. A two-session PostgreSQL 16
+test confirms that concurrent requests produce one effective fake execution.
+Success, failure, timeout, cancellation, and unknown outcomes are represented
+as evidence; unknown outcomes block and no outcome is automatically retried.
+
+- Focused Fake Executor/Executor suite: 21 passed, 0 skipped.
+- Migration round-trip: PASS in ephemeral PostgreSQL 16
+  (`upgrade head` → `downgrade cd34ef56ab78` → `upgrade head`), including the
+  new `ef45ab67cd89` active-execution-scope revision.
+- Full backend pytest: 250 passed, 0 skipped, 163 seconds; overall coverage
+  83.20%, critical service coverage 90.86%, Fake Executor coverage 94%, and
+  Terraform CLI coverage 94%.
+- Ruff format/check: PASS. Bandit 1.8.3: PASS, High/Medium/Low = 0/0/2;
+  B404/B603 are the expected constrained subprocess notices in the read-only
+  CLI runner. Secret scan: PASS. pip-audit: PASS.
+- Real `terraform apply`, `destroy`, AWS calls, remote state, and staging or
+  production changes remain at zero. The existing unused apply argv helper was
+  removed so executable production code has no apply command path.
+
+## Step 4 decision
+
+**ENTERPRISE_PHASE2_SAVED_PLAN_EXECUTION_BOUNDARY_READY**
+
+Only the fake executor is available. A future real execution implementation
+must preserve exact saved-plan SHA binding, execution-time rehash, fixed argv,
+no re-plan, context revalidation, approval/four-eyes checks, production and
+AI_AGENT hard denies, timeout/redaction, concurrency locking, idempotency,
+post-run evidence, and fail-closed failure handling.
