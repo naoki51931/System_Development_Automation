@@ -18,6 +18,7 @@ from app.auth.dependencies import (
     get_session,
     require_organization_access,
 )
+from app.auth.permissions import Permission, require_permission
 from app.errors import AppError
 from app.models.billing import (
     Contract,
@@ -212,6 +213,7 @@ def post_estimate(
     session: Annotated[Session, Depends(get_session)],
 ):
     project, access = get_project_context(session, project_id, authenticated)
+    require_permission(session, access, Permission.CONTRACT_CREATE, project.id)
     values = payload.model_dump()
     values["items"] = [item.model_dump() for item in payload.items]
     estimate = create_estimate(session, project, access, **values)
@@ -269,6 +271,12 @@ def estimate_action(
     access = require_organization_access(
         estimate.organization_id, authenticated, session
     )
+    required = (
+        Permission.CONTRACT_UPDATE
+        if action in {"approve", "reject"}
+        else Permission.CONTRACT_CREATE
+    )
+    require_permission(session, access, required, estimate.project_id)
     transition_estimate(session, estimate, access, action, payload.version)
     session.commit()
     return estimate_json(estimate, session)
@@ -317,6 +325,7 @@ def post_contract(
     access = require_organization_access(
         estimate.organization_id, authenticated, session, WRITE_ROLES
     )
+    require_permission(session, access, Permission.CONTRACT_CREATE, estimate.project_id)
     project = session.get(Project, estimate.project_id)
     if project is None:
         raise AppError("RESOURCE_NOT_FOUND", "Project not found")
@@ -354,6 +363,7 @@ def contract_accept(
     access = require_organization_access(
         contract.organization_id, authenticated, session, roles
     )
+    require_permission(session, access, Permission.CONTRACT_UPDATE, contract.project_id)
     accept_contract(
         session,
         contract,
@@ -402,6 +412,7 @@ def post_payment_intent(
     access = require_organization_access(
         contract.organization_id, authenticated, session, PAYMENT_ROLES
     )
+    require_permission(session, access, Permission.PAYMENT_UPDATE, contract.project_id)
     intent = create_contract_payment_intent(
         session, contract, access, provider, **payload.model_dump()
     )
@@ -423,6 +434,7 @@ def confirm_payment_intent(
     access = require_organization_access(
         intent.organization_id, authenticated, session, PAYMENT_ROLES
     )
+    require_permission(session, access, Permission.PAYMENT_UPDATE, intent.project_id)
     contract = session.get(Contract, intent.contract_id)
     project = session.get(Project, intent.project_id)
     if contract is None or project is None:
@@ -486,6 +498,7 @@ def post_maintenance_contract(
     session: Annotated[Session, Depends(get_session)],
 ):
     project, access = get_project_context(session, project_id, authenticated)
+    require_permission(session, access, Permission.CONTRACT_CREATE, project.id)
     contract = session.get(Contract, payload.contract_id)
     plan = session.get(MaintenancePlan, payload.maintenance_plan_id)
     if contract is None or plan is None:
@@ -522,9 +535,10 @@ def cancel_maintenance_contract(
     contract = session.get(MaintenanceContract, maintenance_contract_id)
     if contract is None:
         raise AppError("PAYMENT_RESOURCE_NOT_FOUND", "Maintenance contract not found")
-    require_organization_access(
+    access = require_organization_access(
         contract.organization_id, authenticated, session, WRITE_ROLES
     )
+    require_permission(session, access, Permission.CONTRACT_UPDATE, contract.project_id)
     if contract.version != payload.version:
         raise AppError("VERSION_CONFLICT", "Resource was updated by another request")
     if contract.status == "terminated":

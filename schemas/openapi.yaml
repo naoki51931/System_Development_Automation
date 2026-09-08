@@ -222,6 +222,91 @@
         "title": "AISettingUpdate",
         "type": "object"
       },
+      "ApprovalRequest": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "organization_id": {
+            "format": "uuid",
+            "title": "Organization Id",
+            "type": "string"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "resource_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resource Id"
+          },
+          "resource_type": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Resource Type",
+            "type": "string"
+          },
+          "target_version": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Version"
+          }
+        },
+        "required": [
+          "organization_id",
+          "action",
+          "resource_type"
+        ],
+        "title": "ApprovalRequest",
+        "type": "object"
+      },
       "ArtifactCreate": {
         "properties": {
           "artifact_type": {
@@ -324,6 +409,42 @@
           "filename"
         ],
         "title": "AttachmentInput",
+        "type": "object"
+      },
+      "AuthorizeRequest": {
+        "properties": {
+          "current_account_id": {
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Current Account Id",
+            "type": "string"
+          },
+          "current_plan_sha256": {
+            "maxLength": 64,
+            "minLength": 64,
+            "title": "Current Plan Sha256",
+            "type": "string"
+          },
+          "current_region": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Current Region",
+            "type": "string"
+          },
+          "current_state_identity": {
+            "maxLength": 1024,
+            "minLength": 1,
+            "title": "Current State Identity",
+            "type": "string"
+          }
+        },
+        "required": [
+          "current_plan_sha256",
+          "current_state_identity",
+          "current_account_id",
+          "current_region"
+        ],
+        "title": "AuthorizeRequest",
         "type": "object"
       },
       "ChangeRequestInput": {
@@ -516,6 +637,81 @@
           }
         },
         "title": "DecisionRequest",
+        "type": "object"
+      },
+      "DeploymentPlanCreate": {
+        "properties": {
+          "aws_account_id": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aws Account Id"
+          },
+          "aws_region": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aws Region"
+          },
+          "plan": {
+            "additionalProperties": true,
+            "title": "Plan",
+            "type": "object"
+          },
+          "project_id": {
+            "format": "uuid",
+            "title": "Project Id",
+            "type": "string"
+          },
+          "terraform_root": {
+            "maxLength": 1024,
+            "minLength": 1,
+            "title": "Terraform Root",
+            "type": "string"
+          },
+          "terraform_state_identity": {
+            "anyOf": [
+              {
+                "maxLength": 1024,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Terraform State Identity"
+          },
+          "terraform_workspace": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Terraform Workspace"
+          }
+        },
+        "required": [
+          "project_id",
+          "plan",
+          "terraform_root"
+        ],
+        "title": "DeploymentPlanCreate",
         "type": "object"
       },
       "DocumentEmailInput": {
@@ -802,6 +998,96 @@
         "title": "EstimateSummary",
         "type": "object"
       },
+      "ExecutionContextRequest": {
+        "properties": {
+          "aws_account_id": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aws Account Id"
+          },
+          "aws_region": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aws Region"
+          },
+          "environment": {
+            "anyOf": [
+              {
+                "maxLength": 30,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Environment"
+          },
+          "state_bucket": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "State Bucket"
+          },
+          "state_identity": {
+            "anyOf": [
+              {
+                "maxLength": 1024,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "State Identity"
+          },
+          "state_key": {
+            "anyOf": [
+              {
+                "maxLength": 1024,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "State Key"
+          },
+          "terraform_root": {
+            "anyOf": [
+              {
+                "maxLength": 1024,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Terraform Root"
+          }
+        },
+        "title": "ExecutionContextRequest",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -1039,6 +1325,32 @@
         "title": "ProjectVersionInput",
         "type": "object"
       },
+      "RealApplyPreflightResponse": {
+        "properties": {
+          "executor_type": {
+            "title": "Executor Type",
+            "type": "string"
+          },
+          "reason_codes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reason Codes",
+            "type": "array"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "reason_codes",
+          "executor_type"
+        ],
+        "title": "RealApplyPreflightResponse",
+        "type": "object"
+      },
       "ReviewCommentCreate": {
         "properties": {
           "author_user_id": {
@@ -1178,6 +1490,42 @@
           "role_codes"
         ],
         "title": "RoleUpdate",
+        "type": "object"
+      },
+      "SecurityCheckRequest": {
+        "properties": {
+          "expected_account_id": {
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Expected Account Id",
+            "type": "string"
+          },
+          "expected_region": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Expected Region",
+            "type": "string"
+          },
+          "expected_root": {
+            "maxLength": 1024,
+            "minLength": 1,
+            "title": "Expected Root",
+            "type": "string"
+          },
+          "expected_state_identity": {
+            "maxLength": 1024,
+            "minLength": 1,
+            "title": "Expected State Identity",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_account_id",
+          "expected_region",
+          "expected_root",
+          "expected_state_identity"
+        ],
+        "title": "SecurityCheckRequest",
         "type": "object"
       },
       "SwitchInput": {
@@ -1813,6 +2161,206 @@
         "summary": "Patch Ai Setting",
         "tags": [
           "ai-storage-workflow"
+        ]
+      }
+    },
+    "/api/v1/approvals": {
+      "get": {
+        "operationId": "list_approvals_api_v1_approvals_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Organization Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Approvals",
+        "tags": [
+          "approvals"
+        ]
+      },
+      "post": {
+        "operationId": "create_approval_api_v1_approvals_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApprovalRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Approval",
+        "tags": [
+          "approvals"
+        ]
+      }
+    },
+    "/api/v1/approvals/{approval_id}/approve": {
+      "post": {
+        "operationId": "approve_api_v1_approvals__approval_id__approve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "approval_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Approval Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Approve",
+        "tags": [
+          "approvals"
+        ]
+      }
+    },
+    "/api/v1/approvals/{approval_id}/reject": {
+      "post": {
+        "operationId": "reject_api_v1_approvals__approval_id__reject_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "approval_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Approval Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Reject",
+        "tags": [
+          "approvals"
         ]
       }
     },
@@ -3701,6 +4249,505 @@
         "summary": "Dashboard",
         "tags": [
           "cursor-collections"
+        ]
+      }
+    },
+    "/api/v1/deployment-executions/{execution_id}": {
+      "get": {
+        "operationId": "read_execution_api_v1_deployment_executions__execution_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "execution_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Execution Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Read Execution",
+        "tags": [
+          "staging-execution-preparation"
+        ]
+      }
+    },
+    "/api/v1/deployment-executions/{execution_id}/prepare": {
+      "post": {
+        "operationId": "prepare_execution_api_v1_deployment_executions__execution_id__prepare_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "execution_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Execution Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExecutionContextRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Prepare Execution",
+        "tags": [
+          "staging-execution-preparation"
+        ]
+      }
+    },
+    "/api/v1/deployment-executions/{execution_id}/real-apply-preflight": {
+      "post": {
+        "description": "Return a disabled, fail-closed real-apply preflight result.\n\nNo client-supplied AWS identity, state key, binary, flags, cwd, or plan\npath is accepted.  A production verifier is intentionally not configured.",
+        "operationId": "real_apply_preflight_api_v1_deployment_executions__execution_id__real_apply_preflight_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "execution_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Execution Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RealApplyPreflightResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Real Apply Preflight",
+        "tags": [
+          "staging-execution-preparation"
+        ]
+      }
+    },
+    "/api/v1/deployment-plans": {
+      "get": {
+        "operationId": "list_plans_api_v1_deployment_plans_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Organization Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Plans",
+        "tags": [
+          "staging-deployment-gate"
+        ]
+      },
+      "post": {
+        "operationId": "create_plan_api_v1_deployment_plans_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeploymentPlanCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Plan",
+        "tags": [
+          "staging-deployment-gate"
+        ]
+      }
+    },
+    "/api/v1/deployment-plans/{plan_id}": {
+      "get": {
+        "operationId": "read_plan_api_v1_deployment_plans__plan_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "plan_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Plan Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Read Plan",
+        "tags": [
+          "staging-deployment-gate"
+        ]
+      }
+    },
+    "/api/v1/deployment-plans/{plan_id}/authorize": {
+      "post": {
+        "operationId": "authorize_plan_api_v1_deployment_plans__plan_id__authorize_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "plan_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Plan Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthorizeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Authorize Plan",
+        "tags": [
+          "staging-deployment-gate"
+        ]
+      }
+    },
+    "/api/v1/deployment-plans/{plan_id}/execution-requests": {
+      "post": {
+        "operationId": "request_execution_api_v1_deployment_plans__plan_id__execution_requests_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "plan_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Plan Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExecutionContextRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Request Execution",
+        "tags": [
+          "staging-deployment-gate"
+        ]
+      }
+    },
+    "/api/v1/deployment-plans/{plan_id}/request-approval": {
+      "post": {
+        "operationId": "request_plan_approval_api_v1_deployment_plans__plan_id__request_approval_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "plan_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Plan Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Request Plan Approval",
+        "tags": [
+          "staging-deployment-gate"
+        ]
+      }
+    },
+    "/api/v1/deployment-plans/{plan_id}/security-check": {
+      "post": {
+        "operationId": "check_plan_api_v1_deployment_plans__plan_id__security_check_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "plan_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Plan Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SecurityCheckRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Check Plan",
+        "tags": [
+          "staging-deployment-gate"
         ]
       }
     },

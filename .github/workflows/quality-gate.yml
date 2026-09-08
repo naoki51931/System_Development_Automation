@@ -23,6 +23,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: {python-version: "3.12", cache: pip}
+      - uses: hashicorp/setup-terraform@v3
+        with: {terraform_wrapper: false}
       - run: pip install -r requirements-quality.txt
       - name: Format
         run: ruff format --check .
@@ -38,14 +40,20 @@ jobs:
           python scripts/check_service_coverage.py quality-results/backend-coverage.json --minimum 90
       - name: Production PITR gate unit tests
         run: pytest -q tests/test_production_pitr_gate.py
-      - name: Migration and OpenAPI generated diff
+      - name: Migration and OpenAPI generation
         run: |
           alembic upgrade head
           python scripts/export_openapi.py
-          git diff --exit-code -- schemas/openapi.yaml
+      - name: Upload generated OpenAPI
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-openapi
+          path: schemas/openapi.yaml
+      - name: OpenAPI generated diff
+        run: git diff --exit-code -- schemas/openapi.yaml
       - name: Security and secret scans
         run: |
-          bandit -q -r app
+          bandit -q -r app -ll
           pip-audit -r requirements.txt
           python scripts/secret_scan.py
   frontend:
@@ -57,7 +65,16 @@ jobs:
       - working-directory: frontend
         run: npm ci
       - working-directory: frontend
-        run: npm run openapi:check
+        name: Generate OpenAPI client
+        run: npm run openapi:generate
+      - name: Upload generated OpenAPI client
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-frontend-openapi-client
+          path: frontend/lib/generated/api.ts
+      - working-directory: frontend
+        name: OpenAPI client generated diff
+        run: git diff --exit-code -- lib/generated/api.ts
       - working-directory: frontend
         run: npm run typecheck
       - working-directory: frontend

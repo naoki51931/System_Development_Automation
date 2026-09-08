@@ -21,6 +21,7 @@ from app.auth.dependencies import (
     get_session,
     require_organization_access,
 )
+from app.auth.permissions import Permission, require_permission
 from app.models.project import Artifact, ArtifactVersion, Project, Review
 from app.services.workflow import (
     ARTIFACT_WRITE_ROLES,
@@ -62,6 +63,7 @@ def post_project(
     access = require_organization_access(
         payload.organization_id, authenticated, session, PROJECT_WRITE_ROLES
     )
+    require_permission(session, access, Permission.PROJECT_UPDATE)
     project = create_project(
         session,
         access,
@@ -110,6 +112,7 @@ def start_estimate(
     session: Annotated[Session, Depends(get_session)],
 ):  # type: ignore[no-untyped-def]
     project, access = get_project_for_user(session, project_id, authenticated)
+    require_permission(session, access, Permission.PROJECT_UPDATE, project.id)
     start_project_estimate(project, access, payload.version)
     session.commit()
     return project_json(project)
@@ -241,6 +244,7 @@ def approve(
     session: Annotated[Session, Depends(get_session)],
 ):  # type: ignore[no-untyped-def]
     version, artifact, access = version_context(session, version_id, authenticated)
+    require_permission(session, access, Permission.ARTIFACT_REVIEW, artifact.project_id)
     approve_version(session, artifact, version, access, payload.comment)
     session.commit()
     return {"status": artifact.status}

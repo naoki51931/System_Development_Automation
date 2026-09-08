@@ -22,6 +22,8 @@ from app.web.routes import router as web_router
 from app.api.local_auth import router as local_auth_router
 from app.api.admin import router as admin_router
 from app.api.collections import router as collections_router
+from app.api.approvals import router as approvals_router
+from app.api.deployment import execution_router, router as deployment_router
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -64,6 +66,9 @@ def create_app() -> FastAPI:
     application.include_router(local_auth_router)
     application.include_router(admin_router)
     application.include_router(collections_router)
+    application.include_router(approvals_router)
+    application.include_router(deployment_router)
+    application.include_router(execution_router)
 
     @application.middleware("http")
     async def security_headers(request: Request, call_next):
