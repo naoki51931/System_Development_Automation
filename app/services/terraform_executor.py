@@ -37,6 +37,8 @@ class ExecutionEnvironmentContext:
     terraform_root: str | None
     state_identity: str | None
     environment: str | None
+    state_bucket: str | None = None
+    state_key: str | None = None
 
 
 class TerraformVersionProvider(Protocol):

@@ -1,5 +1,6 @@
 import json
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -9,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.automation import get_storage
+from app.audit import record_audit_log
 from app.auth.dependencies import (
     AuthenticatedUser,
     get_current_user,
@@ -28,6 +30,10 @@ from app.services.storage import ArtifactStorage
 from app.services.terraform_executor import (
     ExecutionEnvironmentContext,
     SafeStagingTerraformExecutor,
+)
+from app.services.real_apply_boundary import (
+    DisabledAwsIdentityVerifier,
+    IdentityVerificationUnavailable,
 )
 
 router = APIRouter(prefix="/api/v1/deployment-plans", tags=["staging-deployment-gate"])
@@ -66,6 +72,14 @@ class ExecutionContextRequest(BaseModel):
     terraform_root: str | None = Field(default=None, max_length=1024)
     state_identity: str | None = Field(default=None, max_length=1024)
     environment: str | None = Field(default=None, max_length=30)
+    state_bucket: str | None = Field(default=None, max_length=255)
+    state_key: str | None = Field(default=None, max_length=1024)
+
+
+class RealApplyPreflightResponse(BaseModel):
+    status: str
+    reason_codes: list[str]
+    executor_type: str
 
 
 def plan_json(plan: DeploymentPlan) -> dict[str, Any]:
@@ -135,7 +149,70 @@ def _context(payload: ExecutionContextRequest) -> ExecutionEnvironmentContext:
         payload.terraform_root,
         payload.state_identity,
         payload.environment,
+        payload.state_bucket,
+        payload.state_key,
     )
+
+
+@execution_router.post(
+    "/{execution_id}/real-apply-preflight", response_model=RealApplyPreflightResponse
+)
+def real_apply_preflight(
+    execution_id: uuid.UUID,
+    authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)],
+    session: Annotated[Session, Depends(get_session)],
+):
+    """Return a disabled, fail-closed real-apply preflight result.
+
+    No client-supplied AWS identity, state key, binary, flags, cwd, or plan
+    path is accepted.  A production verifier is intentionally not configured.
+    """
+
+    execution = session.get(DeploymentExecution, execution_id)
+    if execution is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Deployment execution not found")
+    access = require_organization_access(
+        execution.organization_id, authenticated, session
+    )
+    require_permission(
+        session, access, Permission.DEPLOYMENT_EXECUTE, execution.project_id
+    )
+    if getattr(access.user, "actor_type", "human") == "ai_agent":
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN, "AI_AGENT cannot authorize real apply"
+        )
+    verifier = DisabledAwsIdentityVerifier()
+    try:
+        verifier.verify(binding=None, now=datetime.now(timezone.utc))
+    except IdentityVerificationUnavailable:
+        record_audit_log(
+            session,
+            organization_id=execution.organization_id,
+            actor_user_id=access.user.id,
+            action="deployment.real_apply.preflight",
+            resource_type="deployment_execution",
+            resource_id=execution.id,
+            approval_id=execution.approval_id,
+            correlation_id=execution.correlation_id,
+            request_id=uuid.uuid4(),
+            result="blocked",
+            reason="AWS_IDENTITY_VERIFIER_DISABLED",
+            after={
+                "executor_type": "disabled_real_apply",
+                "decision": "BLOCKED",
+                "reason_code": "AWS_IDENTITY_VERIFIER_DISABLED",
+            },
+        )
+        session.commit()
+        return RealApplyPreflightResponse(
+            status="BLOCKED",
+            reason_codes=[
+                "AWS_IDENTITY_VERIFIER_DISABLED",
+                "REAL_TERRAFORM_APPLY_DISABLED",
+            ],
+            executor_type="disabled_real_apply",
+        )
+    raise AssertionError("disabled verifier unexpectedly returned evidence")
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
