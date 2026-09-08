@@ -26,8 +26,8 @@ desired_count_frontend = 1
 enable_runtime_services = false
 # ACTIVE recreates RDS, ALB, Interface Endpoints, ECS, Cloud Map and alarms.
 # Set this approval true only for a separately reviewed IDLE-to-ACTIVE plan.
-staging_mode             = "active"
-allow_staging_reactivation       = true
+staging_mode                      = "idle"
+allow_staging_reactivation       = false
 idle_database_removal_approved    = false
 allow_database_deletion           = false
 idle_database_snapshot_identifier = ""
@@ -53,11 +53,13 @@ enable_nat_gateway          = false
 enable_interface_endpoints = true
 enable_s3_gateway_endpoint = true
 
-enable_custom_domain  = false
-domain_name           = ""
+enable_custom_domain  = true
+domain_name           = "test.system-navigation.com"
+dns_provider          = "external"
 route53_zone_id       = ""
 acm_certificate_arn   = ""
-enable_https          = false
+acm_certificate_issued = false
+enable_https          = true
 create_route53_record = false
 
 prerequisite_sns_topic_arn          = "REPLACE_WITH_PREREQUISITE_SNS_TOPIC_ARN"

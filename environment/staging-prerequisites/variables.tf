@@ -59,23 +59,32 @@ variable "state_bucket_name" { type = string }
 variable "state_kms_key_arn" { type = string }
 variable "enable_custom_domain" {
   type        = bool
-  description = "Create staging ACM and Route53 validation resources. Keep false until a new domain is approved."
-  default     = false
+  description = "Create the approved staging ACM certificate independently of idle runtime."
+  default     = true
 }
 variable "domain_name" {
   type    = string
-  default = ""
+  default = "test.system-navigation.com"
   validation {
-    condition     = !var.enable_custom_domain || can(regex("^staging\\.", var.domain_name))
-    error_message = "When custom domains are enabled, the ACM domain must be staging-specific."
+    condition     = !var.enable_custom_domain || var.domain_name == "test.system-navigation.com"
+    error_message = "The approved staging domain is test.system-navigation.com."
+  }
+}
+variable "dns_provider" {
+  type        = string
+  description = "Authoritative DNS integration. external outputs manual records; route53 manages them."
+  default     = "external"
+  validation {
+    condition     = contains(["external", "route53"], var.dns_provider)
+    error_message = "dns_provider must be external or route53."
   }
 }
 variable "route53_zone_id" {
   type    = string
   default = ""
   validation {
-    condition     = !var.enable_custom_domain || trimspace(var.route53_zone_id) != ""
-    error_message = "When custom domains are enabled, a Route53 hosted zone ID is required."
+    condition     = !var.enable_custom_domain || var.dns_provider == "external" || trimspace(var.route53_zone_id) != ""
+    error_message = "Route53 mode requires a hosted zone ID; external DNS does not."
   }
 }
 variable "alarm_notification_email" {

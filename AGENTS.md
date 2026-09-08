@@ -10,6 +10,7 @@ Update this file whenever implementation changes so documentation and code stay 
 - `app/models`: Identity/RBAC plus tenant-scoped project, artifact, immutable version, review, AI-run, and approval-history models.
 - `app/services/workflow.py`: Tenant-safe project/artifact operations and validated review/approval state transitions.
 - `app/api/projects.py`: Authenticated minimal project, artifact, version, review, comment, submit, approve, and change-request APIs.
+- PM/organization administrators can explicitly move a version-checked `draft|hearing` project from `hearing` to `estimating/estimate` through `POST /api/v1/projects/{id}/start-estimate`; invalid transitions and stale versions fail closed.
 - `app/auth`: Cognito access-token verifier abstraction plus FastAPI authentication and tenant authorization dependencies.
 - `app/seed.py`: Idempotent system-role seed command with no fixed role UUIDs.
 - `docs/identity_access.md`: ER, Cognito validation, tenant boundary, deletion, audit, and RDS preflight design.
@@ -122,11 +123,16 @@ Before apply, allow replacement of only the ECS task definition when it creates 
 ## Web portal and local worker phase
 
 - `frontend/` is the separate Next.js/TypeScript application. It uses only local CSS, a shared cookie/CSRF API client, accessible responsive shell, role-oriented portal/admin screens, and no external UI service.
+- `frontend/app/page.tsx` is the public landing page ported from the backend's server-rendered `/` page; its CSS module keeps landing styles isolated from portal routes.
+- Public `/` remains the landing page. The portal is exposed under `/development` using Next.js rewrites, and all portal navigation stays within that prefix.
+- When `NEXT_PUBLIC_LOCAL_AUTH_ENABLED=true`, the shared header exposes a local-only test-user selector. Switching users replaces the LocalAuth session, clears organization/project session state, and reloads the portal; the control is absent from staging/production builds.
+- Project detail loads the project as the authoritative view and isolates estimate/chat authorization failures, so a forbidden related resource is shown as unavailable without replacing the readable project with a page-wide 403.
+- The PM estimate action moves a version-checked hearing project into `estimating/estimate`, routes to the selected project's estimate screen, and exposes a PM/admin-only local draft form with one manual JPY line item.
 - `app/api/local_auth.py` provides development-only test-user login with a short-lived HttpOnly signed cookie. Tokens contain only the immutable user subject; organization and roles are always loaded from PostgreSQL. `APP_ENV=production` or `APP_LOCAL_AUTH_ENABLED=false` disables LocalAuth. Cognito remains a network-disabled stub.
 - `app/api/pagination.py` signs `created_at + id` cursors with HMAC, rejects tampering, caps pages at 100, and always applies tenant filters before cursors.
 - `app/workers/` claims Outbox jobs with `FOR UPDATE SKIP LOCKED`, worker identity, heartbeat, expiring lease, bounded exponential retry, idempotency constraints, and dead letter state. Providers remain local mocks.
 - Migration `6b1e4c9f2a10` only adds Outbox lease/retry columns and an index; offline SQL is committed. Never apply it to RDS in this phase.
-- `compose.yaml` starts local PostgreSQL, backend, frontend, and worker. It contains local-only credentials and never enables Cognito, Stripe, SES, S3, external AI, AWS, or public deployment.
+- `compose.yaml` starts local PostgreSQL, backend, frontend, and worker. The browser uses same-origin `/api/v1`, which the Compose frontend rewrites to the internal backend service so preview/remote browser hosts do not depend on browser-local port 8000. It contains local-only credentials and never enables Cognito, Stripe, SES, S3, external AI, AWS, or public deployment.
 - Run `docker compose up --build`, `docker compose run --rm backend python -m pytest -q`, and `docker compose run --rm frontend npm test`. LocalAuth must never be enabled in a production environment.
 
 ## Staging readiness quality gate
@@ -190,11 +196,11 @@ Before apply, allow replacement of only the ECS task definition when it creates 
 
 ## Staging pre-plan resource preparation
 
-- `environment/staging-prerequisites` owns the two immutable ECR repositories, GitHub staging deploy role/policy, staging SNS email subscription, and 150 USD Budget in state `system-navigator/staging/prerequisites.tfstate`. AWS Budgets for this account accepts USD only; the rejected former setting was 100 GBP. Custom-domain ACM and DNS validation are conditional and disabled until a new domain is explicitly approved. It owns no VPC, RDS, ECS, ALB, S3, or Secrets.
+- `environment/staging-prerequisites` owns the two immutable ECR repositories, GitHub staging deploy role/policy, staging SNS email subscription, 150 USD Budget, and the `test.system-navigation.com` ACM prerequisite in state `system-navigator/staging/prerequisites.tfstate`. External お名前.com DNS is the default: Terraform outputs validation records and creates no Route53 records. It owns no VPC, RDS, ECS, ALB, S3, or Secrets.
 - Backend, worker, and migration share one reviewed application digest with separate commands/roles. Main staging accepts only account/region ECR URIs pinned with `@sha256`; local image IDs are not registry digests.
 - GitHub trust is exactly the `staging` Environment. Enforce approved branches in GitHub Environment protection; never broaden trust to `repo:...:*`.
 - Initial networking is dedicated `10.30.0.0/16`, isolated DB subnets, no NAT, and explicit ECR/S3/Logs/Monitoring/Secrets/STS/KMS endpoints. Review egress before enabling non-mock providers.
-- No SystemNavigator AI resource may use `true-camera-test.com`. Until a replacement domain is approved, custom domains, ACM, Route53 aliases, HTTPS listeners, Cognito, Stripe, real authentication, and sensitive data are disabled; temporary staging checks use the ALB HTTP DNS name only. Main staging receives SNS topic and deploy-role ARNs explicitly, never through a reverse dependency. Alert email and Budget inputs live only in ignored prerequisite tfvars; SNS email requires confirmation.
+- No active SystemNavigator AI configuration may use `true-camera-test.com`. The approved staging domain is `test.system-navigation.com`; active staging uses HTTPS with an HTTP 301 redirect only after the ACM ISSUED and reactivation gates. Cognito callback/logout registration remains `COGNITO_STAGING_DOMAIN_FOLLOW_UP`. Main staging receives prerequisite outputs explicitly, never through a reverse dependency. Alert email and Budget inputs live only in ignored prerequisite tfvars; SNS email requires confirmation.
 - Initially create only the database Secret container. Optional containers appear only with their providers, and Terraform never manages Secret values.
 - Production has a reviewed `production_capacity_profile="low-traffic"` for 100 RPM steady and 600 RPM short burst: a separate 256 CPU/512 MiB task-definition family, desired/min 1 and max 2 target tracking, and `db.t4g.small` while retaining Multi-AZ, 50 GiB storage, ALB and NAT. The known-good 512/1024 task definition remains registered for rollback. Never apply the saved plan without a fresh Production manual snapshot/PITR check and separate approval.
 - Production monitoring is isolated on the planned `ai-platform-prod-alerts` topic with 13 ALB/ECS/RDS alarms; it never uses staging SNS. The approved recipient is `info@nagi-neco.com`; Terraform disables automatic confirmation, so a human must confirm the AWS email subscription after an approved apply.

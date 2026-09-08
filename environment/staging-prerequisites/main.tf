@@ -35,6 +35,7 @@ module "dns" {
   count           = var.enable_custom_domain ? 1 : 0
   source          = "../../modules/staging_dns"
   domain_name     = var.domain_name
+  dns_provider    = var.dns_provider
   route53_zone_id = var.route53_zone_id
 }
 

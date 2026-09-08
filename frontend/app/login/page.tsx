@@ -33,7 +33,7 @@ export default function Login() {
     try {
       await api("/auth/local/login", { method: "POST", body: JSON.stringify({ user_id: id }) });
       // A full same-origin navigation remounts the auth provider after the HttpOnly cookie is set.
-      window.location.assign("/");
+      window.location.assign("/development");
     } catch {
       setError("ログインできませんでした");
     }
