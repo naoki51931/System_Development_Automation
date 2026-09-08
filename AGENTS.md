@@ -196,6 +196,13 @@ Before apply, allow replacement of only the ECS task definition when it creates 
 
 ## Staging pre-plan resource preparation
 
+### Safe staging Terraform executor foundation
+
+- `app/services/terraform_executor.py` provides staging-only validation and execution preparation. It never invokes Terraform or AWS and accepts only a typed execution context.
+- `DeploymentExecution` and migration `cd34ef56ab78` store authorization/preparation evidence. `executed_at` remains null in this phase.
+- Preparation rereads and canonicalizes the plan artifact, recomputes SHA-256, revalidates approval/four-eyes/permission/security gate/account/region/state/root, and emits audit events. `environment/staging` is the default root allowlist; traversal and symlink escapes are rejected.
+- Future apply must use only the exact approved saved plan via argv; arbitrary shell, `shell=True`, implicit apply, AWS calls, database connections, and production execution remain prohibited.
+
 - `environment/staging-prerequisites` owns the two immutable ECR repositories, GitHub staging deploy role/policy, staging SNS email subscription, 150 USD Budget, and the `test.system-navigation.com` ACM prerequisite in state `system-navigator/staging/prerequisites.tfstate`. External お名前.com DNS is the default: Terraform outputs validation records and creates no Route53 records. It owns no VPC, RDS, ECS, ALB, S3, or Secrets.
 - Backend, worker, and migration share one reviewed application digest with separate commands/roles. Main staging accepts only account/region ECR URIs pinned with `@sha256`; local image IDs are not registry digests.
 - GitHub trust is exactly the `staging` Environment. Enforce approved branches in GitHub Environment protection; never broaden trust to `repo:...:*`.

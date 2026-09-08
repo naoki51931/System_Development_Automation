@@ -16,6 +16,8 @@ from app.auth.dependencies import (
     get_session,
     require_organization_access,
 )
+from app.auth.permissions import Permission, require_permission
+from app.audit import record_audit_log
 from app.errors import AppError
 from app.models.automation import AISetting, ArtifactUploadIntent
 from app.models.project import Artifact, ArtifactVersion, Project, Review, ReviewComment
@@ -138,7 +140,7 @@ def post_ai_setting(
     authenticated: Annotated[AuthenticatedUser, Depends(get_current_user)],
     session: Annotated[Session, Depends(get_session)],
 ):
-    require_organization_access(
+    access = require_organization_access(
         payload.organization_id, authenticated, session, PROJECT_WRITE_ROLES
     )
     if payload.project_id is not None:
@@ -149,8 +151,27 @@ def post_ai_setting(
             raise AppError(
                 "PERMISSION_DENIED", "Project belongs to another organization"
             )
+        require_permission(session, access, Permission.AI_SETTING_UPDATE, project.id)
+    else:
+        require_permission(session, access, Permission.AI_SETTING_UPDATE)
     setting = AISetting(**payload.model_dump())
     session.add(setting)
+    session.flush()
+    record_audit_log(
+        session,
+        organization_id=setting.organization_id,
+        actor_user_id=authenticated.user.id,
+        action="ai_setting.created",
+        resource_type="ai_setting",
+        resource_id=setting.id,
+        request_id=uuid.uuid4(),
+        after={
+            "provider": setting.provider,
+            "model": setting.model,
+            "operation_type": setting.operation_type,
+        },
+        result="success",
+    )
     session.commit()
     return setting_json(setting)
 
@@ -187,11 +208,33 @@ def patch_ai_setting(
     setting = session.get(AISetting, setting_id)
     if setting is None:
         raise AppError("RESOURCE_NOT_FOUND", "AI setting not found")
-    require_organization_access(
+    access = require_organization_access(
         setting.organization_id, authenticated, session, PROJECT_WRITE_ROLES
     )
+    require_permission(
+        session, access, Permission.AI_SETTING_UPDATE, setting.project_id
+    )
+    before = {
+        "enabled": setting.enabled,
+        "review_threshold": setting.review_threshold,
+        "max_auto_revision_count": setting.max_auto_revision_count,
+        "currency": setting.currency,
+        "version": setting.version,
+    }
     values = payload.model_dump(exclude={"version"}, exclude_none=True)
     update_ai_setting(session, setting, payload.version, values)
+    record_audit_log(
+        session,
+        organization_id=setting.organization_id,
+        actor_user_id=authenticated.user.id,
+        action="ai_setting.updated",
+        resource_type="ai_setting",
+        resource_id=setting.id,
+        request_id=uuid.uuid4(),
+        before=before,
+        after={**before, **values, "version": setting.version},
+        result="success",
+    )
     session.commit()
     return setting_json(setting)
 

@@ -1,5 +1,5 @@
 import uuid
-from datetime import date
+from datetime import date, datetime
 
 from pydantic import BaseModel, Field
 
@@ -52,6 +52,17 @@ class ReviewCommentCreate(BaseModel):
 
 class DecisionRequest(BaseModel):
     comment: str | None = None
+
+
+class ApprovalRequest(BaseModel):
+    organization_id: uuid.UUID
+    project_id: uuid.UUID | None = None
+    action: str
+    resource_type: str = Field(min_length=1, max_length=100)
+    resource_id: uuid.UUID | None = None
+    target_version: int | None = Field(default=None, ge=1)
+    reason: str | None = None
+    expires_at: datetime | None = None
 
 
 class EstimateSummary(BaseModel):
