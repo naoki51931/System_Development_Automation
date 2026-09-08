@@ -40,11 +40,17 @@ jobs:
           python scripts/check_service_coverage.py quality-results/backend-coverage.json --minimum 90
       - name: Production PITR gate unit tests
         run: pytest -q tests/test_production_pitr_gate.py
-      - name: Migration and OpenAPI generated diff
+      - name: Migration and OpenAPI generation
         run: |
           alembic upgrade head
           python scripts/export_openapi.py
-          git diff --exit-code -- schemas/openapi.yaml
+      - name: Upload generated OpenAPI
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-openapi
+          path: schemas/openapi.yaml
+      - name: OpenAPI generated diff
+        run: git diff --exit-code -- schemas/openapi.yaml
       - name: Security and secret scans
         run: |
           bandit -q -r app
