@@ -55,6 +55,14 @@ variable "github_environment" {
     error_message = "GitHub trust must use the staging Environment."
   }
 }
+variable "github_readonly_environment" {
+  type    = string
+  default = "staging-readonly"
+  validation {
+    condition     = var.github_readonly_environment == "staging-readonly"
+    error_message = "The verification role must use the staging-readonly Environment."
+  }
+}
 variable "state_bucket_name" { type = string }
 variable "state_kms_key_arn" { type = string }
 variable "enable_custom_domain" {
