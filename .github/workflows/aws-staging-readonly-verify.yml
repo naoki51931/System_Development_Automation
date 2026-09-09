@@ -1,0 +1,158 @@
+name: aws-staging-readonly-verify
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: eu-west-2
+  AWS_DEFAULT_REGION: eu-west-2
+  EXPECTED_ACCOUNT: "557604519341"
+  STATE_BUCKET: ai-platform-terraform-state-557604519341
+  STATE_KEY: system-navigator/staging/terraform.tfstate
+  STAGING_PREFIX: system-navigator-staging-
+  ACM_CERTIFICATE_ARN: arn:aws:acm:eu-west-2:557604519341:certificate/0808ee17-1c96-4a66-82d3-1ff5a8b1d31e
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    environment: staging-readonly
+    steps:
+      - name: Configure AWS credentials through GitHub OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::557604519341:role/system-navigator-staging-readonly
+          aws-region: eu-west-2
+
+      - name: Verify account and region boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          caller_json="$(aws sts get-caller-identity --output json)"
+          account="$(jq -r '.Account' <<<"$caller_json")"
+          test "$account" = "$EXPECTED_ACCOUNT"
+          test "${AWS_REGION}" = "eu-west-2"
+          test "${AWS_DEFAULT_REGION}" = "eu-west-2"
+          jq -c '{Account,Arn,UserId}' <<<"$caller_json"
+          echo "Region=${AWS_REGION}"
+
+      - name: Verify staging state key existence without reading the object
+        shell: bash
+        run: |
+          set -euo pipefail
+          key="$(aws s3api list-objects-v2 \
+            --bucket "$STATE_BUCKET" \
+            --prefix "$STATE_KEY" \
+            --max-keys 1 \
+            --query 'Contents[?Key==`system-navigator/staging/terraform.tfstate`].Key | [0]' \
+            --output text)"
+          if [ "$key" = "$STATE_KEY" ]; then
+            echo '{"state_key":"system-navigator/staging/terraform.tfstate","exists":true}'
+          else
+            echo '{"state_key":"system-navigator/staging/terraform.tfstate","exists":false}'
+          fi
+
+      - name: Describe the approved ACM certificate
+        shell: bash
+        run: |
+          set -euo pipefail
+          aws acm describe-certificate \
+            --certificate-arn "$ACM_CERTIFICATE_ARN" \
+            --query 'Certificate.{DomainName:DomainName,Status:Status,SubjectAlternativeNames:SubjectAlternativeNames}' \
+            --output json
+
+      - name: Inventory staging ECS resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t clusters < <(aws ecs list-clusters --query 'clusterArns[?contains(@, `system-navigator-staging-`)]' --output text)
+          if [ "${clusters[0]:-}" = "None" ]; then clusters=(); fi
+          echo "ECS cluster count=${#clusters[@]}"
+          for cluster in "${clusters[@]}"; do
+            aws ecs describe-clusters --clusters "$cluster" \
+              --query 'clusters[].{ClusterName:clusterName,Status:status,RunningTasks:runningTasksCount,PendingTasks:pendingTasksCount,Services:activeServicesCount}' \
+              --output json
+            mapfile -t services < <(aws ecs list-services --cluster "$cluster" --query 'serviceArns' --output text)
+            if [ "${services[0]:-}" = "None" ]; then services=(); fi
+            service_count="${#services[@]}"
+            if [ "$service_count" -gt 0 ]; then
+              aws ecs describe-services --cluster "$cluster" --services "${services[@]}" \
+                --query 'services[].{ServiceName:serviceName,Status:status,Desired:desiredCount,Running:runningCount,Pending:pendingCount}' --output json
+            fi
+            mapfile -t tasks < <(aws ecs list-tasks --cluster "$cluster" --desired-status RUNNING --query 'taskArns' --output text)
+            if [ "${tasks[0]:-}" = "None" ]; then tasks=(); fi
+            task_count="${#tasks[@]}"
+            if [ "$task_count" -gt 0 ]; then
+              aws ecs describe-tasks --cluster "$cluster" --tasks "${tasks[@]}" \
+                --query 'tasks[].{TaskArn:taskArn,LastStatus:lastStatus,DesiredStatus:desiredStatus,StartedAt:startedAt}' --output json
+            fi
+            echo "ECS cluster=$cluster service_count=$service_count running_task_count=$task_count"
+          done
+
+      - name: Inventory staging RDS resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          aws rds describe-db-instances \
+            --query 'DBInstances[?starts_with(DBInstanceIdentifier, `system-navigator-staging-`)].{Identifier:DBInstanceIdentifier,Status:DBInstanceStatus,Class:DBInstanceClass,Engine:Engine}' \
+            --output json
+          aws rds describe-db-snapshots \
+            --query 'DBSnapshots[?starts_with(DBSnapshotIdentifier, `system-navigator-staging-`)].{Identifier:DBSnapshotIdentifier,Status:Status,Engine:Engine}' \
+            --output json
+
+      - name: Inventory staging ELBv2 resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t load_balancers < <(aws elbv2 describe-load-balancers --query 'LoadBalancers[?starts_with(LoadBalancerName, `system-navigator-staging-`)].LoadBalancerArn' --output text)
+          if [ "${load_balancers[0]:-}" = "None" ]; then load_balancers=(); fi
+          echo "ELBv2 load_balancer_count=${#load_balancers[@]}"
+          for load_balancer in "${load_balancers[@]}"; do
+            aws elbv2 describe-load-balancers --load-balancer-arns "$load_balancer" \
+              --query 'LoadBalancers[].{Name:LoadBalancerName,State:State.Code,Type:Type,Scheme:Scheme}' --output json
+            aws elbv2 describe-target-groups --load-balancer-arn "$load_balancer" \
+              --query 'TargetGroups[].{Name:TargetGroupName,Port:Port,Protocol:Protocol,HealthCheckPath:HealthCheckPath}' --output json
+            aws elbv2 describe-listeners --load-balancer-arn "$load_balancer" \
+              --query 'Listeners[].{Port:Port,Protocol:Protocol,DefaultActions:length(DefaultActions)}' --output json
+          done
+
+      - name: Inventory staging ECR repositories and image counts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t repositories < <(aws ecr describe-repositories --query 'repositories[?starts_with(repositoryName, `system-navigator-staging-`)].repositoryName' --output text)
+          if [ "${repositories[0]:-}" = "None" ]; then repositories=(); fi
+          echo "ECR repository count=${#repositories[@]}"
+          for repository in "${repositories[@]}"; do
+            aws ecr describe-repositories --repository-names "$repository" \
+              --query 'repositories[].{Name:repositoryName,Uri:repositoryUri}' --output json
+            image_count="$(aws ecr list-images --repository-name "$repository" --query 'length(imageIds)' --output text)"
+            echo "ECR repository=$repository image_count=$image_count"
+            aws ecr describe-images --repository-name "$repository" \
+              --query 'imageDetails[0:20].{Digest:imageDigest,Tags:imageTags,Size:imageSizeInBytes}' --output json
+          done
+
+      - name: Inventory staging VPC resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t vpcs < <(aws ec2 describe-vpcs --filters "Name=tag:Name,Values=${STAGING_PREFIX}*" --query 'Vpcs[].VpcId' --output text)
+          if [ "${vpcs[0]:-}" = "None" ]; then vpcs=(); fi
+          echo "VPC count=${#vpcs[@]}"
+          for vpc in "${vpcs[@]}"; do
+            aws ec2 describe-vpcs --vpc-ids "$vpc" \
+              --query 'Vpcs[].{VpcId:VpcId,CidrBlock:CidrBlock,State:State}' --output json
+            aws ec2 describe-subnets --filters "Name=vpc-id,Values=$vpc" \
+              --query 'Subnets[].{SubnetId:SubnetId,AvailabilityZone:AvailabilityZone,CidrBlock:CidrBlock,State:State}' --output json
+            aws ec2 describe-route-tables --filters "Name=vpc-id,Values=$vpc" \
+              --query 'RouteTables[].{RouteTableId:RouteTableId,Associations:length(Associations),Routes:length(Routes)}' --output json
+            aws ec2 describe-security-groups --filters "Name=vpc-id,Values=$vpc" \
+              --query 'SecurityGroups[].{GroupId:GroupId,GroupName:GroupName}' --output json
+            aws ec2 describe-vpc-endpoints --filters "Name=vpc-id,Values=$vpc" \
+              --query 'VpcEndpoints[].{VpcEndpointId:VpcEndpointId,ServiceName:ServiceName,State:State}' --output json
+            aws ec2 describe-nat-gateways --filter "Name=vpc-id,Values=$vpc" \
+              --query 'NatGateways[].{NatGatewayId:NatGatewayId,State:State,SubnetId:SubnetId}' --output json
+          done

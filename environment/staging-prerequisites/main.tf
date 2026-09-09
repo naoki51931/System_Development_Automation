@@ -31,6 +31,17 @@ module "deploy_role" {
   state_kms_key_arn        = var.state_kms_key_arn
 }
 
+module "staging_readonly_role" {
+  source                   = "../../modules/staging_readonly_role"
+  aws_account_id           = var.aws_account_id
+  aws_region               = var.aws_region
+  github_oidc_provider_arn = var.github_oidc_provider_arn
+  github_org               = var.github_org
+  github_repository        = var.github_repository
+  github_environment       = var.github_readonly_environment
+  state_bucket_name        = var.state_bucket_name
+}
+
 module "dns" {
   count           = var.enable_custom_domain ? 1 : 0
   source          = "../../modules/staging_dns"
